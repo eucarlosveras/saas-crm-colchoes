@@ -159,15 +159,12 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
             });
         }
 
-        function escapeHtml(str) {
-            return escapeHtmlUtil(str);
-        }
-
         function carregarNotificacoesLidas() { const stored = localStorage.getItem('notificacoesLidas'); if (stored) { try { const parsed = JSON.parse(stored); setNotificacoesLidas(new Set(parsed)); } catch(e) { } } }
         function salvarNotificacoesLidas() { localStorage.setItem('notificacoesLidas', JSON.stringify(Array.from(getNotificacoesLidas()))); }
         function marcarTodasNotificacoesLidas(ids) { const current = getNotificacoesLidas(); let altered = false; ids.forEach(id => { if (id && !current.has(id)) { current.add(id); altered = true; } }); if (altered) { setNotificacoesLidas(current); salvarNotificacoesLidas(); } }
         function showLoader() { document.getElementById('globalLoader').classList.add('loading'); }
         function hideLoader() { document.getElementById('globalLoader').classList.remove('loading'); }
+        function escapeHtml(str) { if (!str) return ''; const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
         function timeAgo(dateString) { const now = new Date(); const date = new Date(dateString); const diff = Math.floor((now - date) / (1000 * 60 * 60 * 24)); if (diff === 0) return 'Hoje'; if (diff === 1) return 'Ontem'; return 'há ' + diff + ' dias'; }
         function getDateLabel(dateStr) { const d = new Date(dateStr); const hoje = new Date(); const ontem = new Date(hoje); ontem.setDate(hoje.getDate() - 1); if (d.toDateString() === hoje.toDateString()) return 'Hoje'; if (d.toDateString() === ontem.toDateString()) return 'Ontem'; return d.toLocaleDateString('pt-BR'); }
         function getUltimaVisita(id) { const ts = localStorage.getItem('ultima_visita_' + id); return ts ? parseInt(ts) : 0; }
@@ -1567,7 +1564,7 @@ function selectFilter(filter) {
             const orcadosCount = total - fechados;
             
             if(getDonutChartInstanceState()) { getDonutChartInstanceState().destroy(); }
-            const chartDonut = new window.Chart(ctxDonut, {
+            const chartDonut = new Chart(ctxDonut, {
                 type: 'doughnut',
                 data: {
                     labels: ['Orçados', 'Fechados'],
@@ -1607,7 +1604,7 @@ function selectFilter(filter) {
             const ctxBar = document.getElementById('barChartCanvas');
             if (ctxBar && getHistoricoFaturamento().length > 0) {
                 if(getBarChartInstanceState()) { getBarChartInstanceState().destroy(); }
-                const chartBar = new window.Chart(ctxBar, {
+                const chartBar = new Chart(ctxBar, {
                     type: 'bar',
                     data: {
                         labels: getHistoricoFaturamento().map(h => h.mes),
@@ -2165,7 +2162,10 @@ function selectFilter(filter) {
         window.handleLogin = handleLogin;
         window.openModal = openModal;
         window.closeModal = closeModal;
-        window.renderizarGraficos = renderizarGraficos;
+        window.abrirModalUsuarioAdmin = abrirModalUsuarioAdmin;
+        window.salvarUsuarioAdmin = salvarUsuarioAdmin;
+        window.abrirModalExcluirUsuarioAdmin = abrirModalExcluirUsuarioAdmin;
+        window.confirmarExclusaoUsuario = confirmarExclusaoUsuario;
 
         // legacy – kept for compatibility but redirects to new page
         function renderClientes() { navigateTo('clientes_lista'); }
