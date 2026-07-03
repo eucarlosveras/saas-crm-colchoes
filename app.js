@@ -1,9 +1,3 @@
-import { STATUS as STATUS_MODULE, AppState as AppStateModule, setUsuarioLogado as setUsuarioLogadoState, setFiltroMes as setFiltroMesState, getUsuarioLogado as getUsuarioLogadoState, getFiltroMes as getFiltroMesState, getFiltroAno as getFiltroAnoState, getFiltroDia as getFiltroDiaState, getViewAtual as getViewAtualState, getViewAnterior as getViewAnteriorState, getPaginaAtual as getPaginaAtualState, getFiltroVendedor as getFiltroVendedorState, getFiltroLoja as getFiltroLojaState, setClienteSelecionadoParaAcao as setClienteSelecionadoParaAcaoState, getClienteSelecionadoParaAcao as getClienteSelecionadoParaAcaoState, setClienteParaOrcamento as setClienteParaOrcamentoState, getClienteParaOrcamento as getClienteParaOrcamentoState, setIdOrcamentoParaPerder as setIdOrcamentoParaPerderState, getIdOrcamentoParaPerder as getIdOrcamentoParaPerderState, setIdMetaEdicao as setIdMetaEdicaoState, getIdMetaEdicao as getIdMetaEdicaoState, setDonutChartInstance as setDonutChartInstanceState, getDonutChartInstance as getDonutChartInstanceState, setBarChartInstance as setBarChartInstanceState, getBarChartInstance as getBarChartInstanceState, setSalvandoOrcamento as setSalvandoOrcamentoState, getSalvandoOrcamento as getSalvandoOrcamentoState, setHistoricoFaturamento as setHistoricoFaturamentoState, getHistoricoFaturamento as getHistoricoFaturamentoState, setComentarioParaExcluir as setComentarioParaExcluirState, getComentarioParaExcluir as getComentarioParaExcluirState, setIdUsuarioEmEdicao as setIdUsuarioEmEdicaoState, getIdUsuarioEmEdicao as getIdUsuarioEmEdicaoState, setUsuariosParaLogin as setUsuariosParaLoginState, getUsuariosParaLogin as getUsuariosParaLoginState, setIsSavingComment as setIsSavingCommentState, getIsSavingComment as getIsSavingCommentState, setIsConfirmingPerda as setIsConfirmingPerdaState, getIsConfirmingPerda as getIsConfirmingPerdaState, setNotificacoesLidas as setNotificacoesLidasState, getNotificacoesLidas as getNotificacoesLidasState, setNotificacoesBanco as setNotificacoesBancoState, getNotificacoesBanco as getNotificacoesBancoState } from './state.js';
-import { escapeHtml as escapeHtmlUtil, delay as delayUtil, normalizeErrorMessage as normalizeErrorMessageUtil, isRetryableError as isRetryableErrorUtil, safeCall as safeCallUtil } from './utils.js';
-import { createAuthModule } from './auth.js';
-import { createDashboardModule } from './dashboard.js';
-import { createAgendaModule } from './agenda.js';
-
 const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_kvVacObZ3ERPqc9MjOIoWw_aRZeYeIn';
         const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -11,21 +5,49 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         const META_PADRAO = 50000;
         const ITEMS_PER_PAGE = 10;
 
-        const STATUS = STATUS_MODULE;
+        const STATUS = {
+	CONTATO_INICIAL: 'Contato Inicial',
+  	NEGOCIACAO: 'Negociação',
+    	EM_FECHAMENTO: 'Em Fechamento',
+    	FECHADO: 'Fechado',
+    	PERDIDO: 'Perdido'
+        };
 
-        const AppState = AppStateModule;
+        // O nosso Cofre (Estado Global da Aplicação)
+            const AppState = {
+                usuarioLogado: null,
+                kpisMensais: [],
+                filtros: {
+                    vendedor: 'todos',
+                    loja: 'todas',
+                    mes: new Date().getMonth() + 1,
+                    ano: new Date().getFullYear(),
+                    dia: null,
+                    status: 'todos',
+                    busca: ''
+                },
+                ui: {
+                    viewAtual: 'inicio',
+                    viewAnterior: 'inicio',
+                    paginaAtual: 1
+                },
+                contextoVenda: {
+                    clienteAtual: null,          // Substitui AppState.contextoVenda.clienteAtual
+                    clienteParaAcao: null,       // Substitui clienteSelecionadoParaAcao
+                    orcamentoParaPerder: null    // Substitui idOrcamentoParaPerder
+                }
+            };
 
         // --- GUARDIÕES DO ESTADO ---
         
         function setUsuarioLogado(usuario) {
-            const ok = setUsuarioLogadoState(usuario);
-            if (ok) {
-                currentUser = usuario;
-                if (typeof window !== 'undefined') {
-                    window.currentUser = usuario;
-                }
+            if (usuario && usuario.status?.toLowerCase() !== 'ativo') {
+                console.error("Tentativa de logar usuário inativo barrada pelo estado.");
+                return false;
             }
-            return ok;
+            AppState.usuarioLogado = usuario;
+            currentUser = usuario;
+            return true;
         }
         
         function setClienteAtual(clienteData) {
@@ -33,7 +55,9 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         }
         
         function setFiltroMes(mes, ano) {
-            setFiltroMesState(mes, ano);
+            AppState.filtros.mes = mes;
+            AppState.filtros.ano = ano;
+            AppState.filtros.dia = null; // Resetar o dia ao mudar o mês
         }
 
         let mapStatusUUID = []; 
@@ -50,51 +74,36 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         let searchTerm = '';
         let searchProtocolo = '';
         
+        let clienteSelecionadoParaAcao = null;
+        let clienteParaOrcamento = null;
+        let idOrcamentoParaPerder = null;
+        let idMetaEdicao = null;
+        let donutChartInstance = null;
+        let barChartInstance = null;
+        let salvandoOrcamento = false;
+        let historicoFaturamento = [];
+        let comentarioParaExcluir = null;
+        let idUsuarioEmEdicao = null;
+
+        let usuariosParaLogin = [];
+        let isSavingComment = false;
+        let isConfirmingPerda = false;
+        let notificacoesLidas = new Set();
+        let notificacoesBanco = []; 
+        
         // Helpers para acessar o AppState de forma concisa
-        function getUsuarioLogado() { return getUsuarioLogadoState(); }
-        function getFiltroMes() { return getFiltroMesState(); }
-        function getFiltroAno() { return getFiltroAnoState(); }
-        function getFiltroDia() { return getFiltroDiaState(); }
-        function getViewAtual() { return getViewAtualState(); }
-        function getViewAnterior() { return getViewAnteriorState(); }
-        function getPaginaAtual() { return getPaginaAtualState(); }
-        function getFiltroVendedor() { return getFiltroVendedorState(); }
-        function getFiltroLoja() { return getFiltroLojaState(); }
-        function getClienteSelecionadoParaAcao() { return getClienteSelecionadoParaAcaoState(); }
-        function setClienteSelecionadoParaAcao(valor) { return setClienteSelecionadoParaAcaoState(valor); }
-        function getClienteParaOrcamento() { return getClienteParaOrcamentoState(); }
-        function setClienteParaOrcamento(valor) { return setClienteParaOrcamentoState(valor); }
-        function getIdOrcamentoParaPerder() { return getIdOrcamentoParaPerderState(); }
-        function setIdOrcamentoParaPerder(valor) { return setIdOrcamentoParaPerderState(valor); }
-        function getIdMetaEdicao() { return getIdMetaEdicaoState(); }
-        function setIdMetaEdicao(valor) { return setIdMetaEdicaoState(valor); }
-        function getDonutChartInstance() { return getDonutChartInstanceState(); }
-        function setDonutChartInstance(valor) { return setDonutChartInstanceState(valor); }
-        function getBarChartInstance() { return getBarChartInstanceState(); }
-        function setBarChartInstance(valor) { return setBarChartInstanceState(valor); }
-        function getSalvandoOrcamento() { return getSalvandoOrcamentoState(); }
-        function setSalvandoOrcamento(valor) { return setSalvandoOrcamentoState(valor); }
-        function getHistoricoFaturamento() { return getHistoricoFaturamentoState(); }
-        function setHistoricoFaturamento(valor) { return setHistoricoFaturamentoState(valor); }
-        function getComentarioParaExcluir() { return getComentarioParaExcluirState(); }
-        function setComentarioParaExcluir(valor) { return setComentarioParaExcluirState(valor); }
-        function getIdUsuarioEmEdicao() { return getIdUsuarioEmEdicaoState(); }
-        function setIdUsuarioEmEdicao(valor) { return setIdUsuarioEmEdicaoState(valor); }
-        function getUsuariosParaLogin() { return getUsuariosParaLoginState(); }
-        function setUsuariosParaLogin(valor) { return setUsuariosParaLoginState(valor); }
-        function getIsSavingComment() { return getIsSavingCommentState(); }
-        function setIsSavingComment(valor) { return setIsSavingCommentState(valor); }
-        function getIsConfirmingPerda() { return getIsConfirmingPerdaState(); }
-        function setIsConfirmingPerda(valor) { return setIsConfirmingPerdaState(valor); }
-        function getNotificacoesLidas() { return getNotificacoesLidasState(); }
-        function setNotificacoesLidas(valor) { return setNotificacoesLidasState(valor); }
-        function getNotificacoesBanco() { return getNotificacoesBancoState(); }
-        function setNotificacoesBanco(valor) { return setNotificacoesBancoState(valor); }
+        function getUsuarioLogado() { return AppState.usuarioLogado; }
+        function getFiltroMes() { return AppState.filtros.mes; }
+        function getFiltroAno() { return AppState.filtros.ano; }
+        function getFiltroDia() { return AppState.filtros.dia; }
+        function getViewAtual() { return AppState.ui.viewAtual; }
+        function getViewAnterior() { return AppState.ui.viewAnterior; }
+        function getPaginaAtual() { return AppState.ui.paginaAtual; }
+        function getFiltroVendedor() { return AppState.filtros.vendedor; }
+        function getFiltroLoja() { return AppState.filtros.loja; } 
 
         // Variáveis de estado legadas (mantidas para compatibilidade com o código existente)
         let currentUser = null;
-        let dashboardModule = null;
-        let agendaModule = null;
         let currentView = 'inicio';
         let previousView = 'inicio';
         let currentMonth = new Date().getMonth() + 1;
@@ -107,7 +116,7 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         function atualizarFab(view) {
     const fab = document.getElementById('fabButton');
     if (!fab) return;
-    const isVendedor = currentUser?.perfil === 'Vendedor';
+    const isVendedor = currentUser?.perfil === 'Vendedor' || (currentUser?.perfil || '').toLowerCase() === 'terminal';
     if (view === 'inicio' && isVendedor) {
         fab.style.display = 'flex';
         fab.title = 'Novo orçamento';
@@ -128,7 +137,6 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
             let icon = '';
             if(type === 'success') icon = '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
             if(type === 'error') icon = '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
-            if(type === 'warning') icon = '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
             if(type === 'info') icon = '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
             toast.innerHTML = `${icon} <span>${message}</span>`;
             container.appendChild(toast);
@@ -136,32 +144,9 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
             setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3000);
         }
 
-        function delay(ms) {
-            return delayUtil(ms);
-        }
-
-        function normalizeErrorMessage(error, fallbackMessage = 'Não foi possível concluir a operação. Tente novamente.') {
-            return normalizeErrorMessageUtil(error, fallbackMessage);
-        }
-
-        function isRetryableError(error) {
-            return isRetryableErrorUtil(error);
-        }
-
-        async function safeCall(fn, { onError, retries = 1, fallbackMessage = 'Não foi possível concluir a operação. Tente novamente.', showToast = true, toastType = 'error' } = {}) {
-            return safeCallUtil(fn, {
-                onError,
-                retries,
-                fallbackMessage,
-                showToast,
-                toastType,
-                toastFn: (message, type) => showToast(message, type)
-            });
-        }
-
-        function carregarNotificacoesLidas() { const stored = localStorage.getItem('notificacoesLidas'); if (stored) { try { const parsed = JSON.parse(stored); setNotificacoesLidas(new Set(parsed)); } catch(e) { } } }
-        function salvarNotificacoesLidas() { localStorage.setItem('notificacoesLidas', JSON.stringify(Array.from(getNotificacoesLidas()))); }
-        function marcarTodasNotificacoesLidas(ids) { const current = getNotificacoesLidas(); let altered = false; ids.forEach(id => { if (id && !current.has(id)) { current.add(id); altered = true; } }); if (altered) { setNotificacoesLidas(current); salvarNotificacoesLidas(); } }
+        function carregarNotificacoesLidas() { const stored = localStorage.getItem('notificacoesLidas'); if (stored) { try { notificacoesLidas = new Set(JSON.parse(stored)); } catch(e) { } } }
+        function salvarNotificacoesLidas() { localStorage.setItem('notificacoesLidas', JSON.stringify(Array.from(notificacoesLidas))); }
+        function marcarTodasNotificacoesLidas(ids) { let altered = false; ids.forEach(id => { if (id && !notificacoesLidas.has(id)) { notificacoesLidas.add(id); altered = true; } }); if (altered) salvarNotificacoesLidas(); }
         function showLoader() { document.getElementById('globalLoader').classList.add('loading'); }
         function hideLoader() { document.getElementById('globalLoader').classList.remove('loading'); }
         function escapeHtml(str) { if (!str) return ''; const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
@@ -175,21 +160,78 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         function openModal(modalId) { const modal = document.getElementById(modalId); if (!modal) return; lastFocusedElement = document.activeElement; modal.classList.add('open'); setTimeout(() => { const firstInput = modal.querySelector('input, textarea, select'); if (firstInput) firstInput.focus(); }, 100); }
         function closeModal(modalId) { const modal = document.getElementById(modalId); if (!modal) return; modal.classList.remove('open'); if (lastFocusedElement && document.body.contains(lastFocusedElement)) { lastFocusedElement.focus(); } }
 
-        const authModule = createAuthModule({
-            db,
-            setUsuarioLogado,
-            initAppAfterLogin,
-            logout,
-            escapeHtml
-        });
-
         async function checkSession() {
             carregarNotificacoesLidas();
-            return authModule.checkSession();
+            try {
+                // 1. Verifica se já existe um passe (token) seguro no navegador
+                const { data: { session }, error: sessionError } = await db.auth.getSession();
+                if (sessionError) throw sessionError;
+                if (session && session.user) {
+                    // 2. Se o passe for válido, vamos buscar o perfil correspondente
+                    const { data: userProfile, error: profileError } = await db
+                        .from('usuarios')
+                        .select('*')
+                        .eq('email', session.user.email)
+                        .single();
+                    if (profileError || !userProfile || userProfile.status?.toLowerCase() !== 'ativo') {
+                        // Se a conta foi desativada ou não existe mais na tabela, forçamos a saída
+                        await logout();
+                        return;
+                    }
+                    // 3. Tudo em ordem: esconde o ecrã de login e arranca com a dashboard
+                    setUsuarioLogado(userProfile);
+                    document.getElementById('loginOverlay').classList.add('hidden');
+                    initAppAfterLogin();
+                } else {
+                    // Se não houver sessão, garante que o ecrã de login fica visível
+                    document.getElementById('loginOverlay').classList.remove('hidden');
+                }
+            } catch (e) {
+                console.error("Erro na verificação de segurança:", e);
+                document.getElementById('loginMsg').innerHTML = 'Falha ao verificar o acesso seguro.';
+                document.getElementById('loginOverlay').classList.remove('hidden');
+            }
         }
 
         async function handleLogin() {
-            return authModule.handleLogin();
+            const btn = document.getElementById('btnLogin');
+            if (btn.disabled) return;
+            // 1. Captura os valores dos novos campos
+            const email = document.getElementById('loginEmail').value.trim();
+            const senha = document.getElementById('loginSenha').value;
+            const msg = document.getElementById('loginMsg');
+            if (!email || !senha) {
+                msg.textContent = 'Preencha seu e-mail e senha.';
+                return;
+            }
+            btn.classList.add('loading');
+            btn.disabled = true;
+            msg.innerHTML = '';
+            try {
+                // 2. Validação real de identidade com o Supabase
+                const { data: authData, error: authError } = await db.auth.signInWithPassword({
+                    email: email,
+                    password: senha
+                });
+                if (authError) throw new Error("E-mail ou senha incorretos.");
+                // 3. Busca o papel (perfil) do usuário na tabela do banco
+                const { data: userProfile, error: profileError } = await db
+                    .from('usuarios')
+                    .select('*')
+                    .eq('email', authData.user.email)
+                    .single();
+                if (profileError || !userProfile) throw new Error("Perfil não encontrado no sistema.");
+                if (userProfile.status?.toLowerCase() !== 'ativo') throw new Error("Usuário inativo.");
+                // 4. Libera o acesso e inicia a dashboard
+                setUsuarioLogado(userProfile);
+                document.getElementById('loginOverlay').classList.add('hidden');
+                initAppAfterLogin();
+            } catch (err) {
+                msg.innerHTML = `<span class="error-message">${escapeHtml(err.message)}</span>`;
+            } finally {
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            }
         }
 
         let _notifChannel = null; // referência global para poder destruir no logout
@@ -218,12 +260,10 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                     },
                     (payload) => {
                         // Só processa se a notificação ainda não estiver na lista (idempotência)
-                        const jaExiste = getNotificacoesBancoState().some(n => String(n.id) === String(payload.new.id));
+                        const jaExiste = notificacoesBanco.some(n => String(n.id) === String(payload.new.id));
                         if (jaExiste) return;
 
-                        const next = [...getNotificacoesBancoState(), payload.new];
-                        setNotificacoesBancoState(next);
-                        setNotificacoesBanco(next);
+                        notificacoesBanco.push(payload.new);
                         const notificacoes = buildNotifications();
                         renderNotificationBadge(notificacoes.length);
 
@@ -247,17 +287,8 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
             document.getElementById('fabButton').style.display = (!isAdministrador && !isGerente) ? 'flex' : 'none';
 
             try {
-                // Carrega usuários e suas lojas via JOIN com usuarios_lojas
-                const { data: all } = await db.from('usuarios')
-                    .select(`*, lojas:usuarios_lojas(id_loja)`)
-                    .order('nome');
-                
-                // Transforma dados para incluir array de lojas
-                todosUsuarios = (all || []).map(u => ({
-                    ...u,
-                    lojas: u.lojas ? u.lojas.map(l => l.id_loja) : (u.id_loja ? [u.id_loja] : [])
-                }));
-                todosVendedores = todosUsuarios.filter(u => u.perfil === 'Vendedor');
+                const { data: all } = await db.from('usuarios').select('*').order('nome');
+                todosUsuarios = all || []; todosVendedores = todosUsuarios.filter(u => u.perfil === 'Vendedor');
             } catch (e) { todosUsuarios = []; todosVendedores = []; }
 
             const hora = new Date().getHours();
@@ -271,9 +302,9 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         async function carregarDadosIniciais() {
             showLoader();
             const [resStatus, resInteresse, resLojas] = await Promise.all([
-                safeCall(() => db.from('status_orcamento').select('*'), { retries: 2, fallbackMessage: 'Não foi possível carregar os status.', showToast: false }),
-                safeCall(() => db.from('niveis_interesse').select('*'), { retries: 2, fallbackMessage: 'Não foi possível carregar os níveis de interesse.', showToast: false }),
-                safeCall(() => db.from('lojas').select('*'), { retries: 2, fallbackMessage: 'Não foi possível carregar as lojas.', showToast: false })
+                db.from('status_orcamento').select('*'),
+                db.from('niveis_interesse').select('*'),
+                db.from('lojas').select('*')
             ]);
             mapStatusUUID = resStatus.data || [];
             mapInteresseUUID = resInteresse.data || [];
@@ -299,35 +330,56 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
 
      async function carregarKpisEDashboard() {
             if (!AppState.usuarioLogado) return;
+            // NOVO CÓDIGO LEVE E ESCALÁVEL
             const isAdmin = AppState.usuarioLogado.perfil === 'Administrador' || AppState.usuarioLogado.perfil === 'Admin';
             try {
-                const kpisResult = await safeCall(() => db.rpc('calcular_kpis_dashboard', {
+                // Chama a função direto no banco, passando apenas os filtros
+                const { data: kpisData, error: rpcError } = await db.rpc('calcular_kpis_dashboard', {
                     p_mes: currentMonth,
                     p_ano: currentYear,
                     p_id_usuario: AppState.usuarioLogado.id_usuario,
-                    p_perfil: AppState.usuarioLogado.perfil,
+                    p_perfil: (AppState.usuarioLogado.perfil || '').toLowerCase() === 'terminal' ? 'Gerente' : AppState.usuarioLogado.perfil,
                     p_id_loja: AppState.usuarioLogado.id_loja
-                }), {
-                    retries: 2,
-                    fallbackMessage: 'Não foi possível atualizar os dados do painel.',
-                    showToast: false
                 });
-                if (kpisResult.error) throw kpisResult.error;
-                AppState.kpisMensaisResumo = kpisResult.data;
+                if (rpcError) throw rpcError;
+                // Salvamos o resultado mastigado no objeto global
+                AppState.kpisMensaisResumo = kpisData;
+
+        // --- NOVA BUSCA DETALHADA PARA GRÁFICOS E NOTIFICAÇÕES ---
                 let queryDetalhes = db.from('orcamentos')
-                    .select('id_orcamento, id_usuario, valor_orcado, modelo_colchao, data_criacao, data_contato, hora_contato, ligacao_confirmada, clientes(nome_cliente), status_orcamento(nome)');
+                    .select('id_orcamento, id_usuario, valor_orcado, modelo_colchao, data_criacao, data_fechamento, data_contato, hora_contato, ligacao_confirmada, clientes(nome_cliente), status_orcamento(nome)');
 
+                // Período (mês ou dia) selecionado
+                let startPeriodo, endPeriodo;
                 if (currentDay) {
-                    const startDia = new Date(currentYear, currentMonth - 1, currentDay).toISOString();
-                    const endDia = new Date(currentYear, currentMonth - 1, currentDay, 23, 59, 59).toISOString();
-                    queryDetalhes = queryDetalhes.gte('data_criacao', startDia).lte('data_criacao', endDia);
+                    startPeriodo = new Date(currentYear, currentMonth - 1, currentDay);
+                    endPeriodo = new Date(currentYear, currentMonth - 1, currentDay + 1);
                 } else {
-                    const start = new Date(currentYear, currentMonth - 1, 1).toISOString();
-                    const end = new Date(currentYear, currentMonth, 0, 23, 59, 59).toISOString();
-                    queryDetalhes = queryDetalhes.gte('data_criacao', start).lte('data_criacao', end);
+                    startPeriodo = new Date(currentYear, currentMonth - 1, 1);
+                    endPeriodo = new Date(currentYear, currentMonth, 1);
                 }
+                const startPeriodoISO = startPeriodo.toISOString();
+                const endPeriodoISO = endPeriodo.toISOString();
 
-                if (AppState.usuarioLogado.perfil === 'Gerente') {
+                // Em aberto (Contato Inicial, Negociação, Em Fechamento) => conta pela data em que foi ABERTO (data_criacao).
+                // Finalizado (Fechado, Perdido) => conta pela data em que foi CONCLUÍDO (data_fechamento), e não pela abertura.
+                const statusAbertosIdsDash = mapStatusUUID
+                    .filter(s => [STATUS.CONTATO_INICIAL, STATUS.NEGOCIACAO, STATUS.EM_FECHAMENTO].includes(s.nome))
+                    .map(s => s.id_status);
+                const statusFinalizadosIdsDash = mapStatusUUID
+                    .filter(s => [STATUS.FECHADO, STATUS.PERDIDO].includes(s.nome))
+                    .map(s => s.id_status);
+
+                const orPartsDash = [];
+                if (statusAbertosIdsDash.length) {
+                    orPartsDash.push(`and(id_status.in.(${statusAbertosIdsDash.join(',')}),data_criacao.gte.${startPeriodoISO},data_criacao.lt.${endPeriodoISO})`);
+                }
+                if (statusFinalizadosIdsDash.length) {
+                    orPartsDash.push(`and(id_status.in.(${statusFinalizadosIdsDash.join(',')}),data_fechamento.gte.${startPeriodoISO},data_fechamento.lt.${endPeriodoISO})`);
+                }
+                if (orPartsDash.length) queryDetalhes = queryDetalhes.or(orPartsDash.join(','));
+
+                if (AppState.usuarioLogado.perfil === 'Gerente' || (AppState.usuarioLogado.perfil || '').toLowerCase() === 'terminal') {
                     const ids = todosVendedores.filter(v => v.id_loja === AppState.usuarioLogado.id_loja).map(v => v.id_usuario);
                     if (ids.length > 0) queryDetalhes = queryDetalhes.in('id_usuario', ids);
                     if (selectedVendedor !== 'todos') queryDetalhes = queryDetalhes.eq('id_usuario', selectedVendedor);
@@ -342,37 +394,29 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                     }
                 }
 
-                const detalhesResult = await safeCall(() => queryDetalhes, {
-                    retries: 2,
-                    fallbackMessage: 'Não foi possível carregar os detalhes do painel.',
-                    showToast: false
-                });
-                kpisMensais = ((detalhesResult.data || [])).map(o => ({
+                const { data: detalhesData } = await queryDetalhes;
+                kpisMensais = (detalhesData || []).map(o => ({
                     ...o,
                     status: o.status_orcamento ? o.status_orcamento.nome : 'Contato Inicial'
                 }));
 
-                const notifsResult = await safeCall(() => db
+                // --------------------------------------------------------
+
+                // ---- INÍCIO DA BUSCA DE ALERTAS NO BANCO ----
+                const { data: notifs, error: errNotif } = await db
                     .from('notificacoes')
                     .select('*')
                     .eq('id_usuario', AppState.usuarioLogado.id_usuario)
-                    .eq('lida', false), {
-                        retries: 2,
-                        fallbackMessage: 'Não foi possível carregar as notificações.',
-                        showToast: false
-                    });
+                    .eq('lida', false);
                 
-                if (!notifsResult.error) {
-                    const next = notifsResult.data || [];
-                    setNotificacoesBancoState(next);
-                    setNotificacoesBanco(next);
+                if (!errNotif) {
+                    notificacoesBanco = notifs || [];
                 }
                 // ---- FIM DA BUSCA DE ALERTAS NO BANCO ----
 
             } catch(e) { 
                 kpisMensais = []; 
-                setNotificacoesBancoState([]);
-                setNotificacoesBanco([]);
+                notificacoesBanco = []; 
             }
 
             atualizarBadge();
@@ -392,15 +436,17 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                 let query = db.from('orcamentos')
                     .select('*, clientes!inner(nome_cliente, whatsapp), usuarios!inner(nome, id_loja), status_orcamento(nome)', { count: 'exact' });
             
-                // Regra de Ferro: Se for Gerente, filtra pelas lojas dele E o vendedor a existir
+                // Regra de Ferro: Se for Gerente, obriga a loja a ser a dele E o vendedor a existir
                 if (currentUser.perfil === 'Gerente') {
-                    const lojaIds = currentUser.lojas || [];
-                    if (lojaIds.length > 0) {
-                        query = query.in('usuarios.id_loja', lojaIds);
-                    }
+                    query = query.eq('usuarios.id_loja', currentUser.id_loja);
                     if (selectedVendedor !== 'todos') query = query.eq('id_usuario', selectedVendedor);
                 } else if (currentUser.perfil === 'Vendedor') {
                     query = query.eq('id_usuario', currentUser.id_usuario);
+                } else if ((currentUser.perfil || '').toLowerCase() === 'terminal') {
+                    query = query.eq('usuarios.id_loja', currentUser.id_loja);
+                    if (window._terminalVendedorFiltro && window._terminalVendedorFiltro !== 'todos') {
+                        query = query.eq('id_usuario', window._terminalVendedorFiltro);
+                    }
                 } else {
                     if (selectedVendedor !== 'todos') {
                         query = query.eq('id_usuario', selectedVendedor);
@@ -587,6 +633,7 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
             try {
                 let query = db.from('orcamentos').select('*, clientes!inner(nome_cliente, whatsapp), usuarios(nome), status_orcamento(nome)');
                 if (currentUser.perfil === 'Vendedor') query = query.eq('id_usuario', currentUser.id_usuario);
+                else if ((currentUser.perfil || '').toLowerCase() === 'terminal') query = query.eq('usuarios.id_loja', currentUser.id_loja);
                 else if (selectedVendedor !== 'todos') query = query.eq('id_usuario', selectedVendedor);
                 
                 if (currentMonth && currentYear && !currentDay) {
@@ -627,7 +674,7 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         async function salvarUsuarioAdmin() {
             const nome = document.getElementById('adminModNome').value.trim();
             const email = document.getElementById('adminModEmail').value.trim();
-            const lojaSel = document.getElementById('adminModLoja');
+            const loja = document.getElementById('adminModLoja').value;
             const perfil = document.getElementById('adminModPerfil').value;
             const status = document.getElementById('adminModStatus').value;
             const senha = document.getElementById('adminModSenha').value;
@@ -637,21 +684,12 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                 err.textContent = 'Preencha Nome e E-mail.';
                 return;
             }
-            if (!senha && !getIdUsuarioEmEdicao()) {
+            if (!senha && !idUsuarioEmEdicao) {
                 err.textContent = 'Defina uma senha inicial para o novo usuário.';
                 return;
             }
-            
-            // Coleta lojas selecionadas (pode ser múltipla para Gerente/Admin)
-            const lojas = Array.from(lojaSel.selectedOptions).map(opt => opt.value);
-            if (lojas.length === 0) {
-                err.textContent = 'Selecione pelo menos uma loja.';
-                return;
-            }
-            
-            // Valida: Vendedor só pode ter 1 loja
-            if (perfil === 'Vendedor' && lojas.length > 1) {
-                err.textContent = 'Vendedor só pode estar vinculado a uma loja.';
+            if (!loja) {
+                err.textContent = 'Selecione a Loja Base do usuário.';
                 return;
             }
 
@@ -659,33 +697,17 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
             btn.classList.add('saving'); btn.disabled = true; err.textContent = '';
 
             try {
-                if (getIdUsuarioEmEdicao()) {
-                    // EDICAO: atualiza dados básicos na tabela usuarios
-                    const updatePayload = { nome, email, perfil, status };
+                if (idUsuarioEmEdicao) {
+                    // EDICAO: atualiza direto na tabela usuarios
+                    const updatePayload = { nome, email, id_loja: loja, perfil, status };
                     const { error: updateError } = await db.from('usuarios')
                         .update(updatePayload)
-                        .eq('id_usuario', getIdUsuarioEmEdicao());
+                        .eq('id_usuario', idUsuarioEmEdicao);
                     if (updateError) throw updateError;
-                    
-                    // Atualiza relação N:N na tabela usuarios_lojas
-                    // 1. Remove todas as relações atuais
-                    const { error: deleteError } = await db.from('usuarios_lojas')
-                        .delete()
-                        .eq('id_usuario', getIdUsuarioEmEdicao());
-                    if (deleteError) throw deleteError;
-                    
-                    // 2. Insere novas relações
-                    if (lojas.length > 0) {
-                        const relacoes = lojas.map(idLoja => ({ id_usuario: getIdUsuarioEmEdicao(), id_loja: idLoja }));
-                        const { error: insertError } = await db.from('usuarios_lojas')
-                            .insert(relacoes);
-                        if (insertError) throw insertError;
-                    }
-                    
                     showToast('Usuário atualizado com sucesso!', 'success');
                 } else {
-                    // CRIACAO: chama Edge Function que cria no Auth + insere em usuarios e usuarios_lojas
-                    const payload = { nome, email, lojas, perfil, status, senha };
+                    // CRIACAO: chama Edge Function que cria no Auth + insere em usuarios
+                    const payload = { nome, email, loja, perfil, status, senha };
                     console.log("Payload sendo enviado para a Edge Function:", JSON.stringify(payload));
                     const { data, error } = await db.functions.invoke('criar-usuario', {
                         body: payload
@@ -694,7 +716,7 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                     showToast('Usuário criado com sucesso!', 'success');
                 }
 
-                setIdUsuarioEmEdicao(null);
+                idUsuarioEmEdicao = null;
                 closeModal('modalUsuarioAdmin');
 
                 const { data: usuarios } = await db.from('usuarios').select('*').order('nome');
@@ -711,7 +733,7 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         }
 
         function abrirModalUsuarioAdmin(id = null) {
-            setIdUsuarioEmEdicao(id);
+            idUsuarioEmEdicao = id;
             const err = document.getElementById('errAdminUsuario'); if (err) err.textContent = '';
             const title = document.getElementById('modalUsuarioTitle');
             const nomeInput = document.getElementById('adminModNome');
@@ -720,63 +742,20 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
             const perfilSel = document.getElementById('adminModPerfil');
             const statusSel = document.getElementById('adminModStatus');
             const senhaInput = document.getElementById('adminModSenha');
-            const lojaHelp = document.getElementById('adminModLojaHelp');
 
-            // Preenche select de lojas
-            lojaSel.innerHTML = '';
+            lojaSel.innerHTML = '<option value="">Selecione a loja...</option>';
             listaLojas.forEach(l => { lojaSel.innerHTML += `<option value="${l.id_loja}">${escapeHtml(l.nome_loja)}</option>`; });
-
-            // Configura comportamento baseado no perfil
-            function atualizarRegraLojas() {
-                const perfil = perfilSel.value;
-                const isVendedor = perfil === 'Vendedor';
-                lojaSel.multiple = !isVendedor;
-                lojaSel.size = isVendedor ? 1 : 4;
-                if (lojaHelp) {
-                    lojaHelp.style.display = isVendedor ? 'none' : 'block';
-                }
-                // Se era multi-seleção e virou vendedor, mantém apenas a primeira
-                if (isVendedor && lojaSel.selectedOptions.length > 1) {
-                    Array.from(lojaSel.options).forEach(opt => opt.selected = false);
-                    if (lojaSel.options[0] && lojaSel.options[0].value !== '') {
-                        lojaSel.options[0].selected = true;
-                    }
-                }
-            }
-
-            // Adiciona listener para mudar regra ao trocar perfil
-            perfilSel.onchange = atualizarRegraLojas;
 
             if (id) {
                 const user = todosUsuarios.find(u => u.id_usuario === id);
                 title.textContent = 'Editar Usuário';
                 nomeInput.value = user.nome || ''; emailInput.value = user.email || '';
-                
-                // Carrega lojas do usuário (agora pode ser múltiplas)
-                Array.from(lojaSel.options).forEach(opt => opt.selected = false);
-                if (user.lojas && Array.isArray(user.lojas)) {
-                    user.lojas.forEach(idLoja => {
-                        const opt = lojaSel.querySelector(`option[value="${idLoja}"]`);
-                        if (opt) opt.selected = true;
-                    });
-                } else if (user.id_loja) {
-                    // Fallback para formato antigo (single loja)
-                    const opt = lojaSel.querySelector(`option[value="${user.id_loja}"]`);
-                    if (opt) opt.selected = true;
-                }
-                
-                perfilSel.value = user.perfil || 'Vendedor'; 
-                statusSel.value = user.status || 'Ativo';
+                lojaSel.value = user.id_loja || ''; perfilSel.value = user.perfil || 'Vendedor'; statusSel.value = user.status || 'Ativo';
                 senhaInput.value = '';
-                atualizarRegraLojas();
             } else {
                 title.textContent = 'Novo Usuário';
-                nomeInput.value = ''; emailInput.value = ''; 
-                Array.from(lojaSel.options).forEach(opt => opt.selected = false);
-                perfilSel.value = 'Vendedor'; 
-                statusSel.value = 'Ativo';
+                nomeInput.value = ''; emailInput.value = ''; lojaSel.value = ''; perfilSel.value = 'Vendedor'; statusSel.value = 'Ativo';
                 senhaInput.value = '';
-                atualizarRegraLojas();
             }
             openModal('modalUsuarioAdmin');
         }
@@ -804,8 +783,8 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
 }
 
         async function carregarHistoricoFaturamento() {
-            if (!currentUser || currentUser.perfil !== 'Vendedor') { setHistoricoFaturamento([]); return; }
-            const hoje = new Date(); setHistoricoFaturamento([]);
+            if (!currentUser || (currentUser.perfil !== 'Vendedor' && (currentUser.perfil || '').toLowerCase() !== 'terminal')) { historicoFaturamento = []; return; }
+            const hoje = new Date(); historicoFaturamento = [];
             try {
                 const uuidsFechados = mapStatusUUID.filter(s => [STATUS.FECHADO, STATUS.VENDIDO].includes(s.nome)).map(s => s.id_status);
 
@@ -819,8 +798,8 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                     let query = db.from('orcamentos')
                         .select('valor_orcado')
                         .eq('id_usuario', currentUser.id_usuario)
-                        .gte('data_criacao', startDate)
-                        .lte('data_criacao', endDate);
+                        .gte('data_fechamento', startDate)
+                        .lte('data_fechamento', endDate);
                     
                     if(uuidsFechados.length > 0) {
                         query = query.in('id_status', uuidsFechados);
@@ -830,9 +809,7 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                     const total = (data || []).reduce((s, o) => s + parseFloat(o.valor_orcado || 0), 0);
                     const nomeMes = mes.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', ''); 
                     const anoAbrev = ano.toString().slice(-2);
-                    const proximo = getHistoricoFaturamento();
-                    proximo.push({ mes: nomeMes + '/' + anoAbrev, valor: total });
-                    setHistoricoFaturamento(proximo);
+                    historicoFaturamento.push({ mes: nomeMes + '/' + anoAbrev, valor: total });
                 }
             } catch(e) { }
         }
@@ -910,6 +887,7 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         
        function calcularMetaTotal() {
             if (currentUser.perfil === 'Vendedor') return getMetaVendedor(currentUser.id_usuario);
+            if ((currentUser.perfil || '').toLowerCase() === 'terminal') return todosVendedores.filter(v => v.id_loja === currentUser.id_loja).reduce((s, v) => s + getMetaVendedor(v.id_usuario), 0);
             
             let filtrados = todosVendedores;
             if (currentUser.perfil === 'Gerente') {
@@ -1116,19 +1094,18 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         }
 
         function abrirModalExcluirComentario(id_comentario) {
-            setComentarioParaExcluirState(id_comentario);
-            setComentarioParaExcluir(id_comentario);
+            comentarioParaExcluir = id_comentario;
             openModal('modalExcluirComentario');
         }
 
         async function confirmarExclusaoComentario() {
-            if (!getComentarioParaExcluirState()) return;
+            if (!comentarioParaExcluir) return;
             const btn = document.getElementById('btnConfirmarExclusao');
             btn.classList.add('saving'); btn.disabled = true;
             try {
-                const { error } = await db.from('comentarios').delete().eq('id_comentario', getComentarioParaExcluirState());
+                const { error } = await db.from('comentarios').delete().eq('id_comentario', comentarioParaExcluir);
                 if (error) throw error;
-                AppState.contextoVenda.clienteAtual.comentarios = AppState.contextoVenda.clienteAtual.comentarios.filter(c => String(c.id_comentario) !== String(getComentarioParaExcluirState()));
+                AppState.contextoVenda.clienteAtual.comentarios = AppState.contextoVenda.clienteAtual.comentarios.filter(c => String(c.id_comentario) !== String(comentarioParaExcluir));
                 closeModal('modalExcluirComentario');
                 showToast('Comentário excluído', 'success');
                 renderDetalhesClientePage();
@@ -1143,7 +1120,7 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         }
 
         async function salvarComentario() {
-            if (getIsSavingComment()) return;
+            if (isSavingComment) return;
             const texto = document.getElementById('novoComentario').value.trim();
             const msg = document.getElementById('comentarioMsg');
 
@@ -1153,25 +1130,20 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                 return;
             }
 
-            setIsSavingComment(true);
+            isSavingComment = true;
             const btn = document.getElementById('btnSalvarTimeline');
             btn.querySelector('.btn-spinner').style.display = 'inline-block';
             btn.querySelector('.btn-text').textContent = 'Salvando...';
             btn.disabled = true; msg.textContent = '';
 
             try {
-                const insertResult = await safeCall(() => db.from('comentarios').insert([{
+                // 1. Salva o comentário no banco
+                const { error } = await db.from('comentarios').insert([{
                     id_orcamento: AppState.contextoVenda.clienteAtual.id_orcamento,
                     texto: texto, tipo: 'Comentário', autor: currentUser.nome
-                }]), {
-                    retries: 2,
-                    fallbackMessage: 'Não foi possível salvar o comentário. Tente novamente.',
-                    showToast: false
-                });
+                }]);
 
-                if (insertResult.error) {
-                    throw insertResult.error;
-                }
+                if (error) throw error;
 
                 // --- INÍCIO DA MELHORIA: NOTIFICAÇÃO DO GERENTE ---
                 if (currentUser.perfil === 'Gerente') {
@@ -1181,18 +1153,15 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                         // Garante que o gerente não está disparando alerta para si mesmo
                         if (orcamento && orcamento.id_usuario !== currentUser.id_usuario) {
                             
-                            await safeCall(() => db.from('notificacoes').insert([{
-                                id_usuario: orcamento.id_usuario,
+                            // Grava o alerta na tabela 'notificacoes'
+                            await db.from('notificacoes').insert([{
+                                id_usuario: orcamento.id_usuario, // Destinatário: Vendedor
                                 texto: `${currentUser.nome} fez um comentário`,
                                 tipo: 'comentario_gerente',
                                 id_referencia: orcamento.id_orcamento,
                                 id_cliente: orcamento.id_cliente,
                                 lida: false
-                            }]), {
-                                retries: 2,
-                                fallbackMessage: 'Não foi possível enviar o alerta para o vendedor.',
-                                showToast: false
-                            });
+                            }]);
                         }
                     } catch (e) {
                         console.error('Erro ao gerar notificação de comentário do gerente:', e);
@@ -1217,10 +1186,10 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                 } catch (_) { /* se falhar, mantém o estado anterior */ }
                 renderDetalhesClientePage();
             } catch (e) {
-                msg.textContent = normalizeErrorMessage(e, 'Erro ao salvar o comentário.');
+                msg.textContent = 'Erro ao salvar: ' + e.message;
                 msg.className = 'field-error';
             } finally {
-                setIsSavingComment(false);
+                isSavingComment = false;
                 btn.querySelector('.btn-spinner').style.display = 'none';
                 btn.querySelector('.btn-text').innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Registrar Histórico';
                 btn.disabled = false;
@@ -1636,8 +1605,8 @@ function selectFilter(filter) {
             
             const orcadosCount = total - fechados;
             
-            if(getDonutChartInstanceState()) { getDonutChartInstanceState().destroy(); }
-            const chartDonut = new Chart(ctxDonut, {
+            if(donutChartInstance) { donutChartInstance.destroy(); }
+            donutChartInstance = new Chart(ctxDonut, {
                 type: 'doughnut',
                 data: {
                     labels: ['Orçados', 'Fechados'],
@@ -1675,15 +1644,15 @@ function selectFilter(filter) {
             });
 
             const ctxBar = document.getElementById('barChartCanvas');
-            if (ctxBar && getHistoricoFaturamento().length > 0) {
-                if(getBarChartInstanceState()) { getBarChartInstanceState().destroy(); }
-                const chartBar = new Chart(ctxBar, {
+            if (ctxBar && historicoFaturamento.length > 0) {
+                if(barChartInstance) { barChartInstance.destroy(); }
+                barChartInstance = new Chart(ctxBar, {
                     type: 'bar',
                     data: {
-                        labels: getHistoricoFaturamento().map(h => h.mes),
+                        labels: historicoFaturamento.map(h => h.mes),
                         datasets: [{
                             label: 'Vendido',
-                            data: getHistoricoFaturamento().map(h => h.valor),
+                            data: historicoFaturamento.map(h => h.valor),
                             backgroundColor: getComputedStyle(document.body).getPropertyValue('--chart-green').trim() || '#10b981',
                             borderRadius: 6, borderSkipped: false, maxBarThickness: 40
                         }]
@@ -1738,7 +1707,7 @@ function selectFilter(filter) {
             
             
             // --- INÍCIO DA MELHORIA: INJETAR ALERTAS DO BANCO ---
-            getNotificacoesBancoState().forEach(n => {
+            notificacoesBanco.forEach(n => {
                 notificacoes.push({
                     tipo: 'comentario_gerente',
                     texto: n.texto,
@@ -1753,7 +1722,7 @@ function selectFilter(filter) {
             const naoLidas = notificacoes.filter(n => { 
                 if (n.id === null || n.id === undefined) return false; 
                 if (n.tipo === 'comentario_gerente') return true; // Já vêm filtradas como lida=false do banco
-                return !getNotificacoesLidasState().has(n.id);
+                return !notificacoesLidas.has(n.id); 
             });
 
             // Retorna as não lidas reais; o dropdown trata a lista vazia separadamente
@@ -1834,9 +1803,7 @@ function selectFilter(filter) {
                 await db.from('notificacoes').update({ lida: true }).eq('id', idNotif);
                 
                 // Remove da lista local para atualizar o badge sem precisar de F5
-                const next = getNotificacoesBancoState().filter(n => String(n.id) !== String(idNotif));
-                setNotificacoesBancoState(next);
-                setNotificacoesBanco(next);
+                notificacoesBanco = notificacoesBanco.filter(n => String(n.id) !== String(idNotif));
                 
                 // Recalcula o badge de notificações
                 const novasNotifs = buildNotifications();
@@ -1863,27 +1830,13 @@ function selectFilter(filter) {
   }
 
         function renderInicio() {
-    if (dashboardModule) {
-        dashboardModule.renderInicioDashboard();
-        return;
-    }
     const main = document.getElementById('mainContent');
     const isGerente = currentUser.perfil === 'Gerente' || currentUser.perfil === 'Administrador' || currentUser.perfil === 'Admin';
 
-    // 1. FILTRO CIRÚRGICO: Pega apenas o que é do mês/dia vigente
-    const dados = kpisMensais.filter(o => {
-        if (!o.data_criacao) return false;
-        
-        const dataOrc = o.data_criacao.split('T')[0]; 
-        const [ano, mes, dia] = dataOrc.split('-');
-        
-        const isMesAnoCorreto = (parseInt(mes) === parseInt(currentMonth)) && (parseInt(ano) === parseInt(currentYear));
-        
-        if (currentDay) {
-            return isMesAnoCorreto && (parseInt(dia) === parseInt(currentDay));
-        }
-        return isMesAnoCorreto;
-    });
+    // 1. kpisMensais já vem filtrado corretamente do banco:
+    //    abertos (Contato Inicial/Negociação/Em Fechamento) pela data de ABERTURA (data_criacao),
+    //    finalizados (Fechado/Perdido) pela data de CONCLUSÃO (data_fechamento).
+    const dados = kpisMensais;
 
     // 2. CÁLCULOS — pega os dados já calculados do nosso estado
     const resumo = AppState.kpisMensaisResumo || {};
@@ -1928,7 +1881,7 @@ function selectFilter(filter) {
 
     let barChartHtml = '';
 
-    if (getHistoricoFaturamento().length > 0) {
+    if (historicoFaturamento.length > 0) {
         barChartHtml = `<div class="chart-card" style="display:flex; flex-direction:column;"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg> Evolução Mensal</h3><div class="bar-chart-wrapper"><canvas id="barChartCanvas"></canvas></div></div>`;
     }
     
@@ -2109,136 +2062,216 @@ function selectFilter(filter) {
             return { inicio: segunda, fim: domingo };
         }
 
-        dashboardModule = createDashboardModule({
-            db,
-            getCurrentUser: () => currentUser,
-            getCurrentMonth: () => currentMonth,
-            getCurrentYear: () => currentYear,
-            getCurrentDay: () => currentDay,
-            getSelectedVendedor: () => selectedVendedor,
-            getSelectedLoja: () => selectedLoja,
-            getCurrentFilter: () => currentFilter,
-            getSearchTerm: () => searchTerm,
-            getSearchProtocolo: () => searchProtocolo,
-            getTodosVendedores: () => todosVendedores,
-            getTodosProdutos: () => todosProdutos,
-            getHistoricoFaturamento: () => getHistoricoFaturamento(),
-            setCurrentView: (view) => { currentView = view; },
-            setCurrentMonth: (value) => { currentMonth = value; },
-            setCurrentYear: (value) => { currentYear = value; },
-            setCurrentDay: (value) => { currentDay = value; },
-            setCurrentPage: (value) => { currentPage = value; },
-            setCurrentFilter: (value) => { currentFilter = value; },
-            setSearchTerm: (value) => { searchTerm = value; },
-            setSearchProtocolo: (value) => { searchProtocolo = value; },
-            renderNotificationBadge,
-            buildNotifications,
-            toggleNotifications,
-            renderizarDropdownNotificacoes,
-            marcarNotificacaoLida,
-            marcarNotificacaoBancoLida,
-            abrirDetalhesCliente,
-            renderAdminInicio,
-            atualizarTabelaPaginadaServer,
-            navigateTo,
-            calcularMetaTotal,
-            getGamifiedColors,
-            renderFiltrosData,
-            renderKanbanBoard,
-            renderClientesLista,
-            renderFichaCliente,
-            renderDetalhesClientePage,
-            renderNovoOrcamentoPage,
-            renderAdminUsuarios,
-            renderAgendaDia,
-            changeDay,
-            changeMonth,
-            selectFilter,
-            handleSearch,
-            handleSearchProtocolo,
-            clearSearch,
-            showLoader,
-            hideLoader,
-            showToast,
-            openModal,
-            closeModal,
-            getStatusByName: (status) => STATUS[status] || status
-        });
-
-        agendaModule = createAgendaModule({
-            db,
-            getCurrentUser: () => currentUser,
-            getCurrentMonth: () => currentMonth,
-            getCurrentYear: () => currentYear,
-            getCurrentDay: () => currentDay,
-            getSelectedVendedor: () => selectedVendedor,
-            getSelectedLoja: () => selectedLoja,
-            buildVendedorOptions,
-            buildMonthOptions,
-            buildDayOptions,
-            abrirDetalhesCliente,
-            showLoader,
-            hideLoader,
-            showToast,
-            renderNotificationBadge,
-            buildNotifications,
-            toggleNotifications,
-            navigateTo,
-            changeMonth,
-            changeDay,
-            filtrarPorVendedor
-        });
-
         window.addEventListener('focus', async () => {
             if (currentView === 'agenda_dia') await renderAgendaDia();
         });
 
         async function renderAgendaDia() {
-            if (agendaModule) {
-                return agendaModule.renderAgendaDia();
-            }
             showLoader();
-            return false;
+            const { inicio, fim } = obterSemanaAtual();
+            const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+            const hojeStr = hoje.toISOString().split('T')[0];
+            const inicioStr = inicio.toISOString().split('T')[0];
+
+            // Estado do toggle (persistido na sessão)
+            if (typeof window._agendaFiltro === 'undefined') window._agendaFiltro = 'pendentes';
+
+            let agendados = [];
+            let realizados = [];
+
+            try {
+                // Query direta e independente — não depende mais de kpisMensais
+                let query = db.from('orcamentos')
+                    .select('id_orcamento, valor_orcado, id_usuario, data_contato, hora_contato, observacao_agendamento, modelo_colchao, ligacao_confirmada, clientes(nome_cliente, whatsapp), status_orcamento(nome), usuarios(nome, id_loja)')
+                    .not('data_contato', 'is', null)
+                    .not('id_status', 'is', null);
+
+                // Regras de visibilidade por perfil
+                if (currentUser.perfil === 'Vendedor') {
+                    query = query.eq('id_usuario', currentUser.id_usuario);
+                } else if (currentUser.perfil === 'Gerente' || (currentUser.perfil || '').toLowerCase() === 'terminal') {
+                    query = query.eq('usuarios.id_loja', currentUser.id_loja);
+                    if (selectedVendedor !== 'todos') query = query.eq('id_usuario', selectedVendedor);
+                } else {
+                    // Administrador
+                    if (selectedVendedor !== 'todos') query = query.eq('id_usuario', selectedVendedor);
+                }
+
+                const { data: rawData, error } = await query;
+                if (error) throw error;
+
+                // Normaliza o campo status para bater com as constantes STATUS.*
+                const todos = (rawData || []).map(o => ({
+                    ...o,
+                    status: o.status_orcamento ? o.status_orcamento.nome : STATUS.CONTATO_INICIAL
+                }));
+
+                const ordenarCronologicamente = (a, b) => {
+                    if (a.data_contato !== b.data_contato) return a.data_contato.localeCompare(b.data_contato);
+                    return (a.hora_contato || '').localeCompare(b.hora_contato || '');
+                };
+
+                agendados = todos.filter(o => {
+                    if ([STATUS.PERDIDO, STATUS.DECLINADO].includes(o.status)) return false;
+                    if (o.ligacao_confirmada) return false;
+                    const dataContato = new Date(o.data_contato + 'T00:00:00');
+                    const naSemana = dataContato >= inicio && dataContato <= fim;
+                    const atrasado = dataContato < hoje;
+                    return naSemana || atrasado;
+                }).sort(ordenarCronologicamente);
+
+                realizados = todos.filter(o => {
+                    if ([STATUS.PERDIDO, STATUS.DECLINADO].includes(o.status)) return false;
+                    if (!o.ligacao_confirmada) return false;
+                    const dataContato = new Date(o.data_contato + 'T00:00:00');
+                    const naSemana = dataContato >= inicio && dataContato <= fim;
+                    const atrasado = dataContato < hoje;
+                    return naSemana || atrasado;
+                }).sort(ordenarCronologicamente);
+
+            } catch (err) {
+                showToast('Erro ao carregar a agenda: ' + err.message, 'error');
+                hideLoader();
+                return;
+            }
+
+            hideLoader();
+
+            const isGerente = currentUser.perfil === 'Gerente' || currentUser.perfil === 'Administrador' || currentUser.perfil === 'Admin';
+            const colspanCount = 5 + (isGerente ? 1 : 0);
+
+            const buildToggle = () => `
+                <div class="agenda-toggle" id="agendaToggle">
+                    <button class="${window._agendaFiltro === 'pendentes' ? 'active' : ''}" onclick="setAgendaFiltro('pendentes')">
+                        Pendentes <span class="toggle-count">${agendados.length}</span>
+                    </button>
+                    <button class="${window._agendaFiltro === 'realizados' ? 'active' : ''}" onclick="setAgendaFiltro('realizados')">
+                        Realizados <span class="toggle-count">${realizados.length}</span>
+                    </button>
+                </div>`;
+
+            let html = `<header class="dashboard-header"><h1>Agenda e Próximos Passos</h1><div class="header-controls">${isGerente ? `<div class="filter-wrapper"><span class="filter-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span><select class="vendedor-select" id="vendedorSelectAgenda" onchange="filtrarPorVendedor(this.value)">${buildVendedorOptions()}</select></div>` : ''}<div class="filter-wrapper"><span class="filter-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/></svg></span><select class="month-select" onchange="changeMonth(this.value)">${buildMonthOptions()}</select></div><div class="filter-wrapper"><span class="filter-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg></span><select class="day-select" onchange="changeDay(this.value)">${buildDayOptions()}</select></div><div class="header-notification-area"><button class="btn-notification" id="btnNotification" onclick="event.stopPropagation(); toggleNotifications();" aria-label="Notificações"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg><span class="notification-badge" id="notificationBadgeCount"></span></button></div></div></header>`;
+
+            html += buildToggle();
+
+            const listaAtiva = window._agendaFiltro === 'realizados' ? realizados : agendados;
+            const msgVazia = window._agendaFiltro === 'realizados'
+                ? '📭 Nenhum contato realizado neste período.'
+                : '✨ Nenhum contato pendente para esta semana.';
+
+            if (listaAtiva.length === 0) {
+                html += `<div class="chart-card" style="text-align:center; padding:48px; color:var(--text-muted);">${msgVazia}</div>`;
+            } else {
+                html += `<div class="table-card"><table id="agendaTable"><thead><tr>
+                    <th style="min-width:120px;">Data / Hora</th>
+                    <th>Cliente</th>
+                    <th>WhatsApp</th>
+                    <th>Motivo do Contato</th>
+                    ${isGerente ? '<th>Vendedor</th>' : ''}
+                    <th style="text-align:center;">Contato</th>
+                </tr></thead><tbody>`;
+
+                listaAtiva.forEach(o => {
+                    const nome = escapeHtml(o.clientes?.nome_cliente || 'Cliente');
+                    const agendRaw = o.observacao_agendamento || '';
+                    const linhas = agendRaw.split('\n');
+                    const tipo = escapeHtml(linhas[0] || '-');
+                    const obsExtra = linhas.length > 1 ? `<div style="font-size:11px; color:var(--text-muted); margin-top:2px; font-weight:400;">${escapeHtml(linhas.slice(1).join(' '))}</div>` : '';
+                    const dataObj = new Date(o.data_contato + 'T00:00:00');
+                    const dataExibicao = dataObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                    const horaExibicao = o.hora_contato || '--:--';
+                    const agendamentoCompleto = `${dataExibicao} às ${horaExibicao}`;
+                    const isRealizado = window._agendaFiltro === 'realizados';
+
+                    html += `<tr class="clickable-row" data-id="${o.id_orcamento}" ${isRealizado ? 'style="opacity:0.65;"' : ''}>
+                        <td style="font-weight:500; white-space:nowrap; min-width:120px;">${agendamentoCompleto}</td>
+                        <td><span class="client-name">${nome}</span></td>
+                        <td>${escapeHtml(o.clientes?.whatsapp || '-')}</td>
+                        <td style="font-size:var(--font-xs); color:var(--text-secondary); font-weight:600;">${tipo}${obsExtra}</td>
+                        ${isGerente ? `<td>${escapeHtml(o.usuarios?.nome || '-')}</td>` : ''}
+                        <td style="text-align:center; vertical-align:middle;">
+                            ${isRealizado
+                                ? `<span style="color:var(--brand-blue); font-size:18px;" title="Contato realizado">✓</span>`
+                                : `<button class="btn-confirm-contact" data-id="${o.id_orcamento}" title="Confirmar contato realizado" onclick="event.stopPropagation()">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="20 6 9 17 4 12"/></svg>
+                                   </button>`
+                            }
+                        </td>
+                    </tr>`;
+                });
+                html += `</tbody></table></div>`;
+            }
+
+            document.getElementById('mainContent').innerHTML = html;
+
+            document.querySelectorAll('.table-card tbody tr.clickable-row').forEach(row => {
+                row.addEventListener('click', function() {
+                    const id = this.getAttribute('data-id');
+                    if (id) abrirDetalhesCliente(id);
+                });
+            });
+
+            document.querySelectorAll('.btn-confirm-contact').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    await confirmarContato(btn.getAttribute('data-id'), btn);
+                });
+            });
+
+            renderNotificationBadge(buildNotifications().length);
         }
 
         async function setAgendaFiltro(valor) {
-            if (agendaModule) {
-                return agendaModule.setAgendaFiltro(valor);
-            }
-            return false;
+            window._agendaFiltro = valor;
+            await renderAgendaDia();
         }
 
         async function confirmarContato(orcamentoId, btnElement) {
-            if (agendaModule) {
-                return agendaModule.confirmarContato(orcamentoId, btnElement);
-            }
-            return false;
-        }
+            if (btnElement.classList.contains('loading')) return;
+            btnElement.classList.add('loading');
+            try {
+                const { error } = await db.from('orcamentos')
+                    .update({ ligacao_confirmada: true })
+                    .eq('id_orcamento', orcamentoId);
+                if (error) throw error;
 
-        window.navigateTo = navigateTo;
-        window.toggleNotifications = toggleNotifications;
-        window.buildNotifications = buildNotifications;
-        window.renderNotificationBadge = renderNotificationBadge;
-        window.filtrarPorVendedor = filtrarPorVendedor;
-        window.filtrarPorLoja = filtrarPorLoja;
-        window.changeMonth = changeMonth;
-        window.changeDay = changeDay;
-        window.handleSearch = handleSearch;
-        window.handleSearchProtocolo = handleSearchProtocolo;
-        window.clearSearch = clearSearch;
-        window.selectFilter = selectFilter;
-        window.abrirDetalhesCliente = abrirDetalhesCliente;
-        window.setAgendaFiltro = setAgendaFiltro;
-        window.renderAgendaDia = renderAgendaDia;
-        window.confirmarContato = confirmarContato;
-        window.logout = logout;
-        window.handleLogin = handleLogin;
-        window.openModal = openModal;
-        window.closeModal = closeModal;
-        window.abrirModalUsuarioAdmin = abrirModalUsuarioAdmin;
-        window.salvarUsuarioAdmin = salvarUsuarioAdmin;
-        window.abrirModalExcluirUsuarioAdmin = abrirModalExcluirUsuarioAdmin;
-        window.confirmarExclusaoUsuario = confirmarExclusaoUsuario;
+                // Atualiza estado local
+                const idx = kpisMensais.findIndex(o => o.id_orcamento === orcamentoId);
+                if (idx !== -1) kpisMensais[idx].ligacao_confirmada = true;
+
+                // Histórico
+                await db.from('comentarios').insert([{
+                    id_orcamento: orcamentoId,
+                    texto: '✅ Contato confirmado como realizado via agenda.',
+                    tipo: 'Sistema',
+                    autor: currentUser.nome
+                }]);
+
+                // Animação de saída e remoção da linha
+                const row = btnElement.closest('tr');
+                if (row) {
+                    row.style.transition = 'opacity 0.2s ease, transform 0.15s ease';
+                    row.style.opacity = '0';
+                    row.style.transform = 'translateX(8px)';
+                    setTimeout(() => {
+                        const tbody = row.parentNode;
+                        row.remove();
+                        if (tbody && tbody.children.length === 0) {
+                            const isGerente = currentUser.perfil === 'Gerente' || currentUser.perfil === 'Administrador' || currentUser.perfil === 'Admin';
+                            const colspanCount = 5 + (isGerente ? 1 : 0);
+                            const emptyRow = document.createElement('tr');
+                            emptyRow.innerHTML = `<td colspan="${colspanCount}" style="text-align:center; padding:48px; color:var(--text-muted);">✨ Nenhum contato pendente para esta semana.</td>`;
+                            tbody.appendChild(emptyRow);
+                        }
+                    }, 200);
+                }
+
+                showToast('Contato confirmado!', 'success');
+            } catch (err) {
+                showToast('Erro ao confirmar contato: ' + err.message, 'error');
+                btnElement.classList.remove('loading');
+            }
+        }
 
         // legacy – kept for compatibility but redirects to new page
         function renderClientes() { navigateTo('clientes_lista'); }
@@ -2283,7 +2316,7 @@ function selectFilter(filter) {
             try {
                 const pk = _clientes.pk || (await detectClientePK());
                 _clientes.pk = pk;
-                const isVendedor = currentUser.perfil === 'Vendedor';
+                const isVendedor = currentUser.perfil === 'Vendedor' || (currentUser.perfil || '').toLowerCase() === 'terminal';
                 const isGerente = currentUser.perfil === 'Gerente' || currentUser.perfil === 'Administrador' || currentUser.perfil === 'Admin';
                 _clientes.isVendedor = isVendedor;
                 _clientes.isGerente = isGerente;
@@ -2513,7 +2546,7 @@ function selectFilter(filter) {
         }
 
         async function abrirFichaCliente(idCliente) {
-            setClienteSelecionadoParaAcao(idCliente);
+            clienteSelecionadoParaAcao = idCliente;
             previousView = currentView;
             currentView = 'ficha_cliente';
             await renderFichaCliente();
@@ -2526,7 +2559,7 @@ function selectFilter(filter) {
                 const pk = await detectClientePK();
                 const { data: c, error } = await db.from('clientes')
                     .select('*')
-                    .eq(pk, getClienteSelecionadoParaAcao())
+                    .eq(pk, clienteSelecionadoParaAcao)
                     .single();
                 if (error || !c) throw new Error('Cliente não encontrado');
                 c._pk = c[pk];
@@ -2616,7 +2649,7 @@ function selectFilter(filter) {
             const avisoAnterior = document.getElementById('avisoEdicaoCliente');
             if (avisoAnterior) avisoAnterior.remove();
 
-            const isVendedor = currentUser.perfil === 'Vendedor';
+            const isVendedor = currentUser.perfil === 'Vendedor' || (currentUser.perfil || '').toLowerCase() === 'terminal';
             const isGerenteOuAdmin = currentUser.perfil === 'Gerente' || currentUser.perfil === 'Administrador' || currentUser.perfil === 'Admin';
 
             // Configura visibilidade do campo de transferência
@@ -2687,7 +2720,7 @@ function selectFilter(filter) {
 
         async function salvarEdicaoCliente() {
             const id = document.getElementById('editClienteId').value;
-            const isVendedor = currentUser.perfil === 'Vendedor';
+            const isVendedor = currentUser.perfil === 'Vendedor' || (currentUser.perfil || '').toLowerCase() === 'terminal';
             const isGerenteOuAdmin = currentUser.perfil === 'Gerente' || currentUser.perfil === 'Administrador' || currentUser.perfil === 'Admin';
             const nome = document.getElementById('editClienteNome').value.trim();
             const cpfRaw = document.getElementById('editClienteCpf').value.replace(/\D/g,'');
@@ -2743,7 +2776,7 @@ function selectFilter(filter) {
         }
 
         function abrirModalExcluirCliente(idCliente, nomeCliente) {
-            setClienteSelecionadoParaAcao(idCliente);
+            clienteSelecionadoParaAcao = idCliente;
             document.getElementById('nomeClienteExcluir').textContent = nomeCliente;
             document.getElementById('errExcluirCliente').textContent = '';
             document.getElementById('avisoExcluirCliente').textContent = 'Atenção: se este cliente possuir orçamentos vinculados, a exclusão será bloqueada. Considere apenas editar o cadastro.';
@@ -2751,12 +2784,12 @@ function selectFilter(filter) {
         }
 
         async function confirmarExcluirCliente() {
-            if (currentUser.perfil === 'Vendedor') {
+            if (currentUser.perfil === 'Vendedor' || (currentUser.perfil || '').toLowerCase() === 'terminal') {
                 showToast('Você não tem permissão para excluir clientes.', 'error');
                 closeModal('modalExcluirCliente');
                 return;
             }
-            const id = getClienteSelecionadoParaAcao();
+            const id = clienteSelecionadoParaAcao;
             if (!id) return;
             const btn = document.getElementById('btnConfirmarExcluirCliente');
             btn.classList.add('saving'); btn.disabled = true;
@@ -2772,7 +2805,7 @@ function selectFilter(filter) {
                 if (error) throw error;
                 showToast('Cliente excluído com sucesso.', 'success');
                 closeModal('modalExcluirCliente');
-                setClienteSelecionadoParaAcao(null);
+                clienteSelecionadoParaAcao = null;
                 await renderClientesLista();
             } catch(e) { showToast('Erro ao excluir: ' + e.message, 'error'); }
             finally { btn.classList.remove('saving'); btn.disabled = false; }
@@ -2782,14 +2815,14 @@ function selectFilter(filter) {
             navigateTo('novo_orcamento');
             // Pre-fill after render
             setTimeout(() => {
-                if (!getClienteParaOrcamento()) return;
+                if (!clienteParaOrcamento) return;
                 const nome = document.getElementById('modNome');
                 const cpf = document.getElementById('modCpf');
                 const tel = document.getElementById('modWhats');
-                if (nome) nome.value = getClienteParaOrcamento().nome || '';
-                if (cpf) cpf.value = getClienteParaOrcamento().cpf || '';
-                if (tel) tel.value = getClienteParaOrcamento().tel || '';
-                setClienteParaOrcamento(null);
+                if (nome) nome.value = clienteParaOrcamento.nome || '';
+                if (cpf) cpf.value = clienteParaOrcamento.cpf || '';
+                if (tel) tel.value = clienteParaOrcamento.tel || '';
+                clienteParaOrcamento = null;
             }, 300);
         }
 
@@ -3274,7 +3307,7 @@ function selectFilter(filter) {
         }
 
         function abrirModalMeta(id, nome, valorAtual) {
-            setIdMetaEdicao(id); document.getElementById('inputMetaValor').value = 'R$ ' + valorAtual.toLocaleString('pt-BR');
+            idMetaEdicao = id; document.getElementById('inputMetaValor').value = 'R$ ' + valorAtual.toLocaleString('pt-BR');
             document.getElementById('errMeta').textContent = ''; openModal('modalEditarMeta'); document.getElementById('inputMetaValor').focus();
         }
 
@@ -3283,11 +3316,11 @@ function selectFilter(filter) {
             if (!valor || valor <= 0) { document.getElementById('errMeta').textContent = 'Valor inválido.'; return; }
             const btn = document.getElementById('btnSalvarMeta'); btn.classList.add('saving'); btn.disabled = true;
             try {
-                const { error } = await db.from('usuarios').update({ meta_mensal: Math.round(valor) }).eq('id_usuario', getIdMetaEdicao());
+                const { error } = await db.from('usuarios').update({ meta_mensal: Math.round(valor) }).eq('id_usuario', idMetaEdicao);
                 if (error) throw new Error(error.message);
-                const userIndex = todosUsuarios.findIndex(u => u.id_usuario === getIdMetaEdicao()); if (userIndex > -1) todosUsuarios[userIndex].meta_mensal = Math.round(valor);
-                const vendIndex = todosVendedores.findIndex(v => v.id_usuario === getIdMetaEdicao()); if (vendIndex > -1) todosVendedores[vendIndex].meta_mensal = Math.round(valor);
-                if (getIdMetaEdicao() === AppState.usuarioLogado.id_usuario) AppState.usuarioLogado.meta_mensal = Math.round(valor);
+                const userIndex = todosUsuarios.findIndex(u => u.id_usuario === idMetaEdicao); if (userIndex > -1) todosUsuarios[userIndex].meta_mensal = Math.round(valor);
+                const vendIndex = todosVendedores.findIndex(v => v.id_usuario === idMetaEdicao); if (vendIndex > -1) todosVendedores[vendIndex].meta_mensal = Math.round(valor);
+                if (idMetaEdicao === AppState.usuarioLogado.id_usuario) AppState.usuarioLogado.meta_mensal = Math.round(valor);
                 closeModal('modalEditarMeta'); showToast('Meta atualizada com sucesso', 'success'); renderMetas();
             } catch (e) { document.getElementById('errMeta').textContent = 'Erro ao salvar: ' + e.message; } 
             finally { btn.classList.remove('saving'); btn.disabled = false; }
@@ -3419,7 +3452,7 @@ function selectFilter(filter) {
     
     return total; 
 }
-        function abrirNovoOrcamento() { const p = (currentUser?.perfil || '').toLowerCase(); if (p !== 'vendedor') return; navigateTo('novo_orcamento'); }
+        function abrirNovoOrcamento() { const p = (currentUser?.perfil || '').toLowerCase(); if (p !== 'vendedor' && p !== 'terminal') return; navigateTo('novo_orcamento'); }
 
         // Protocolo gerado automaticamente pelo banco via nextval('protocolo_seq')
 
@@ -3565,8 +3598,8 @@ function selectFilter(filter) {
         }
 
         async function salvarOrcamento() {
-            if (getSalvandoOrcamento()) return;
-            setSalvandoOrcamento(true);
+            if (salvandoOrcamento) return;
+            salvandoOrcamento = true;
             const btn = document.getElementById('btnSalvarOrcamento');
             btn.classList.add('saving');
             btn.disabled = true;
@@ -3614,7 +3647,7 @@ function selectFilter(filter) {
                 
                 if (!valid) { 
                     showToast('Preencha todos os campos obrigatórios', 'error'); 
-                    setSalvandoOrcamento(false);
+                    salvandoOrcamento = false;
                     btn.classList.remove('saving');
                     btn.disabled = false;
                     return; 
@@ -3630,7 +3663,7 @@ function selectFilter(filter) {
                     if (avisoTelefone) {
                         const continuar = confirm(avisoTelefone + '\nDeseja continuar com o novo cadastro?');
                         if (!continuar) {
-                            setSalvandoOrcamento(false);
+                            salvandoOrcamento = false;
                             btn.classList.remove('saving');
                             btn.disabled = false;
                             return;
@@ -3717,19 +3750,19 @@ function selectFilter(filter) {
             } finally {
                 btn.classList.remove('saving');
                 btn.disabled = false;
-                setSalvandoOrcamento(false);
+                salvandoOrcamento = false;
             }
         }
 
-        function abrirMotivoPerda(id) { setIdOrcamentoParaPerder(id); openModal('modalMotivoPerda'); }
+        function abrirMotivoPerda(id) { idOrcamentoParaPerder = id; openModal('modalMotivoPerda'); }
         async function confirmarPerda(event) {
-            if (getIsConfirmingPerda()) return;
+            if (isConfirmingPerda) return;
             const motivoSelect = document.getElementById('motivoPerdaSelect');
             const motivoDetalhes = document.getElementById('motivoPerda').value.trim();
             const motivo = motivoSelect.value;
             if (!motivo) { document.getElementById('errMotivo').textContent = 'Selecione o motivo principal.'; return; }
             const btn = event.currentTarget;
-            btn.classList.add('saving'); btn.disabled = true; setIsConfirmingPerda(true);
+            btn.classList.add('saving'); btn.disabled = true; isConfirmingPerda = true;
             try {
                 console.log("mapStatusUUID ao perder:", JSON.stringify(mapStatusUUID));
                 if (!mapStatusUUID.length) {
@@ -3738,16 +3771,16 @@ function selectFilter(filter) {
                 }
                 const statusPerdido = mapStatusUUID.find(s => s.nome === STATUS.PERDIDO);
                 if (!statusPerdido) throw new Error('Status "Perdido" não encontrado');
-                const { error } = await db.from('orcamentos').update({ id_status: statusPerdido.id_status, data_fechamento: new Date().toISOString() }).eq('id_orcamento', getIdOrcamentoParaPerder());
+                const { error } = await db.from('orcamentos').update({ id_status: statusPerdido.id_status, data_fechamento: new Date().toISOString() }).eq('id_orcamento', idOrcamentoParaPerder);
                 if (error) throw error;
                 const comentario = `Venda perdida. Motivo: ${motivo}${motivoDetalhes ? ' - Detalhes: ' + motivoDetalhes : ''}`;
-                await db.from('comentarios').insert([{ id_orcamento: getIdOrcamentoParaPerder(), texto: comentario, tipo: 'Perda', autor: currentUser.nome }]);
+                await db.from('comentarios').insert([{ id_orcamento: idOrcamentoParaPerder, texto: comentario, tipo: 'Perda', autor: currentUser.nome }]);
                 showToast('Venda registrada como perdida.', 'success');
                 closeModal('modalMotivoPerda');
-                if (currentView === 'detalhes_cliente') await abrirDetalhesCliente(getIdOrcamentoParaPerder());
+                if (currentView === 'detalhes_cliente') await abrirDetalhesCliente(idOrcamentoParaPerder);
                 else navigateTo(currentView);
             } catch (e) { showToast('Erro ao registrar perda: ' + e.message, 'error'); }
-            finally { btn.classList.remove('saving'); btn.disabled = false; setIsConfirmingPerda(false); }
+            finally { btn.classList.remove('saving'); btn.disabled = false; isConfirmingPerda = false; }
         }
 
         let modoFechamentoSelecionado = null; // 'entrega' | 'retirada'
@@ -3778,7 +3811,7 @@ function selectFilter(filter) {
         }
 
         function abrirConfirmaFechamento(id) {
-            setIdOrcamentoParaPerder(id);
+            idOrcamentoParaPerder = id;
             modoFechamentoSelecionado = null;
 
             // Reset visual
@@ -3931,7 +3964,7 @@ function selectFilter(filter) {
 
         function voltarDetalhes() {
             const fab = document.getElementById('fabButton');
-            if (fab && currentUser?.perfil === 'Vendedor') fab.style.display = 'flex';
+            if (fab && (currentUser?.perfil === 'Vendedor' || (currentUser.perfil || '').toLowerCase() === 'terminal')) fab.style.display = 'flex';
             currentView = previousView;
             navigateTo(currentView);
         }
@@ -4006,6 +4039,8 @@ function selectFilter(filter) {
                     query = query.eq('usuarios.id_loja', currentUser.id_loja);
                 } else if (currentUser.perfil === 'Vendedor') {
                     query = query.eq('id_usuario', currentUser.id_usuario);
+                } else if ((currentUser.perfil || '').toLowerCase() === 'terminal') {
+                    query = query.eq('usuarios.id_loja', currentUser.id_loja);
                 } else {
                     if (selectedVendedor !== 'todos') {
                         query = query.eq('id_usuario', selectedVendedor);
@@ -4316,26 +4351,26 @@ function selectFilter(filter) {
         }
 
         function abrirModalExcluirUsuarioAdmin(id, nome) {
-            setIdUsuarioEmEdicao(id);
+            idUsuarioEmEdicao = id;
             document.getElementById('nomeUsuarioExcluir').innerText = nome;
             openModal('modalExcluirUsuarioAdmin');
         }
 
         async function confirmarExclusaoUsuario() {
-            if (!getIdUsuarioEmEdicao()) return;
+            if (!idUsuarioEmEdicao) return;
             const btn = document.getElementById('btnConfirmarExclusaoUsuario');
             btn.classList.add('saving'); btn.disabled = true;
             try {
                 const { count, error: countError } = await db.from('orcamentos')
                     .select('*', { count: 'exact', head: true })
-                    .eq('id_usuario', getIdUsuarioEmEdicao());
+                    .eq('id_usuario', idUsuarioEmEdicao);
                 if (countError) throw countError;
                 if (count > 0) {
                     showToast(`Não é possível excluir: usuário possui ${count} orçamento(s). Inative-o em vez disso.`, 'error');
                     closeModal('modalExcluirUsuarioAdmin');
                     return;
                 }
-                const { error } = await db.from('usuarios').delete().eq('id_usuario', getIdUsuarioEmEdicao());
+                const { error } = await db.from('usuarios').delete().eq('id_usuario', idUsuarioEmEdicao);
                 if (error) throw error;
                 showToast('Usuário excluído com sucesso.', 'success');
                 closeModal('modalExcluirUsuarioAdmin');
@@ -4347,13 +4382,13 @@ function selectFilter(filter) {
                 showToast('Erro ao excluir: ' + e.message, 'error');
             } finally {
                 btn.classList.remove('saving'); btn.disabled = false;
-                setIdUsuarioEmEdicao(null);
+                idUsuarioEmEdicao = null;
             }
         }
 
         function marcarNotificacaoLida(id) {
-            if (id && !getNotificacoesLidas().has(id)) {
-                getNotificacoesLidas().add(id);
+            if (id && !notificacoesLidas.has(id)) {
+                notificacoesLidas.add(id);
                 salvarNotificacoesLidas();
                 renderNotificationBadge(buildNotifications().length);
             }
@@ -4362,8 +4397,8 @@ function selectFilter(filter) {
         function toggleTheme() {
             document.body.classList.toggle('dark');
             localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
-            if (getDonutChartInstanceState()) { getDonutChartInstanceState().destroy(); setDonutChartInstanceState(null); }
-            if (getBarChartInstanceState()) { getBarChartInstanceState().destroy(); setBarChartInstanceState(null); }
+            if (donutChartInstance) { donutChartInstance.destroy(); donutChartInstance = null; }
+            if (barChartInstance) { barChartInstance.destroy(); barChartInstance = null; }
             if (currentView === 'inicio') renderInicio();
             else if (currentView === 'admin_inicio') renderAdminInicio(document.getElementById('mainContent'));
             else if (currentView === 'admin_usuarios') renderAdminUsuarios(document.getElementById('mainContent'));
@@ -5374,6 +5409,232 @@ async function analisarClienteComIA(idOrcamentoAtual) {
             btn.querySelector('.btn-spinner').style.display = 'none';
             btn.disabled = false;
         }
+    }
+}
+
+function abrirModalChatIA(resposta, nomeCliente) {
+    const anterior = document.getElementById('modalChatIA');
+    if (anterior) anterior.remove();
+
+	// 1. Remove negrito
+// 0. Remove raciocínio interno do modelo (tudo antes de "1. Estratégia" ou "1. Situação")
+let textoLimpo = resposta;
+const marcadorInicio = /1\.\s*(Estratégia|Situação Pós-Venda)/i;
+const matchInicio = textoLimpo.match(marcadorInicio);
+if (matchInicio) {
+    textoLimpo = textoLimpo.slice(textoLimpo.indexOf(matchInicio[0]));
+}
+
+// 1. Remove negrito
+let textoTemp = textoLimpo.replace(/\*\*(.*?)\*\*/g, '$1');
+
+// 2. REMOVE totalmente o asterisco ou hífen no início da linha
+textoTemp = textoTemp.replace(/^[\*\-]\s*/gm, ''); 
+
+// 3. Garante espaço entre linhas principais
+textoTemp = textoTemp.replace(/\n\n/g, '<br><br>');
+
+// 4. Converte quebras restantes
+const formatado = textoTemp.replace(/\n/g, '<br>');
+	
+    const modal = document.createElement('div');
+    modal.id = 'modalChatIA';
+    modal.style.cssText = `
+        position: fixed; inset: 0; z-index: 9999;
+        display: flex; align-items: flex-end; justify-content: flex-end;
+asasdasd        padding: 100px 24px 100px 0; pointer-events: none;
+    `;
+
+    modal.innerHTML = `
+        <div class="chat-modal-container" style="background: white; border-radius: 16px 16px 0 0; width: 100%; max-width: 400px; 
+                    box-shadow: 0 -4px 24px rgba(0,0,0,0.2); pointer-events: auto; display: flex; flex-direction: column; 
+                    max-height: 80vh; color: #1f2937;">
+            <div class="chat-header" style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); padding: 16px 20px; 
+                        border-radius: 16px 16px 0 0; display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="background: rgba(255,255,255,0.2); padding: 8px; border-radius: 8px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                            <line x1="12" x2="12" y1="19" y2="22"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 style="color: white; font-weight: 600; font-size: 16px; margin: 0;">Assistente de Vendas</h3>
+                        <p style="color: rgba(255,255,255,0.8); font-size: 12px; margin: 0;">Análise de ${escapeHtml(nomeCliente)}</p>
+                    </div>
+                </div>
+                <button onclick="fecharModalChatIA()" style="background: rgba(255,255,255,0.2); border: none; 
+                           color: white; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; 
+                           display: flex; align-items: center; justify-content: center; font-size: 18px;">×</button>
+            </div>
+            
+            <div id="chatIAPanel" class="chat-messages-area" style="flex: 1; overflow-y: auto; padding: 16px; background: #f3f4f6; color: #1f2937;">
+                <div class="message-assistant" style="display: flex; gap: 12px; margin-bottom: 16px;">
+                    <div style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); 
+                                width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; 
+                                display: flex; align-items: center; justify-content: center;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                            <line x1="12" x2="12" y1="19" y2="22"/>
+                        </svg>
+                    </div>
+                    <div class="message-bubble" style="background: white; padding: 12px 16px; border-radius: 12px; 
+                                box-shadow: 0 1px 3px rgba(0,0,0,0.1); flex: 1; max-width: calc(100% - 44px);">
+                        <p style="margin: 0; line-height: 1.5; color: #000000; font-weight: 400;">${formatado}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chat-input-area" style="padding: 16px; border-top: 1px solid #e5e7eb; background: white;">
+                <div style="display: flex; gap: 8px; align-items: flex-end;">
+                    <textarea id="chatIAInput" class="chat-input" placeholder="Pergunte algo sobre este cliente..." 
+                              style="flex: 1; padding: 12px; border: 1px solid #d1d5db; border-radius: 12px; 
+                                     resize: none; font-family: inherit; font-size: 14px; outline: none; 
+                                     max-height: 100px; min-height: 44px;" rows="1"></textarea>
+                    <button id="chatIASendBtn" onclick="enviarMensagemChatIA()" class="chat-send-btn" style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); 
+                               border: none; color: white; width: 44px; height: 44px; border-radius: 12px; 
+                               cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="22" x2="11" y1="2" y2="13"/>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    setTimeout(() => document.getElementById('chatIAInput')?.focus(), 100);
+
+    window._chatIAHistorico = [
+        { role: 'user', content: 'Analise este cliente e sugira estratégias de venda.' },
+        { role: 'assistant', content: resposta }
+    ];
+}
+
+async function enviarMensagemChatIA() {
+    const input = document.getElementById('chatIAInput');
+    const texto = input?.value?.trim();
+    if (!texto) return;
+
+    const chatBody = document.querySelector('#chatIAPanel > div[style*="overflow-y"]');
+    if (!chatBody) return;
+
+    input.value = '';
+    input.disabled = true;
+
+    chatBody.insertAdjacentHTML('beforeend', `
+        <div class="message-user" style="display: flex; gap: 12px; margin-bottom: 16px; justify-content: flex-end;">
+            <div class="message-bubble" style="background: #7c3aed; padding: 12px 16px; border-radius: 12px; 
+                        box-shadow: 0 1px 3px rgba(0,0,0,0.1); flex: 1; max-width: calc(100% - 44px);">
+                <p style="margin: 0; line-height: 1.5; color: white;">${escapeHtml(texto)}</p>
+            </div>
+            <div style="width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; 
+                        background: #e5e7eb; display: flex; align-items: center; justify-content: center;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2">
+                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                </svg>
+            </div>
+        </div>
+    `);
+
+    const typingId = 'typing_' + Date.now();
+    chatBody.insertAdjacentHTML('beforeend', `
+        <div class="message-assistant typing-bubble" style="display: flex; gap: 12px; margin-bottom: 16px;" id="${typingId}">
+            <div style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); 
+                        width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; 
+                        display: flex; align-items: center; justify-content: center;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    <line x1="12" x2="12" y1="19" y2="22"/>
+                </svg>
+            </div>
+            <div class="message-bubble" style="background: white; padding: 12px 16px; border-radius: 12px; 
+                        box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <div class="typing-dots" style="display: flex; gap: 4px;">
+                    <div class="typing-dot" style="width: 8px; height: 8px; background: #7c3aed; border-radius: 50%; 
+                                animation: bounce 1.4s infinite ease-in-out both;"></div>
+                    <div class="typing-dot" style="width: 8px; height: 8px; background: #7c3aed; border-radius: 50%; 
+                                animation: bounce 1.4s infinite ease-in-out both; animation-delay: 0.16s;"></div>
+                    <div class="typing-dot" style="width: 8px; height: 8px; background: #7c3aed; border-radius: 50%; 
+                                animation: bounce 1.4s infinite ease-in-out both; animation-delay: 0.32s;"></div>
+                </div>
+            </div>
+        </div>
+    `);
+    chatBody.scrollTop = chatBody.scrollHeight;
+
+    try {
+        window._chatIAHistorico = window._chatIAHistorico || [];
+        window._chatIAHistorico.push({ role: 'user', content: texto });
+
+        const { data: { session } } = await db.auth.getSession();
+        const res = await fetch(
+            'https://blumqkxwasdbyozdvrsp.supabase.co/functions/v1/gemini-proxy ',
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+                body: JSON.stringify({
+                    prompt: `${texto}\n\nContexto da conversa anterior: ${JSON.stringify(window._chatIAHistorico.slice(0,-1))}`
+                }),
+            }
+        );
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+
+        const respostaFormatada = (data.text || '')
+            .replace(/\*\*(.*?)\*\*/g, '$1')
+            .replace(/^\* /gm, '• ')
+            .replace(/\n/g, '<br>');
+
+        window._chatIAHistorico.push({ role: 'assistant', content: data.text });
+
+        document.getElementById(typingId)?.remove();
+        chatBody.insertAdjacentHTML('beforeend', `
+            <div class="message-assistant" style="display: flex; gap: 12px; margin-bottom: 16px;">
+                <div style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); 
+                            width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; 
+                            display: flex; align-items: center; justify-content: center;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                        <line x1="12" x2="12" y1="19" y2="22"/>
+                    </svg>
+                </div>
+                <div class="message-bubble" style="background: white; padding: 12px 16px; border-radius: 12px; 
+                            box-shadow: 0 1px 3px rgba(0,0,0,0.1); flex: 1; max-width: calc(100% - 44px);">
+                    <p style="margin: 0; line-height: 1.5; color: #000000; font-weight: 400;">${respostaFormatada}</p>
+                </div>
+            </div>
+        `);
+    } catch(e) {
+        document.getElementById(typingId)?.remove();
+        chatBody.insertAdjacentHTML('beforeend', `
+            <div class="message-assistant" style="display: flex; gap: 12px; margin-bottom: 16px;">
+                <div style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); 
+                            width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; 
+                            display: flex; align-items: center; justify-content: center;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                        <line x1="12" x2="12" y1="19" y2="22"/>
+                    </svg>
+                </div>
+                <div class="message-bubble" style="background: white; padding: 12px 16px; border-radius: 12px; 
+                            box-shadow: 0 1px 3px rgba(0,0,0,0.1); flex: 1; max-width: calc(100% - 44px);">
+                    <p style="margin: 0; line-height: 1.5; color: #ef4444; font-weight: 400;">Erro ao responder. Tente novamente.</p>
+                </div>
+            </div>
+        `);
+    } finally {
+        input.disabled = false;
+        input.focus();
+        chatBody.scrollTop = chatBody.scrollHeight;
     }
 }
 
