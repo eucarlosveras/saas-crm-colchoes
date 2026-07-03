@@ -183,9 +183,10 @@
             <label for="adminModNome">Nome Completo</label><input type="text" id="adminModNome" placeholder="Ex: João da Silva">
             <label for="adminModEmail">E-mail</label><input type="email" id="adminModEmail" placeholder="vendedor@loja.com.br">
             
-            <label for="adminModLoja">Loja Base</label>
-            <select id="adminModLoja" class="form-input" style="margin-bottom:4px;">
+            <label for="adminModLoja">Lojas</label>
+            <select id="adminModLoja" class="form-input" style="margin-bottom:4px;" multiple size="4">
             </select>
+            <small id="adminModLojaHelp" style="color:var(--text-muted); font-size:11px; margin-top:4px; display:block;">Segure Ctrl/Cmd para selecionar múltiplas lojas (apenas para Gerente/Admin)</small>
             
             <div class="modal-row" style="margin-top: 8px;">
                 <div><label for="adminModPerfil">Perfil do Sistema</label><select id="adminModPerfil"><option value="Vendedor">Vendedor</option><option value="Gerente">Gerente</option><option value="Administrador">Administrador (TI)</option></select></div>
