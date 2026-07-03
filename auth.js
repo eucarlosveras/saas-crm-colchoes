@@ -21,9 +21,10 @@ export function createAuthModule({
 
       const session = sessionResult.data?.session;
       if (session && session.user) {
+        // Carrega usuário com suas lojas via JOIN
         const profileResult = await safeCall(() => db
           .from('usuarios')
-          .select('*')
+          .select(`*, lojas:usuarios_lojas(id_loja)`)
           .eq('email', session.user.email)
           .single(), {
             retries: 2,
@@ -36,7 +37,11 @@ export function createAuthModule({
           return;
         }
 
-        setUsuarioLogado(profileResult.data);
+        // Transforma dados para incluir array de lojas
+        const userData = profileResult.data;
+        userData.lojas = userData.lojas ? userData.lojas.map(l => l.id_loja) : (userData.id_loja ? [userData.id_loja] : []);
+        
+        setUsuarioLogado(userData);
         document.getElementById('loginOverlay').classList.add('hidden');
         initAppAfterLogin();
       } else {
@@ -89,9 +94,10 @@ export function createAuthModule({
         throw new Error(normalizeErrorMessage(authResult.error, 'E-mail ou senha incorretos.'));
       }
 
+      // Carrega usuário com suas lojas via JOIN
       const profileResult = await safeCall(() => db
         .from('usuarios')
-        .select('*')
+        .select(`*, lojas:usuarios_lojas(id_loja)`)
         .eq('email', authResult.data?.user?.email)
         .single(), {
           retries: 2,
@@ -107,7 +113,11 @@ export function createAuthModule({
         throw new Error('Usuário inativo.');
       }
 
-      setUsuarioLogado(profileResult.data);
+      // Transforma dados para incluir array de lojas
+      const userData = profileResult.data;
+      userData.lojas = userData.lojas ? userData.lojas.map(l => l.id_loja) : (userData.id_loja ? [userData.id_loja] : []);
+      
+      setUsuarioLogado(userData);
       document.getElementById('loginOverlay').classList.add('hidden');
       initAppAfterLogin();
     } catch (err) {

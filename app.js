@@ -247,8 +247,17 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
             document.getElementById('fabButton').style.display = (!isAdministrador && !isGerente) ? 'flex' : 'none';
 
             try {
-                const { data: all } = await db.from('usuarios').select('*').order('nome');
-                todosUsuarios = all || []; todosVendedores = todosUsuarios.filter(u => u.perfil === 'Vendedor');
+                // Carrega usuários e suas lojas via JOIN com usuarios_lojas
+                const { data: all } = await db.from('usuarios')
+                    .select(`*, lojas:usuarios_lojas(id_loja)`)
+                    .order('nome');
+                
+                // Transforma dados para incluir array de lojas
+                todosUsuarios = (all || []).map(u => ({
+                    ...u,
+                    lojas: u.lojas ? u.lojas.map(l => l.id_loja) : (u.id_loja ? [u.id_loja] : [])
+                }));
+                todosVendedores = todosUsuarios.filter(u => u.perfil === 'Vendedor');
             } catch (e) { todosUsuarios = []; todosVendedores = []; }
 
             const hora = new Date().getHours();
@@ -621,7 +630,7 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         async function salvarUsuarioAdmin() {
             const nome = document.getElementById('adminModNome').value.trim();
             const email = document.getElementById('adminModEmail').value.trim();
-            const loja = document.getElementById('adminModLoja').value;
+            const lojaSel = document.getElementById('adminModLoja');
             const perfil = document.getElementById('adminModPerfil').value;
             const status = document.getElementById('adminModStatus').value;
             const senha = document.getElementById('adminModSenha').value;
@@ -635,8 +644,17 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                 err.textContent = 'Defina uma senha inicial para o novo usuário.';
                 return;
             }
-            if (!loja) {
-                err.textContent = 'Selecione a Loja Base do usuário.';
+            
+            // Coleta lojas selecionadas (pode ser múltipla para Gerente/Admin)
+            const lojas = Array.from(lojaSel.selectedOptions).map(opt => opt.value);
+            if (lojas.length === 0) {
+                err.textContent = 'Selecione pelo menos uma loja.';
+                return;
+            }
+            
+            // Valida: Vendedor só pode ter 1 loja
+            if (perfil === 'Vendedor' && lojas.length > 1) {
+                err.textContent = 'Vendedor só pode estar vinculado a uma loja.';
                 return;
             }
 
@@ -645,16 +663,32 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
 
             try {
                 if (getIdUsuarioEmEdicao()) {
-                    // EDICAO: atualiza direto na tabela usuarios
-                    const updatePayload = { nome, email, id_loja: loja, perfil, status };
+                    // EDICAO: atualiza dados básicos na tabela usuarios
+                    const updatePayload = { nome, email, perfil, status };
                     const { error: updateError } = await db.from('usuarios')
                         .update(updatePayload)
                         .eq('id_usuario', getIdUsuarioEmEdicao());
                     if (updateError) throw updateError;
+                    
+                    // Atualiza relação N:N na tabela usuarios_lojas
+                    // 1. Remove todas as relações atuais
+                    const { error: deleteError } = await db.from('usuarios_lojas')
+                        .delete()
+                        .eq('id_usuario', getIdUsuarioEmEdicao());
+                    if (deleteError) throw deleteError;
+                    
+                    // 2. Insere novas relações
+                    if (lojas.length > 0) {
+                        const relacoes = lojas.map(idLoja => ({ id_usuario: getIdUsuarioEmEdicao(), id_loja: idLoja }));
+                        const { error: insertError } = await db.from('usuarios_lojas')
+                            .insert(relacoes);
+                        if (insertError) throw insertError;
+                    }
+                    
                     showToast('Usuário atualizado com sucesso!', 'success');
                 } else {
-                    // CRIACAO: chama Edge Function que cria no Auth + insere em usuarios
-                    const payload = { nome, email, loja, perfil, status, senha };
+                    // CRIACAO: chama Edge Function que cria no Auth + insere em usuarios e usuarios_lojas
+                    const payload = { nome, email, lojas, perfil, status, senha };
                     console.log("Payload sendo enviado para a Edge Function:", JSON.stringify(payload));
                     const { data, error } = await db.functions.invoke('criar-usuario', {
                         body: payload
@@ -689,20 +723,63 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
             const perfilSel = document.getElementById('adminModPerfil');
             const statusSel = document.getElementById('adminModStatus');
             const senhaInput = document.getElementById('adminModSenha');
+            const lojaHelp = document.getElementById('adminModLojaHelp');
 
-            lojaSel.innerHTML = '<option value="">Selecione a loja...</option>';
+            // Preenche select de lojas
+            lojaSel.innerHTML = '';
             listaLojas.forEach(l => { lojaSel.innerHTML += `<option value="${l.id_loja}">${escapeHtml(l.nome_loja)}</option>`; });
+
+            // Configura comportamento baseado no perfil
+            function atualizarRegraLojas() {
+                const perfil = perfilSel.value;
+                const isVendedor = perfil === 'Vendedor';
+                lojaSel.multiple = !isVendedor;
+                lojaSel.size = isVendedor ? 1 : 4;
+                if (lojaHelp) {
+                    lojaHelp.style.display = isVendedor ? 'none' : 'block';
+                }
+                // Se era multi-seleção e virou vendedor, mantém apenas a primeira
+                if (isVendedor && lojaSel.selectedOptions.length > 1) {
+                    Array.from(lojaSel.options).forEach(opt => opt.selected = false);
+                    if (lojaSel.options[0] && lojaSel.options[0].value !== '') {
+                        lojaSel.options[0].selected = true;
+                    }
+                }
+            }
+
+            // Adiciona listener para mudar regra ao trocar perfil
+            perfilSel.onchange = atualizarRegraLojas;
 
             if (id) {
                 const user = todosUsuarios.find(u => u.id_usuario === id);
                 title.textContent = 'Editar Usuário';
                 nomeInput.value = user.nome || ''; emailInput.value = user.email || '';
-                lojaSel.value = user.id_loja || ''; perfilSel.value = user.perfil || 'Vendedor'; statusSel.value = user.status || 'Ativo';
+                
+                // Carrega lojas do usuário (agora pode ser múltiplas)
+                Array.from(lojaSel.options).forEach(opt => opt.selected = false);
+                if (user.lojas && Array.isArray(user.lojas)) {
+                    user.lojas.forEach(idLoja => {
+                        const opt = lojaSel.querySelector(`option[value="${idLoja}"]`);
+                        if (opt) opt.selected = true;
+                    });
+                } else if (user.id_loja) {
+                    // Fallback para formato antigo (single loja)
+                    const opt = lojaSel.querySelector(`option[value="${user.id_loja}"]`);
+                    if (opt) opt.selected = true;
+                }
+                
+                perfilSel.value = user.perfil || 'Vendedor'; 
+                statusSel.value = user.status || 'Ativo';
                 senhaInput.value = '';
+                atualizarRegraLojas();
             } else {
                 title.textContent = 'Novo Usuário';
-                nomeInput.value = ''; emailInput.value = ''; lojaSel.value = ''; perfilSel.value = 'Vendedor'; statusSel.value = 'Ativo';
+                nomeInput.value = ''; emailInput.value = ''; 
+                Array.from(lojaSel.options).forEach(opt => opt.selected = false);
+                perfilSel.value = 'Vendedor'; 
+                statusSel.value = 'Ativo';
                 senhaInput.value = '';
+                atualizarRegraLojas();
             }
             openModal('modalUsuarioAdmin');
         }
