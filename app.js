@@ -1567,7 +1567,7 @@ function selectFilter(filter) {
             const orcadosCount = total - fechados;
             
             if(getDonutChartInstanceState()) { getDonutChartInstanceState().destroy(); }
-            const chartDonut = new Chart(ctxDonut, {
+            const chartDonut = new window.Chart(ctxDonut, {
                 type: 'doughnut',
                 data: {
                     labels: ['Orçados', 'Fechados'],
@@ -1607,7 +1607,7 @@ function selectFilter(filter) {
             const ctxBar = document.getElementById('barChartCanvas');
             if (ctxBar && getHistoricoFaturamento().length > 0) {
                 if(getBarChartInstanceState()) { getBarChartInstanceState().destroy(); }
-                const chartBar = new Chart(ctxBar, {
+                const chartBar = new window.Chart(ctxBar, {
                     type: 'bar',
                     data: {
                         labels: getHistoricoFaturamento().map(h => h.mes),
@@ -2165,6 +2165,7 @@ function selectFilter(filter) {
         window.handleLogin = handleLogin;
         window.openModal = openModal;
         window.closeModal = closeModal;
+        window.renderizarGraficos = renderizarGraficos;
 
         // legacy – kept for compatibility but redirects to new page
         function renderClientes() { navigateTo('clientes_lista'); }
