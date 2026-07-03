@@ -107,7 +107,7 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         function atualizarFab(view) {
     const fab = document.getElementById('fabButton');
     if (!fab) return;
-    const isVendedor = currentUser?.perfil === 'Vendedor' || (currentUser?.perfil || '').toLowerCase() === 'terminal';
+    const isVendedor = currentUser?.perfil === 'Vendedor';
     if (view === 'inicio' && isVendedor) {
         fab.style.display = 'flex';
         fab.title = 'Novo orçamento';
@@ -305,7 +305,7 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                     p_mes: currentMonth,
                     p_ano: currentYear,
                     p_id_usuario: AppState.usuarioLogado.id_usuario,
-                    p_perfil: (AppState.usuarioLogado.perfil || '').toLowerCase() === 'terminal' ? 'Gerente' : AppState.usuarioLogado.perfil,
+                    p_perfil: AppState.usuarioLogado.perfil,
                     p_id_loja: AppState.usuarioLogado.id_loja
                 }), {
                     retries: 2,
@@ -327,7 +327,7 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                     queryDetalhes = queryDetalhes.gte('data_criacao', start).lte('data_criacao', end);
                 }
 
-                if (AppState.usuarioLogado.perfil === 'Gerente' || (AppState.usuarioLogado.perfil || '').toLowerCase() === 'terminal') {
+                if (AppState.usuarioLogado.perfil === 'Gerente') {
                     const ids = todosVendedores.filter(v => v.id_loja === AppState.usuarioLogado.id_loja).map(v => v.id_usuario);
                     if (ids.length > 0) queryDetalhes = queryDetalhes.in('id_usuario', ids);
                     if (selectedVendedor !== 'todos') queryDetalhes = queryDetalhes.eq('id_usuario', selectedVendedor);
@@ -401,11 +401,6 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                     if (selectedVendedor !== 'todos') query = query.eq('id_usuario', selectedVendedor);
                 } else if (currentUser.perfil === 'Vendedor') {
                     query = query.eq('id_usuario', currentUser.id_usuario);
-                } else if ((currentUser.perfil || '').toLowerCase() === 'terminal') {
-                    query = query.eq('usuarios.id_loja', currentUser.id_loja);
-                    if (window._terminalVendedorFiltro && window._terminalVendedorFiltro !== 'todos') {
-                        query = query.eq('id_usuario', window._terminalVendedorFiltro);
-                    }
                 } else {
                     if (selectedVendedor !== 'todos') {
                         query = query.eq('id_usuario', selectedVendedor);
@@ -592,7 +587,6 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
             try {
                 let query = db.from('orcamentos').select('*, clientes!inner(nome_cliente, whatsapp), usuarios(nome), status_orcamento(nome)');
                 if (currentUser.perfil === 'Vendedor') query = query.eq('id_usuario', currentUser.id_usuario);
-                else if ((currentUser.perfil || '').toLowerCase() === 'terminal') query = query.eq('usuarios.id_loja', currentUser.id_loja);
                 else if (selectedVendedor !== 'todos') query = query.eq('id_usuario', selectedVendedor);
                 
                 if (currentMonth && currentYear && !currentDay) {
@@ -810,7 +804,7 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
 }
 
         async function carregarHistoricoFaturamento() {
-            if (!currentUser || (currentUser.perfil !== 'Vendedor' && (currentUser.perfil || '').toLowerCase() !== 'terminal')) { setHistoricoFaturamento([]); return; }
+            if (!currentUser || currentUser.perfil !== 'Vendedor') { setHistoricoFaturamento([]); return; }
             const hoje = new Date(); setHistoricoFaturamento([]);
             try {
                 const uuidsFechados = mapStatusUUID.filter(s => [STATUS.FECHADO, STATUS.VENDIDO].includes(s.nome)).map(s => s.id_status);
@@ -916,7 +910,6 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         
        function calcularMetaTotal() {
             if (currentUser.perfil === 'Vendedor') return getMetaVendedor(currentUser.id_usuario);
-            if ((currentUser.perfil || '').toLowerCase() === 'terminal') return todosVendedores.filter(v => v.id_loja === currentUser.id_loja).reduce((s, v) => s + getMetaVendedor(v.id_usuario), 0);
             
             let filtrados = todosVendedores;
             if (currentUser.perfil === 'Gerente') {
@@ -2290,7 +2283,7 @@ function selectFilter(filter) {
             try {
                 const pk = _clientes.pk || (await detectClientePK());
                 _clientes.pk = pk;
-                const isVendedor = currentUser.perfil === 'Vendedor' || (currentUser.perfil || '').toLowerCase() === 'terminal';
+                const isVendedor = currentUser.perfil === 'Vendedor';
                 const isGerente = currentUser.perfil === 'Gerente' || currentUser.perfil === 'Administrador' || currentUser.perfil === 'Admin';
                 _clientes.isVendedor = isVendedor;
                 _clientes.isGerente = isGerente;
@@ -2623,7 +2616,7 @@ function selectFilter(filter) {
             const avisoAnterior = document.getElementById('avisoEdicaoCliente');
             if (avisoAnterior) avisoAnterior.remove();
 
-            const isVendedor = currentUser.perfil === 'Vendedor' || (currentUser.perfil || '').toLowerCase() === 'terminal';
+            const isVendedor = currentUser.perfil === 'Vendedor';
             const isGerenteOuAdmin = currentUser.perfil === 'Gerente' || currentUser.perfil === 'Administrador' || currentUser.perfil === 'Admin';
 
             // Configura visibilidade do campo de transferência
@@ -2694,7 +2687,7 @@ function selectFilter(filter) {
 
         async function salvarEdicaoCliente() {
             const id = document.getElementById('editClienteId').value;
-            const isVendedor = currentUser.perfil === 'Vendedor' || (currentUser.perfil || '').toLowerCase() === 'terminal';
+            const isVendedor = currentUser.perfil === 'Vendedor';
             const isGerenteOuAdmin = currentUser.perfil === 'Gerente' || currentUser.perfil === 'Administrador' || currentUser.perfil === 'Admin';
             const nome = document.getElementById('editClienteNome').value.trim();
             const cpfRaw = document.getElementById('editClienteCpf').value.replace(/\D/g,'');
@@ -2758,7 +2751,7 @@ function selectFilter(filter) {
         }
 
         async function confirmarExcluirCliente() {
-            if (currentUser.perfil === 'Vendedor' || (currentUser.perfil || '').toLowerCase() === 'terminal') {
+            if (currentUser.perfil === 'Vendedor') {
                 showToast('Você não tem permissão para excluir clientes.', 'error');
                 closeModal('modalExcluirCliente');
                 return;
@@ -3426,7 +3419,7 @@ function selectFilter(filter) {
     
     return total; 
 }
-        function abrirNovoOrcamento() { const p = (currentUser?.perfil || '').toLowerCase(); if (p !== 'vendedor' && p !== 'terminal') return; navigateTo('novo_orcamento'); }
+        function abrirNovoOrcamento() { const p = (currentUser?.perfil || '').toLowerCase(); if (p !== 'vendedor') return; navigateTo('novo_orcamento'); }
 
         // Protocolo gerado automaticamente pelo banco via nextval('protocolo_seq')
 
@@ -3938,7 +3931,7 @@ function selectFilter(filter) {
 
         function voltarDetalhes() {
             const fab = document.getElementById('fabButton');
-            if (fab && (currentUser?.perfil === 'Vendedor' || (currentUser.perfil || '').toLowerCase() === 'terminal')) fab.style.display = 'flex';
+            if (fab && currentUser?.perfil === 'Vendedor') fab.style.display = 'flex';
             currentView = previousView;
             navigateTo(currentView);
         }
@@ -4013,8 +4006,6 @@ function selectFilter(filter) {
                     query = query.eq('usuarios.id_loja', currentUser.id_loja);
                 } else if (currentUser.perfil === 'Vendedor') {
                     query = query.eq('id_usuario', currentUser.id_usuario);
-                } else if ((currentUser.perfil || '').toLowerCase() === 'terminal') {
-                    query = query.eq('usuarios.id_loja', currentUser.id_loja);
                 } else {
                     if (selectedVendedor !== 'todos') {
                         query = query.eq('id_usuario', selectedVendedor);
