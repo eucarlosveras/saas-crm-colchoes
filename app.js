@@ -392,9 +392,12 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                 let query = db.from('orcamentos')
                     .select('*, clientes!inner(nome_cliente, whatsapp), usuarios!inner(nome, id_loja), status_orcamento(nome)', { count: 'exact' });
             
-                // Regra de Ferro: Se for Gerente, obriga a loja a ser a dele E o vendedor a existir
+                // Regra de Ferro: Se for Gerente, filtra pelas lojas dele E o vendedor a existir
                 if (currentUser.perfil === 'Gerente') {
-                    query = query.eq('usuarios.id_loja', currentUser.id_loja);
+                    const lojaIds = currentUser.lojas || [];
+                    if (lojaIds.length > 0) {
+                        query = query.in('usuarios.id_loja', lojaIds);
+                    }
                     if (selectedVendedor !== 'todos') query = query.eq('id_usuario', selectedVendedor);
                 } else if (currentUser.perfil === 'Vendedor') {
                     query = query.eq('id_usuario', currentUser.id_usuario);
