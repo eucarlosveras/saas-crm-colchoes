@@ -7,7 +7,7 @@
         ──────────────────────────────────────────────────────── */
         :root {
             /* Sidebar Glass */
-            --sidebar-bg: rgba(15, 23, 42, 0.82);
+            --sidebar-bg: #0F172A;
             --sidebar-active: rgba(15, 118, 110, 0.2);
             --sidebar-hover: rgba(255,255,255,0.05);
             --sidebar-text: #94a3b8;
@@ -112,7 +112,7 @@
            TOKENS: MODO ESCURO (AURORA)
         ──────────────────────────────────────────────────────── */
         body.dark {
-            --sidebar-bg: rgba(2, 6, 23, 0.92);
+            --sidebar-bg: #020617;
             --sidebar-active: rgba(15, 118, 110, 0.25);
             --sidebar-hover: rgba(255,255,255,0.03);
             --sidebar-text: #94a3b8;
@@ -533,7 +533,7 @@
             transition: transform 0.28s ease, background var(--transition-slow);
         }
         body.dark .sidebar {
-            background: rgba(2, 6, 23, 0.92);
+            background: #020617;
         }
 
         .sidebar-greeting {
