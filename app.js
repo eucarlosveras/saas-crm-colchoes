@@ -4,7 +4,6 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         
         const META_PADRAO = 50000;
         const ITEMS_PER_PAGE = 10;
-
         const STATUS = {
 	CONTATO_INICIAL: 'Contato Inicial',
   	NEGOCIACAO: 'Negociação',
