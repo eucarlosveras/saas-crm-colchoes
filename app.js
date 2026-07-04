@@ -5812,3 +5812,60 @@ async function enviarMensagemChatIA() {
         input.focus();
     }
 }
+
+// ============================================
+// EXPOSIÇÃO DE FUNÇÕES PARA O ESCOPO GLOBAL
+// Necessário porque app.js é carregado como module
+// ============================================
+
+// Autenticação
+window.handleLogin = handleLogin;
+window.logout = logout;
+
+// Navegação e UI
+window.navigateTo = navigateTo;
+window.closeModal = closeModal;
+window.toggleTheme = toggleTheme;
+
+// Cliente e Orçamento
+window.abrirNovoOrcamento = abrirNovoOrcamento;
+window.salvarEdicaoCliente = salvarEdicaoCliente;
+window.confirmarExcluirCliente = confirmarExcluirCliente;
+
+// Ajuste de Proposta
+window.ajusteAdicionarLinha = ajusteAdicionarLinha;
+window.salvarAjusteProposta = salvarAjusteProposta;
+
+// Admin Usuários
+window.salvarUsuarioAdmin = salvarUsuarioAdmin;
+window.confirmarExclusaoUsuario = confirmarExclusaoUsuario;
+window.toggleSenhaAdmin = toggleSenhaAdmin;
+
+// Metas
+window.salvarNovaMeta = salvarNovaMeta;
+
+// Fechamento de Venda
+window.selecionarModoFechamento = selecionarModoFechamento;
+
+// Perda de Venda
+window.confirmarPerda = confirmarPerda;
+
+// Comentários
+window.confirmarExclusaoComentario = confirmarExclusaoComentario;
+
+// Chat IA
+window.enviarMensagemChatIA = enviarMensagemChatIA;
+window.fecharModalChatIA = fecharModalChatIA;
+
+// Produtos
+window.fecharModalNovoProduto = fecharModalNovoProduto;
+
+// Agenda
+window.setAgendaFiltro = setAgendaFiltro;
+
+// Radar (já existiam)
+// window.handleRadarAction = handleRadarAction;
+// window.handleRadarIgnore = handleRadarIgnore;
+
+// Estoque (já existia)
+// window.dadosEstoqueCompleto = dadosEstoqueCompleto;
