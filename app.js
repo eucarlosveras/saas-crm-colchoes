@@ -489,9 +489,8 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                 // Regra de Ferro: Se for Gerente, obriga a(s) loja(s) permitida(s) E o vendedor a existir
                 if (currentUser.perfil === 'Gerente') {
                     const lojasPermitidasTab = getLojasPermitidas();
-                    if (lojasPermitidasTab && lojasPermitidasTab.length > 0) {
-                        query = query.in('usuarios.id_loja', lojasPermitidasTab);
-                    }
+                    // Nunca pula o filtro: se não há lojas permitidas, força zero resultados (falha fechada).
+                    query = query.in('usuarios.id_loja', (lojasPermitidasTab && lojasPermitidasTab.length > 0) ? lojasPermitidasTab : ['00000000-0000-0000-0000-000000000000']);
                     if (selectedVendedor !== 'todos') query = query.eq('id_usuario', selectedVendedor);
                 } else if (currentUser.perfil === 'Vendedor') {
                     query = query.eq('id_usuario', currentUser.id_usuario);
@@ -774,7 +773,18 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                     const { error } = await db.functions.invoke('criar-usuario', {
                         body: payload
                     });
-                    if (error) throw new Error(error.message);
+                    if (error) {
+                        // Por padrão o supabase-js só diz "non-2xx status code"; aqui buscamos
+                        // a mensagem real que a Edge Function devolveu no corpo ({ error: '...' }).
+                        let mensagemDetalhada = error.message;
+                        try {
+                            if (error.context && typeof error.context.json === 'function') {
+                                const corpoErro = await error.context.json();
+                                if (corpoErro?.error) mensagemDetalhada = corpoErro.error;
+                            }
+                        } catch (_) { /* mantém a mensagem genérica se não der para ler o corpo */ }
+                        throw new Error(mensagemDetalhada);
+                    }
                     // A Edge Function 'criar-usuario' só retorna { success: true }, sem o id_usuario.
                     // Buscamos o registro recém-criado pelo e-mail (único) para poder sincronizar usuario_lojas.
                     const { data: userRecemCriado } = await db.from('usuarios').select('id_usuario').eq('email', email).single();
@@ -1609,8 +1619,12 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
 
         function renderFiltrosData(isGerente) {
             const isAdmin = currentUser.perfil === 'Administrador' || currentUser.perfil === 'Admin';
+            // Gerente de loja única nunca precisou escolher loja (só tem uma). Gerente Multiloja precisa,
+            // então o seletor também aparece pra ele, mostrando só as lojas permitidas (buildLojaOptions já filtra isso).
+            const lojasPermitidasFiltro = getLojasPermitidas();
+            const mostrarSeletorLoja = isAdmin || (lojasPermitidasFiltro && lojasPermitidasFiltro.length > 1);
             return `<div class="filter-group">
-                ${isAdmin ? `<div class="filter-wrapper"><span class="filter-icon"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span><select class="vendedor-select" id="lojaSelect" onchange="filtrarPorLoja(this.value)" aria-label="Filtrar por loja">${buildLojaOptions()}</select></div>` : ''}
+                ${mostrarSeletorLoja ? `<div class="filter-wrapper"><span class="filter-icon"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span><select class="vendedor-select" id="lojaSelect" onchange="filtrarPorLoja(this.value)" aria-label="Filtrar por loja">${buildLojaOptions()}</select></div>` : ''}
                 ${isGerente ? `<div class="filter-wrapper"><span class="filter-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span><select class="vendedor-select" id="vendedorSelect" onchange="filtrarPorVendedor(this.value)" aria-label="Filtrar por vendedor">${buildVendedorOptions()}</select></div>` : ''}
                 <div class="filter-wrapper"><span class="filter-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/></svg></span><select class="month-select" id="monthSelect" onchange="changeMonth(this.value)" aria-label="Selecionar mês">${buildMonthOptions()}</select></div>
                 <div class="filter-wrapper"><span class="filter-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg></span><select class="day-select" id="daySelect" onchange="changeDay(this.value)" aria-label="Selecionar dia">${buildDayOptions()}</select></div>
@@ -2226,9 +2240,8 @@ function selectFilter(filter) {
                     query = query.eq('id_usuario', currentUser.id_usuario);
                 } else if (currentUser.perfil === 'Gerente' || (currentUser.perfil || '').toLowerCase() === 'terminal') {
                     const lojasPermitidasAgenda = getLojasPermitidas();
-                    if (lojasPermitidasAgenda && lojasPermitidasAgenda.length > 0) {
-                        query = query.in('usuarios.id_loja', lojasPermitidasAgenda);
-                    }
+                    // Nunca pula o filtro: se não há lojas permitidas, força zero resultados (falha fechada).
+                    query = query.in('usuarios.id_loja', (lojasPermitidasAgenda && lojasPermitidasAgenda.length > 0) ? lojasPermitidasAgenda : ['00000000-0000-0000-0000-000000000000']);
                     if (selectedVendedor !== 'todos') query = query.eq('id_usuario', selectedVendedor);
                 } else {
                     // Administrador
@@ -4185,9 +4198,8 @@ function selectFilter(filter) {
 
                 if (currentUser.perfil === 'Gerente') {
                     const lojasPermitidasKanban = getLojasPermitidas();
-                    if (lojasPermitidasKanban && lojasPermitidasKanban.length > 0) {
-                        query = query.in('usuarios.id_loja', lojasPermitidasKanban);
-                    }
+                    // Nunca pula o filtro: se não há lojas permitidas, força zero resultados (falha fechada).
+                    query = query.in('usuarios.id_loja', (lojasPermitidasKanban && lojasPermitidasKanban.length > 0) ? lojasPermitidasKanban : ['00000000-0000-0000-0000-000000000000']);
                 } else if (currentUser.perfil === 'Vendedor') {
                     query = query.eq('id_usuario', currentUser.id_usuario);
                 } else if ((currentUser.perfil || '').toLowerCase() === 'terminal') {
