@@ -4758,6 +4758,34 @@ function abrirModalNovoProduto() {
     
     // Carregar categorias dinamicamente
     carregarCategoriasEstoque();
+
+    // Popular o select de Loja: Admin escolhe entre todas; demais perfis só entre as lojas permitidas.
+    const selectLoja = document.getElementById('novoProdLoja');
+    const campoLoja = document.getElementById('campoNovoProdLoja');
+    if (selectLoja) {
+        const isAdminNovoProd = currentUser.perfil === 'Administrador' || currentUser.perfil === 'Admin';
+        const lojasPermitidasNovoProd = getLojasPermitidas();
+        const lojasParaEscolher = isAdminNovoProd
+            ? listaLojas
+            : listaLojas.filter(l => (lojasPermitidasNovoProd || []).includes(l.id_loja));
+
+        selectLoja.innerHTML = '<option value="" disabled selected>Selecione a loja...</option>';
+        lojasParaEscolher.slice().sort((a, b) => a.nome_loja.localeCompare(b.nome_loja)).forEach(l => {
+            const opt = document.createElement('option');
+            opt.value = l.id_loja;
+            opt.textContent = l.nome_loja;
+            selectLoja.appendChild(opt);
+        });
+
+        // Se só existe UMA loja para escolher (caso comum: Gerente/Vendedor de loja única),
+        // pré-seleciona e esconde o campo pra não pedir uma escolha óbvia.
+        if (lojasParaEscolher.length === 1) {
+            selectLoja.value = lojasParaEscolher[0].id_loja;
+            if (campoLoja) campoLoja.style.display = 'none';
+        } else if (campoLoja) {
+            campoLoja.style.display = 'block';
+        }
+    }
     
     // Popular o select de produtos base usando o array global todosProdutos
     const selectBase = document.getElementById('novoProdSelecaoBase');
@@ -4844,6 +4872,7 @@ async function salvarNovoProdutoEstoque(event) {
     const qualidade = qualidadeEl.value;
     
     const qtdInicial = parseInt(document.getElementById('novoProdQuantidade')?.value) || 0;
+    const lojaId = document.getElementById('novoProdLoja')?.value;
 
     if (!idProduto || !codigo || !nome) {
         showToast('Selecione um produto base válido.', 'warning');
@@ -4851,6 +4880,10 @@ async function salvarNovoProdutoEstoque(event) {
     }
     if (!categoriaId) {
         showToast('Selecione uma categoria válida.', 'warning');
+        return;
+    }
+    if (!lojaId) {
+        showToast('Selecione a loja do produto.', 'warning');
         return;
     }
 
@@ -4867,7 +4900,8 @@ async function salvarNovoProdutoEstoque(event) {
             categoria_id: parseInt(categoriaId),
             qualidade: qualidade,
             qtd_disponivel: qtdInicial,
-            status: 'Ativo'
+            status: 'Ativo',
+            id_loja: lojaId
         };
 
         const { error } = await db.from('estoque').insert(payload);
@@ -4963,9 +4997,16 @@ async function renderEstoque() {
 async function carregarEstoqueComProdutos() {
     try {
         // 1. Busca os dados do estoque com o relacionamento de categorias
-        const { data: estoqueData, error: estoqueError } = await db
-            .from('estoque')
-            .select('*, categorias(nome)');
+        let queryEstoque = db.from('estoque').select('*, categorias(nome)');
+
+        // Admin vê tudo. Gerente/Vendedor/Terminal só veem o estoque das lojas permitidas.
+        const isAdminEstoque = currentUser.perfil === 'Administrador' || currentUser.perfil === 'Admin';
+        if (!isAdminEstoque) {
+            const lojasPermitidasEstoque = getLojasPermitidas();
+            queryEstoque = queryEstoque.in('id_loja', (lojasPermitidasEstoque && lojasPermitidasEstoque.length > 0) ? lojasPermitidasEstoque : ['00000000-0000-0000-0000-000000000000']);
+        }
+
+        const { data: estoqueData, error: estoqueError } = await queryEstoque;
 
         if (estoqueError) throw estoqueError;
 
