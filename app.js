@@ -2182,6 +2182,29 @@ function selectFilter(filter) {
 			            </div>
 			        </header>
 			
+			        <div class="kpi-grid" id="carteiraMetricsGrid">
+			            <div class="kpi-card">
+			                <div class="kpi-label-row"><span class="kpi-dot blue"></span><span class="kpi-label">Total no Pipeline</span></div>
+			                <div class="kpi-value" id="carteiraTotalPipeline">R$ 0</div>
+			            </div>
+			            <div class="kpi-card">
+			                <div class="kpi-label-row"><span class="kpi-dot orange"></span><span class="kpi-label">Previsão de Faturamento</span></div>
+			                <div class="kpi-value" id="carteiraPrevisao">R$ 0</div>
+			            </div>
+			            <div class="kpi-card">
+			                <div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Ticket Médio</span></div>
+			                <div class="kpi-value" id="carteiraTicketMedio">R$ 0</div>
+			            </div>
+			            <div class="kpi-card vendido-highlight">
+			                <div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Meta do Mês</span></div>
+			                <div class="kpi-value" id="carteiraMetaValor">R$ 0</div>
+			                <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">Coberta em <strong id="carteiraMetaPercentual">0%</strong></div>
+			                <div style="margin-top:6px; width:100%; height:3px; background:var(--border-color, #e9edf2); border-radius:4px; overflow:hidden;">
+			                    <div id="carteiraMetaProgresso" style="width:0%; height:100%; background:#22c55e; border-radius:4px; transition:width .3s;"></div>
+			                </div>
+			            </div>
+			        </div>
+			
 			        <div style="margin-bottom: 16px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
 			            <div id="searchTagContainer"></div>
 			            <input type="text" class="search-input" placeholder="Buscar cliente..." id="searchInput" onchange="handleSearch()" onkeyup="if(event.key === 'Enter') handleSearch()" value="${escapeHtml(searchTerm)}">
@@ -4188,6 +4211,49 @@ function selectFilter(filter) {
             renderKanbanBoard();
         }
 
+        // Probabilidade de fechamento por etapa, usada só para a "Previsão de Faturamento".
+        // Não existe esse conceito salvo no banco hoje — são pesos padrão, ajustáveis se fizer sentido pro negócio.
+        const PROBABILIDADE_POR_ETAPA = {
+            [STATUS.CONTATO_INICIAL]: 0.20,
+            [STATUS.NEGOCIACAO]: 0.50,
+            [STATUS.EM_FECHAMENTO]: 0.80
+        };
+
+        function atualizarMetricasCarteira(data) {
+            const elPipeline = document.getElementById('carteiraTotalPipeline');
+            if (!elPipeline) return; // cards não estão na tela (ex: outra view foi aberta enquanto carregava)
+
+            const etapasAbertas = [STATUS.CONTATO_INICIAL, STATUS.NEGOCIACAO, STATUS.EM_FECHAMENTO];
+            const abertos = data.filter(o => etapasAbertas.includes(o.status_orcamento?.nome));
+
+            // Total no Pipeline: soma dos negócios ainda em aberto
+            const totalPipeline = abertos.reduce((s, o) => s + parseFloat(o.valor_orcado || 0), 0);
+
+            // Previsão de Faturamento: soma ponderada pela probabilidade de cada etapa
+            const previsao = abertos.reduce((s, o) => {
+                const peso = PROBABILIDADE_POR_ETAPA[o.status_orcamento?.nome] || 0;
+                return s + (parseFloat(o.valor_orcado || 0) * peso);
+            }, 0);
+
+            // Ticket Médio: valor médio dos negócios em aberto
+            const ticketMedio = abertos.length > 0 ? totalPipeline / abertos.length : 0;
+
+            // Meta do Mês: meta somada dos vendedores visíveis vs. vendas já fechadas no período (ambas já filtradas por loja)
+            const metaTotal = calcularMetaTotal();
+            const vendasFechadasValor = data
+                .filter(o => [STATUS.FECHADO, 'Vendido'].includes(o.status_orcamento?.nome))
+                .reduce((s, o) => s + parseFloat(o.valor_orcado || 0), 0);
+            const metaPercentual = metaTotal > 0 ? Math.min(100, Math.round((vendasFechadasValor / metaTotal) * 100)) : 0;
+
+            const fmt = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            elPipeline.textContent = fmt(totalPipeline);
+            document.getElementById('carteiraPrevisao').textContent = fmt(previsao);
+            document.getElementById('carteiraTicketMedio').textContent = fmt(ticketMedio);
+            document.getElementById('carteiraMetaValor').textContent = fmt(metaTotal);
+            document.getElementById('carteiraMetaPercentual').textContent = `${metaPercentual}%`;
+            document.getElementById('carteiraMetaProgresso').style.width = `${metaPercentual}%`;
+        }
+
         async function renderKanbanBoard() {
             const board = document.getElementById('kanbanBoard');
             if (!board) return;
@@ -4266,6 +4332,8 @@ function selectFilter(filter) {
 
                 const { data, error } = await query;
                 if (error) throw error;
+
+                atualizarMetricasCarteira(data || []);
 
                 const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
 
