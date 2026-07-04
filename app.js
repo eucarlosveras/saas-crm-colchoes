@@ -5857,8 +5857,59 @@ window.confirmarExclusaoComentario = confirmarExclusaoComentario;
 window.enviarMensagemChatIA = enviarMensagemChatIA;
 window.fecharModalChatIA = fecharModalChatIA;
 
-// Produtos
+// ═══════════════════════════════════════════════════════════════
+// EXPOSIÇÃO DE FUNÇÕES PARA O ESCOPO GLOBAL (WINDOW)
+// Necessário porque o app.js é carregado como module e funções
+// declaradas nele não ficam automaticamente no escopo global
+// ═══════════════════════════════════════════════════════════════
+
+// Auth / Login
+window.handleLogin = handleLogin;
+window.logout = logout;
+window.checkSession = checkSession;
+
+// Navegação
+window.navigateTo = navigateTo;
+window.toggleTheme = toggleTheme;
+
+// Modais (fechamento genérico)
+window.closeModal = closeModal;
+
+// Perda de venda
+window.confirmarPerda = confirmarPerda;
+
+// Fechamento de venda
+window.selecionarModoFechamento = selecionarModoFechamento;
+
+// Metas
+window.salvarNovaMeta = salvarNovaMeta;
+
+// Comentários
+window.confirmarExclusaoComentario = confirmarExclusaoComentario;
+
+// Admin - Usuários
+window.salvarUsuarioAdmin = salvarUsuarioAdmin;
+window.toggleSenhaAdmin = toggleSenhaAdmin;
+window.confirmarExclusaoUsuario = confirmarExclusaoUsuario;
+
+// Ajuste de proposta
+window.ajusteAdicionarLinha = ajusteAdicionarLinha;
+window.salvarAjusteProposta = salvarAjusteProposta;
+
+// Chat IA
+window.fecharModalChatIA = fecharModalChatIA;
+window.enviarMensagemChatIA = enviarMensagemChatIA;
+
+// Edição de cliente
+window.salvarEdicaoCliente = salvarEdicaoCliente;
+window.confirmarExcluirCliente = confirmarExcluirCliente;
+
+// Novo orçamento
+window.abrirNovoOrcamento = abrirNovoOrcamento;
+
+// Produtos / Estoque
 window.fecharModalNovoProduto = fecharModalNovoProduto;
+window.abrirModalNovoProduto = abrirModalNovoProduto;
 
 // Agenda
 window.setAgendaFiltro = setAgendaFiltro;
