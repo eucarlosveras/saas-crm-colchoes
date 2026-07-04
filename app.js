@@ -1,3 +1,5 @@
+import { createAuthModule } from './auth.js';
+
 const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_kvVacObZ3ERPqc9MjOIoWw_aRZeYeIn';
         const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -160,78 +162,23 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         function openModal(modalId) { const modal = document.getElementById(modalId); if (!modal) return; lastFocusedElement = document.activeElement; modal.classList.add('open'); setTimeout(() => { const firstInput = modal.querySelector('input, textarea, select'); if (firstInput) firstInput.focus(); }, 100); }
         function closeModal(modalId) { const modal = document.getElementById(modalId); if (!modal) return; modal.classList.remove('open'); if (lastFocusedElement && document.body.contains(lastFocusedElement)) { lastFocusedElement.focus(); } }
 
+        // checkSession() e handleLogin() agora vêm do módulo auth.js (evita duplicação de lógica).
+        // carregarNotificacoesLidas() é chamado aqui pois checkSession() do módulo não tem acesso a ela.
+        const _authModule = createAuthModule({
+            db,
+            setUsuarioLogado,
+            initAppAfterLogin,
+            logout,
+            escapeHtml
+        });
+
         async function checkSession() {
             carregarNotificacoesLidas();
-            try {
-                // 1. Verifica se já existe um passe (token) seguro no navegador
-                const { data: { session }, error: sessionError } = await db.auth.getSession();
-                if (sessionError) throw sessionError;
-                if (session && session.user) {
-                    // 2. Se o passe for válido, vamos buscar o perfil correspondente
-                    const { data: userProfile, error: profileError } = await db
-                        .from('usuarios')
-                        .select('*')
-                        .eq('email', session.user.email)
-                        .single();
-                    if (profileError || !userProfile || userProfile.status?.toLowerCase() !== 'ativo') {
-                        // Se a conta foi desativada ou não existe mais na tabela, forçamos a saída
-                        await logout();
-                        return;
-                    }
-                    // 3. Tudo em ordem: esconde o ecrã de login e arranca com a dashboard
-                    setUsuarioLogado(userProfile);
-                    document.getElementById('loginOverlay').classList.add('hidden');
-                    initAppAfterLogin();
-                } else {
-                    // Se não houver sessão, garante que o ecrã de login fica visível
-                    document.getElementById('loginOverlay').classList.remove('hidden');
-                }
-            } catch (e) {
-                console.error("Erro na verificação de segurança:", e);
-                document.getElementById('loginMsg').innerHTML = 'Falha ao verificar o acesso seguro.';
-                document.getElementById('loginOverlay').classList.remove('hidden');
-            }
+            await _authModule.checkSession();
         }
 
         async function handleLogin() {
-            const btn = document.getElementById('btnLogin');
-            if (btn.disabled) return;
-            // 1. Captura os valores dos novos campos
-            const email = document.getElementById('loginEmail').value.trim();
-            const senha = document.getElementById('loginSenha').value;
-            const msg = document.getElementById('loginMsg');
-            if (!email || !senha) {
-                msg.textContent = 'Preencha seu e-mail e senha.';
-                return;
-            }
-            btn.classList.add('loading');
-            btn.disabled = true;
-            msg.innerHTML = '';
-            try {
-                // 2. Validação real de identidade com o Supabase
-                const { data: authData, error: authError } = await db.auth.signInWithPassword({
-                    email: email,
-                    password: senha
-                });
-                if (authError) throw new Error("E-mail ou senha incorretos.");
-                // 3. Busca o papel (perfil) do usuário na tabela do banco
-                const { data: userProfile, error: profileError } = await db
-                    .from('usuarios')
-                    .select('*')
-                    .eq('email', authData.user.email)
-                    .single();
-                if (profileError || !userProfile) throw new Error("Perfil não encontrado no sistema.");
-                if (userProfile.status?.toLowerCase() !== 'ativo') throw new Error("Usuário inativo.");
-                // 4. Libera o acesso e inicia a dashboard
-                setUsuarioLogado(userProfile);
-                document.getElementById('loginOverlay').classList.add('hidden');
-                initAppAfterLogin();
-            } catch (err) {
-                msg.innerHTML = `<span class="error-message">${escapeHtml(err.message)}</span>`;
-            } finally {
-                btn.classList.remove('loading');
-                btn.disabled = false;
-            }
+            await _authModule.handleLogin();
         }
 
         let _notifChannel = null; // referência global para poder destruir no logout
@@ -5399,7 +5346,7 @@ async function analisarClienteComIA(idOrcamentoAtual) {
             btn.querySelector('.btn-spinner').style.display = 'none';
             btn.disabled = false;
         }
-        abrirModalChatIA(resposta, nomeCliente);
+        abrirModalChatIA(resposta);
 
     } catch (error) {
         console.error("Erro ao analisar cliente:", error);
@@ -5412,231 +5359,6 @@ async function analisarClienteComIA(idOrcamentoAtual) {
     }
 }
 
-function abrirModalChatIA(resposta, nomeCliente) {
-    const anterior = document.getElementById('modalChatIA');
-    if (anterior) anterior.remove();
-
-	// 1. Remove negrito
-// 0. Remove raciocínio interno do modelo (tudo antes de "1. Estratégia" ou "1. Situação")
-let textoLimpo = resposta;
-const marcadorInicio = /1\.\s*(Estratégia|Situação Pós-Venda)/i;
-const matchInicio = textoLimpo.match(marcadorInicio);
-if (matchInicio) {
-    textoLimpo = textoLimpo.slice(textoLimpo.indexOf(matchInicio[0]));
-}
-
-// 1. Remove negrito
-let textoTemp = textoLimpo.replace(/\*\*(.*?)\*\*/g, '$1');
-
-// 2. REMOVE totalmente o asterisco ou hífen no início da linha
-textoTemp = textoTemp.replace(/^[\*\-]\s*/gm, ''); 
-
-// 3. Garante espaço entre linhas principais
-textoTemp = textoTemp.replace(/\n\n/g, '<br><br>');
-
-// 4. Converte quebras restantes
-const formatado = textoTemp.replace(/\n/g, '<br>');
-	
-    const modal = document.createElement('div');
-    modal.id = 'modalChatIA';
-    modal.style.cssText = `
-        position: fixed; inset: 0; z-index: 9999;
-        display: flex; align-items: flex-end; justify-content: flex-end;
-asasdasd        padding: 100px 24px 100px 0; pointer-events: none;
-    `;
-
-    modal.innerHTML = `
-        <div class="chat-modal-container" style="background: white; border-radius: 16px 16px 0 0; width: 100%; max-width: 400px; 
-                    box-shadow: 0 -4px 24px rgba(0,0,0,0.2); pointer-events: auto; display: flex; flex-direction: column; 
-                    max-height: 80vh; color: #1f2937;">
-            <div class="chat-header" style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); padding: 16px 20px; 
-                        border-radius: 16px 16px 0 0; display: flex; align-items: center; justify-content: space-between;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="background: rgba(255,255,255,0.2); padding: 8px; border-radius: 8px;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                            <line x1="12" x2="12" y1="19" y2="22"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <h3 style="color: white; font-weight: 600; font-size: 16px; margin: 0;">Assistente de Vendas</h3>
-                        <p style="color: rgba(255,255,255,0.8); font-size: 12px; margin: 0;">Análise de ${escapeHtml(nomeCliente)}</p>
-                    </div>
-                </div>
-                <button onclick="fecharModalChatIA()" style="background: rgba(255,255,255,0.2); border: none; 
-                           color: white; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; 
-                           display: flex; align-items: center; justify-content: center; font-size: 18px;">×</button>
-            </div>
-            
-            <div id="chatIAPanel" class="chat-messages-area" style="flex: 1; overflow-y: auto; padding: 16px; background: #f3f4f6; color: #1f2937;">
-                <div class="message-assistant" style="display: flex; gap: 12px; margin-bottom: 16px;">
-                    <div style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); 
-                                width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; 
-                                display: flex; align-items: center; justify-content: center;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                            <line x1="12" x2="12" y1="19" y2="22"/>
-                        </svg>
-                    </div>
-                    <div class="message-bubble" style="background: white; padding: 12px 16px; border-radius: 12px; 
-                                box-shadow: 0 1px 3px rgba(0,0,0,0.1); flex: 1; max-width: calc(100% - 44px);">
-                        <p style="margin: 0; line-height: 1.5; color: #000000; font-weight: 400;">${formatado}</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="chat-input-area" style="padding: 16px; border-top: 1px solid #e5e7eb; background: white;">
-                <div style="display: flex; gap: 8px; align-items: flex-end;">
-                    <textarea id="chatIAInput" class="chat-input" placeholder="Pergunte algo sobre este cliente..." 
-                              style="flex: 1; padding: 12px; border: 1px solid #d1d5db; border-radius: 12px; 
-                                     resize: none; font-family: inherit; font-size: 14px; outline: none; 
-                                     max-height: 100px; min-height: 44px;" rows="1"></textarea>
-                    <button id="chatIASendBtn" onclick="enviarMensagemChatIA()" class="chat-send-btn" style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); 
-                               border: none; color: white; width: 44px; height: 44px; border-radius: 12px; 
-                               cursor: pointer; display: flex; align-items: center; justify-content: center;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="22" x2="11" y1="2" y2="13"/>
-                            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
-
-    document.body.appendChild(modal);
-    setTimeout(() => document.getElementById('chatIAInput')?.focus(), 100);
-
-    window._chatIAHistorico = [
-        { role: 'user', content: 'Analise este cliente e sugira estratégias de venda.' },
-        { role: 'assistant', content: resposta }
-    ];
-}
-
-async function enviarMensagemChatIA() {
-    const input = document.getElementById('chatIAInput');
-    const texto = input?.value?.trim();
-    if (!texto) return;
-
-    const chatBody = document.querySelector('#chatIAPanel > div[style*="overflow-y"]');
-    if (!chatBody) return;
-
-    input.value = '';
-    input.disabled = true;
-
-    chatBody.insertAdjacentHTML('beforeend', `
-        <div class="message-user" style="display: flex; gap: 12px; margin-bottom: 16px; justify-content: flex-end;">
-            <div class="message-bubble" style="background: #7c3aed; padding: 12px 16px; border-radius: 12px; 
-                        box-shadow: 0 1px 3px rgba(0,0,0,0.1); flex: 1; max-width: calc(100% - 44px);">
-                <p style="margin: 0; line-height: 1.5; color: white;">${escapeHtml(texto)}</p>
-            </div>
-            <div style="width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; 
-                        background: #e5e7eb; display: flex; align-items: center; justify-content: center;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2">
-                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
-                    <circle cx="12" cy="7" r="4"/>
-                </svg>
-            </div>
-        </div>
-    `);
-
-    const typingId = 'typing_' + Date.now();
-    chatBody.insertAdjacentHTML('beforeend', `
-        <div class="message-assistant typing-bubble" style="display: flex; gap: 12px; margin-bottom: 16px;" id="${typingId}">
-            <div style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); 
-                        width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; 
-                        display: flex; align-items: center; justify-content: center;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                    <line x1="12" x2="12" y1="19" y2="22"/>
-                </svg>
-            </div>
-            <div class="message-bubble" style="background: white; padding: 12px 16px; border-radius: 12px; 
-                        box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                <div class="typing-dots" style="display: flex; gap: 4px;">
-                    <div class="typing-dot" style="width: 8px; height: 8px; background: #7c3aed; border-radius: 50%; 
-                                animation: bounce 1.4s infinite ease-in-out both;"></div>
-                    <div class="typing-dot" style="width: 8px; height: 8px; background: #7c3aed; border-radius: 50%; 
-                                animation: bounce 1.4s infinite ease-in-out both; animation-delay: 0.16s;"></div>
-                    <div class="typing-dot" style="width: 8px; height: 8px; background: #7c3aed; border-radius: 50%; 
-                                animation: bounce 1.4s infinite ease-in-out both; animation-delay: 0.32s;"></div>
-                </div>
-            </div>
-        </div>
-    `);
-    chatBody.scrollTop = chatBody.scrollHeight;
-
-    try {
-        window._chatIAHistorico = window._chatIAHistorico || [];
-        window._chatIAHistorico.push({ role: 'user', content: texto });
-
-        const { data: { session } } = await db.auth.getSession();
-        const res = await fetch(
-            'https://blumqkxwasdbyozdvrsp.supabase.co/functions/v1/gemini-proxy ',
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-                body: JSON.stringify({
-                    prompt: `${texto}\n\nContexto da conversa anterior: ${JSON.stringify(window._chatIAHistorico.slice(0,-1))}`
-                }),
-            }
-        );
-        const data = await res.json();
-        if (data.error) throw new Error(data.error);
-
-        const respostaFormatada = (data.text || '')
-            .replace(/\*\*(.*?)\*\*/g, '$1')
-            .replace(/^\* /gm, '• ')
-            .replace(/\n/g, '<br>');
-
-        window._chatIAHistorico.push({ role: 'assistant', content: data.text });
-
-        document.getElementById(typingId)?.remove();
-        chatBody.insertAdjacentHTML('beforeend', `
-            <div class="message-assistant" style="display: flex; gap: 12px; margin-bottom: 16px;">
-                <div style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); 
-                            width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; 
-                            display: flex; align-items: center; justify-content: center;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                        <line x1="12" x2="12" y1="19" y2="22"/>
-                    </svg>
-                </div>
-                <div class="message-bubble" style="background: white; padding: 12px 16px; border-radius: 12px; 
-                            box-shadow: 0 1px 3px rgba(0,0,0,0.1); flex: 1; max-width: calc(100% - 44px);">
-                    <p style="margin: 0; line-height: 1.5; color: #000000; font-weight: 400;">${respostaFormatada}</p>
-                </div>
-            </div>
-        `);
-    } catch(e) {
-        document.getElementById(typingId)?.remove();
-        chatBody.insertAdjacentHTML('beforeend', `
-            <div class="message-assistant" style="display: flex; gap: 12px; margin-bottom: 16px;">
-                <div style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); 
-                            width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; 
-                            display: flex; align-items: center; justify-content: center;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                        <line x1="12" x2="12" y1="19" y2="22"/>
-                    </svg>
-                </div>
-                <div class="message-bubble" style="background: white; padding: 12px 16px; border-radius: 12px; 
-                            box-shadow: 0 1px 3px rgba(0,0,0,0.1); flex: 1; max-width: calc(100% - 44px);">
-                    <p style="margin: 0; line-height: 1.5; color: #ef4444; font-weight: 400;">Erro ao responder. Tente novamente.</p>
-                </div>
-            </div>
-        `);
-    } finally {
-        input.disabled = false;
-        input.focus();
-        chatBody.scrollTop = chatBody.scrollHeight;
-    }
-}
 
 async function chamarIA(prompt, contexto = '') {
     const { data: { session } } = await db.auth.getSession();
@@ -5812,3 +5534,30 @@ async function enviarMensagemChatIA() {
         input.focus();
     }
 }
+
+// ═══════════════════════════════════════════
+// EXPOSIÇÃO GLOBAL PARA onclick/onsubmit/onkeydown NO HTML
+// Necessário porque app.js é carregado como <script type="module">,
+// e módulos ES não expõem suas funções em `window` automaticamente.
+// ═══════════════════════════════════════════
+window.handleLogin = handleLogin;
+window.logout = logout;
+window.navigateTo = navigateTo;
+window.closeModal = closeModal;
+window.abrirNovoOrcamento = abrirNovoOrcamento;
+window.ajusteAdicionarLinha = ajusteAdicionarLinha;
+window.confirmarExcluirCliente = confirmarExcluirCliente;
+window.confirmarExclusaoComentario = confirmarExclusaoComentario;
+window.confirmarExclusaoUsuario = confirmarExclusaoUsuario;
+window.confirmarPerda = confirmarPerda;
+window.enviarMensagemChatIA = enviarMensagemChatIA;
+window.fecharModalChatIA = fecharModalChatIA;
+window.fecharModalNovoProduto = fecharModalNovoProduto;
+window.salvarAjusteProposta = salvarAjusteProposta;
+window.salvarEdicaoCliente = salvarEdicaoCliente;
+window.salvarNovaMeta = salvarNovaMeta;
+window.salvarNovoProdutoEstoque = salvarNovoProdutoEstoque;
+window.salvarUsuarioAdmin = salvarUsuarioAdmin;
+window.selecionarModoFechamento = selecionarModoFechamento;
+window.toggleSenhaAdmin = toggleSenhaAdmin;
+window.toggleTheme = toggleTheme;
