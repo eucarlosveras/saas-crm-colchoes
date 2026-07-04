@@ -4229,20 +4229,24 @@ function selectFilter(filter) {
             // Total no Pipeline: soma dos negócios ainda em aberto
             const totalPipeline = abertos.reduce((s, o) => s + parseFloat(o.valor_orcado || 0), 0);
 
-            // Previsão de Faturamento: soma ponderada pela probabilidade de cada etapa
-            const previsao = abertos.reduce((s, o) => {
+            // Vendas já fechadas no mês (precisa vir antes da previsão, pois ela entra na conta)
+            const vendasFechadasValor = data
+                .filter(o => [STATUS.FECHADO, 'Vendido'].includes(o.status_orcamento?.nome))
+                .reduce((s, o) => s + parseFloat(o.valor_orcado || 0), 0);
+
+            // Previsão de Faturamento = o que já foi vendido + a parte ponderada do que ainda está em aberto.
+            // (Nunca pode ficar menor que o já vendido — senão não seria uma previsão do mês, e sim só do pipeline.)
+            const previsaoPipeline = abertos.reduce((s, o) => {
                 const peso = PROBABILIDADE_POR_ETAPA[o.status_orcamento?.nome] || 0;
                 return s + (parseFloat(o.valor_orcado || 0) * peso);
             }, 0);
+            const previsao = vendasFechadasValor + previsaoPipeline;
 
             // Ticket Médio: valor médio dos negócios em aberto
             const ticketMedio = abertos.length > 0 ? totalPipeline / abertos.length : 0;
 
             // Meta do Mês: meta somada dos vendedores visíveis vs. vendas já fechadas no período (ambas já filtradas por loja)
             const metaTotal = calcularMetaTotal();
-            const vendasFechadasValor = data
-                .filter(o => [STATUS.FECHADO, 'Vendido'].includes(o.status_orcamento?.nome))
-                .reduce((s, o) => s + parseFloat(o.valor_orcado || 0), 0);
             const metaPercentual = metaTotal > 0 ? Math.min(100, Math.round((vendasFechadasValor / metaTotal) * 100)) : 0;
 
             const fmt = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
