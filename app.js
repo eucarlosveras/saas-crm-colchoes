@@ -547,7 +547,7 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
 
                         // td vendedor (só gerente)
                         const tdVend = document.createElement('td');
-                        if (isGerente) tdVend.textContent = o.usuarios?.nome || '-';
+                        if (isGerente) tdVend.textContent = escapeHtml(o.usuarios?.nome || '-');
 
                         // td status
                         const tdStatus = document.createElement('td');
@@ -2429,8 +2429,8 @@ function selectFilter(filter) {
             orcs.sort((a, b) => new Date(b.data_criacao) - new Date(a.data_criacao));
             const ultimoOrc = orcs[0];
             const ultimoContato = ultimoOrc ? new Date(ultimoOrc.data_criacao).toLocaleDateString('pt-BR') : '-';
-            const vendedor = ultimoOrc?.usuarios?.nome || '-';
-            const codigo = c.id_cliente_codigo || String(c._pk || '').slice(0, 8) || '-';
+            const vendedor = escapeHtml(ultimoOrc?.usuarios?.nome || '-');
+            const codigo = escapeHtml(c.id_cliente_codigo || String(c._pk || '').slice(0, 8) || '-');
 
             const tr = document.createElement('tr');
 
@@ -2492,7 +2492,7 @@ function selectFilter(filter) {
                 btnExcluir.className = 'btn-action-icon danger';
                 btnExcluir.title = 'Excluir';
                 btnExcluir.innerHTML = `<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>`;
-                btnExcluir.addEventListener('click', () => abrirModalExcluirCliente(c._pk, c.nome_cliente || ''));
+                btnExcluir.addEventListener('click', () => abrirModalExcluirCliente(c._pk, escapeHtml(c.nome_cliente || '')));
                 divAcoes.appendChild(btnExcluir);
             }
 
@@ -5238,28 +5238,28 @@ function renderRadarSignals(sellerFilter) {
             const execClass = signal.executed ? 'btn-exec executed' : 'btn-exec';
             const execLabel = signal.executed
                 ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Executado'
-                : signal.actionText;
+                : escapeHtml(signal.actionText);
 
             const cardHtml = `
-                <div class="signal-card" id="radar-card-${signal.id}">
+                <div class="signal-card" id="radar-card-${escapeHtml(signal.id)}">
                     <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <span class="badge badge-${signal.type}">${conf.label}</span>
-                        <span style="font-size:var(--font-xs);color:var(--text-muted);">${signal.time}</span>
+                        <span class="badge badge-${escapeHtml(signal.type)}">${escapeHtml(conf.label)}</span>
+                        <span style="font-size:var(--font-xs);color:var(--text-muted);">${escapeHtml(signal.time)}</span>
                     </div>
                     <div>
-                        <p class="signal-message">${signal.message}</p>
+                        <p class="signal-message">${escapeHtml(signal.message)}</p>
                         <div class="signal-meta">
                             <span>Lead: ${leadLink}</span>
                             <span style="color:var(--border-medium);">|</span>
-                            <span>Vendedor: ${signal.seller}</span>
+                            <span>Vendedor: ${escapeHtml(signal.seller)}</span>
                         </div>
                     </div>
                     ${justHtml}
                     <div class="card-actions">
-                        <button id="btn-exec-${signal.id}" onclick="handleRadarAction('${signal.id}')" ${signal.executed ? 'disabled' : ''} class="${execClass}" style="display:flex;align-items:center;gap:6px;">
+                        <button id="btn-exec-${escapeHtml(signal.id)}" onclick="handleRadarAction('${escapeHtml(signal.id)}')" ${signal.executed ? 'disabled' : ''} class="${execClass}" style="display:flex;align-items:center;gap:6px;">
                             ${execLabel}
                         </button>
-                        <button onclick="handleRadarIgnore('${signal.id}')" class="btn-ignore">Ignorar</button>
+                        <button onclick="handleRadarIgnore('${escapeHtml(signal.id)}')" class="btn-ignore">Ignorar</button>
                     </div>
                 </div>
             `;
