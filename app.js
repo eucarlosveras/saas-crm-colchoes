@@ -59,6 +59,45 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
             AppState.filtros.dia = null; // Resetar o dia ao mudar o mês
         }
 
+        // --- GERENTE MULTILOJA ---
+
+        // Busca as lojas associadas ao usuário na tabela usuario_lojas (N:N).
+        // Se não houver registros, lojasMultiplas fica vazio e o fallback (id_loja único) é usado.
+        async function carregarLojasMultiplas(usuarioId) {
+            try {
+                const { data, error } = await db
+                    .from('usuario_lojas')
+                    .select('id_loja')
+                    .eq('id_usuario', usuarioId);
+                if (error) throw error;
+                if (data && data.length > 0) {
+                    AppState.usuarioLogado.lojasMultiplas = data.map(item => item.id_loja);
+                } else {
+                    AppState.usuarioLogado.lojasMultiplas = []; // Vazio = usar fallback (id_loja único)
+                }
+            } catch (e) {
+                console.warn("Erro ao carregar lojas múltiplas, usando fallback:", e);
+                AppState.usuarioLogado.lojasMultiplas = [];
+            }
+        }
+
+        // Helper central: retorna as lojas que o usuário logado pode enxergar.
+        // null = sem restrição (vê todas). Array = lista de id_loja permitidos (pode ter 1 ou N).
+        function getLojasPermitidas() {
+            const user = AppState.usuarioLogado;
+            if (!user) return [];
+            if (user.perfil === 'Administrador' || user.perfil === 'Admin') {
+                return null; // Admin não tem restrição de loja
+            }
+            if (user.lojasMultiplas && user.lojasMultiplas.length > 0) {
+                return user.lojasMultiplas; // Gerente multiloja
+            }
+            if (user.id_loja) {
+                return [user.id_loja]; // Fallback: comportamento atual (loja única)
+            }
+            return [];
+        }
+
         let mapStatusUUID = []; 
         let mapInteresseUUID = [];
         let listaLojas = [];
@@ -180,7 +219,7 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                     // 3. Tudo em ordem: esconde o ecrã de login e arranca com a dashboard
                     setUsuarioLogado(userProfile);
                     document.getElementById('loginOverlay').classList.add('hidden');
-                    initAppAfterLogin();
+                    await initAppAfterLogin();
                 } else {
                     // Se não houver sessão, garante que o ecrã de login fica visível
                     document.getElementById('loginOverlay').classList.remove('hidden');
@@ -224,7 +263,7 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                 // 4. Libera o acesso e inicia a dashboard
                 setUsuarioLogado(userProfile);
                 document.getElementById('loginOverlay').classList.add('hidden');
-                initAppAfterLogin();
+                await initAppAfterLogin();
             } catch (err) {
                 msg.innerHTML = `<span class="error-message">${escapeHtml(err.message)}</span>`;
             } finally {
@@ -235,9 +274,12 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
 
         let _notifChannel = null; // referência global para poder destruir no logout
 
-        function initAppAfterLogin() {
+        async function initAppAfterLogin() {
             document.getElementById('sidebar').style.display = 'flex';
             document.getElementById('mainContent').style.display = 'flex';
+            // Carrega as lojas do Gerente Multiloja (se houver) ANTES de configurar permissões e KPIs,
+            // pois getLojasPermitidas() depende desse dado já estar em AppState.usuarioLogado.
+            await carregarLojasMultiplas(currentUser.id_usuario);
             configurarPermissoes();
             carregarDadosIniciais();
             iniciarSubscriptionNotificacoes();
@@ -379,7 +421,10 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                 if (orPartsDash.length) queryDetalhes = queryDetalhes.or(orPartsDash.join(','));
 
                 if (AppState.usuarioLogado.perfil === 'Gerente' || (AppState.usuarioLogado.perfil || '').toLowerCase() === 'terminal') {
-                    const ids = todosVendedores.filter(v => v.id_loja === AppState.usuarioLogado.id_loja).map(v => v.id_usuario);
+                    const lojasPermitidasDash = getLojasPermitidas();
+                    const ids = lojasPermitidasDash
+                        ? todosVendedores.filter(v => lojasPermitidasDash.includes(v.id_loja)).map(v => v.id_usuario)
+                        : todosVendedores.map(v => v.id_usuario);
                     if (ids.length > 0) queryDetalhes = queryDetalhes.in('id_usuario', ids);
                     if (selectedVendedor !== 'todos') queryDetalhes = queryDetalhes.eq('id_usuario', selectedVendedor);
                 } else if (AppState.usuarioLogado.perfil === 'Vendedor') {
@@ -435,9 +480,12 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                 let query = db.from('orcamentos')
                     .select('*, clientes!inner(nome_cliente, whatsapp), usuarios!inner(nome, id_loja), status_orcamento(nome)', { count: 'exact' });
             
-                // Regra de Ferro: Se for Gerente, obriga a loja a ser a dele E o vendedor a existir
+                // Regra de Ferro: Se for Gerente, obriga a(s) loja(s) permitida(s) E o vendedor a existir
                 if (currentUser.perfil === 'Gerente') {
-                    query = query.eq('usuarios.id_loja', currentUser.id_loja);
+                    const lojasPermitidasTab = getLojasPermitidas();
+                    if (lojasPermitidasTab && lojasPermitidasTab.length > 0) {
+                        query = query.in('usuarios.id_loja', lojasPermitidasTab);
+                    }
                     if (selectedVendedor !== 'todos') query = query.eq('id_usuario', selectedVendedor);
                 } else if (currentUser.perfil === 'Vendedor') {
                     query = query.eq('id_usuario', currentUser.id_usuario);
@@ -678,6 +726,12 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
             const status = document.getElementById('adminModStatus').value;
             const senha = document.getElementById('adminModSenha').value;
             const err = document.getElementById('errAdminUsuario');
+            const lojasMultiSel = document.getElementById('adminModLojasMultiplas');
+            // Lojas adicionais selecionadas (só relevante para perfil Gerente); a Loja Base sempre entra também.
+            const lojasSelecionadas = (perfil === 'Gerente' && lojasMultiSel)
+                ? Array.from(lojasMultiSel.selectedOptions).map(o => o.value)
+                : [];
+            if (loja && !lojasSelecionadas.includes(loja)) lojasSelecionadas.push(loja);
 
             if (!nome || !email) {
                 err.textContent = 'Preencha Nome e E-mail.';
@@ -695,13 +749,16 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
             const btn = document.getElementById('btnSalvarUsuarioAdmin');
             btn.classList.add('saving'); btn.disabled = true; err.textContent = '';
 
+            const idEmEdicaoNoMomentoDoSave = idUsuarioEmEdicao; // preserva antes de zerar mais abaixo
             try {
-                if (idUsuarioEmEdicao) {
+                let idUsuarioAlvo = idEmEdicaoNoMomentoDoSave;
+
+                if (idEmEdicaoNoMomentoDoSave) {
                     // EDICAO: atualiza direto na tabela usuarios
                     const updatePayload = { nome, email, id_loja: loja, perfil, status };
                     const { error: updateError } = await db.from('usuarios')
                         .update(updatePayload)
-                        .eq('id_usuario', idUsuarioEmEdicao);
+                        .eq('id_usuario', idEmEdicaoNoMomentoDoSave);
                     if (updateError) throw updateError;
                     showToast('Usuário atualizado com sucesso!', 'success');
                 } else {
@@ -712,7 +769,29 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                         body: payload
                     });
                     if (error) throw new Error(error.message);
+                    // A Edge Function pode devolver o id do novo usuário em formatos diferentes; tentamos os mais comuns.
+                    idUsuarioAlvo = data?.id_usuario || data?.id || data?.user?.id_usuario || null;
                     showToast('Usuário criado com sucesso!', 'success');
+                }
+
+                // Sincroniza a tabela usuario_lojas (Gerente Multiloja): remove associações antigas e grava as atuais.
+                if (perfil === 'Gerente') {
+                    // Se ainda não temos o id (caso de criação sem retorno direto), busca pelo e-mail.
+                    if (!idUsuarioAlvo) {
+                        const { data: userRecemCriado } = await db.from('usuarios').select('id_usuario').eq('email', email).single();
+                        idUsuarioAlvo = userRecemCriado?.id_usuario || null;
+                    }
+                    if (idUsuarioAlvo) {
+                        await db.from('usuario_lojas').delete().eq('id_usuario', idUsuarioAlvo);
+                        if (lojasSelecionadas.length > 0) {
+                            const inserts = lojasSelecionadas.map(lojaId => ({ id_usuario: idUsuarioAlvo, id_loja: lojaId }));
+                            const { error: syncError } = await db.from('usuario_lojas').insert(inserts);
+                            if (syncError) console.warn('Erro ao sincronizar lojas do gerente:', syncError);
+                        }
+                    }
+                } else if (idUsuarioAlvo) {
+                    // Se o perfil deixou de ser Gerente, limpa eventuais associações antigas.
+                    await db.from('usuario_lojas').delete().eq('id_usuario', idUsuarioAlvo);
                 }
 
                 idUsuarioEmEdicao = null;
@@ -723,12 +802,25 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                 todosVendedores = todosUsuarios.filter(u => u.perfil === 'Vendedor');
                 renderAdminUsuarios(document.getElementById('mainContent'));
 
+                // Se o admin acabou de editar/criar o próprio gerente logado, recarrega as lojas permitidas em sessão.
+                if (currentUser && idUsuarioAlvo === currentUser.id_usuario) {
+                    await carregarLojasMultiplas(currentUser.id_usuario);
+                }
+
             } catch (e) {
                 err.textContent = 'Erro: ' + e.message;
             } finally {
                 btn.classList.remove('saving');
                 btn.disabled = false;
             }
+        }
+
+        // Mostra/oculta o campo de lojas adicionais conforme o perfil selecionado no modal
+        function toggleCampoLojasMultiplas() {
+            const perfilSel = document.getElementById('adminModPerfil');
+            const campo = document.getElementById('campoLojasMultiplas');
+            if (!perfilSel || !campo) return;
+            campo.style.display = (perfilSel.value === 'Gerente') ? 'block' : 'none';
         }
 
         function abrirModalUsuarioAdmin(id = null) {
@@ -741,9 +833,21 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
             const perfilSel = document.getElementById('adminModPerfil');
             const statusSel = document.getElementById('adminModStatus');
             const senhaInput = document.getElementById('adminModSenha');
+            const lojasMultiSel = document.getElementById('adminModLojasMultiplas');
 
             lojaSel.innerHTML = '<option value="">Selecione a loja...</option>';
             listaLojas.forEach(l => { lojaSel.innerHTML += `<option value="${l.id_loja}">${escapeHtml(l.nome_loja)}</option>`; });
+
+            // Popula o multiselect de lojas adicionais (usado só quando perfil = Gerente)
+            if (lojasMultiSel) {
+                lojasMultiSel.innerHTML = '';
+                listaLojas.slice().sort((a, b) => a.nome_loja.localeCompare(b.nome_loja)).forEach(l => {
+                    const opt = document.createElement('option');
+                    opt.value = l.id_loja;
+                    opt.textContent = l.nome_loja;
+                    lojasMultiSel.appendChild(opt);
+                });
+            }
 
             if (id) {
                 const user = todosUsuarios.find(u => u.id_usuario === id);
@@ -751,11 +855,24 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                 nomeInput.value = user.nome || ''; emailInput.value = user.email || '';
                 lojaSel.value = user.id_loja || ''; perfilSel.value = user.perfil || 'Vendedor'; statusSel.value = user.status || 'Ativo';
                 senhaInput.value = '';
+
+                // Se for Gerente, busca as lojas já associadas (tabela usuario_lojas) e pré-seleciona
+                if (user.perfil === 'Gerente' && lojasMultiSel) {
+                    db.from('usuario_lojas').select('id_loja').eq('id_usuario', id).then(({ data, error }) => {
+                        if (error) { console.warn('Erro ao carregar lojas associadas:', error); return; }
+                        const idsAssociadas = (data || []).map(r => r.id_loja);
+                        Array.from(lojasMultiSel.options).forEach(opt => {
+                            opt.selected = idsAssociadas.includes(opt.value);
+                        });
+                    });
+                }
             } else {
                 title.textContent = 'Novo Usuário';
                 nomeInput.value = ''; emailInput.value = ''; lojaSel.value = ''; perfilSel.value = 'Vendedor'; statusSel.value = 'Ativo';
                 senhaInput.value = '';
+                if (lojasMultiSel) Array.from(lojasMultiSel.options).forEach(opt => { opt.selected = false; });
             }
+            toggleCampoLojasMultiplas();
             openModal('modalUsuarioAdmin');
         }
 
@@ -890,7 +1007,10 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
             
             let filtrados = todosVendedores;
             if (currentUser.perfil === 'Gerente') {
-                filtrados = todosVendedores.filter(v => v.id_loja === currentUser.id_loja);
+                const lojasPermitidasMeta = getLojasPermitidas();
+                filtrados = lojasPermitidasMeta
+                    ? todosVendedores.filter(v => lojasPermitidasMeta.includes(v.id_loja))
+                    : todosVendedores;
                 if (selectedVendedor !== 'todos') filtrados = filtrados.filter(v => v.id_usuario === selectedVendedor);
             } else {
                 if (selectedVendedor !== 'todos') {
@@ -1437,8 +1557,13 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         // ─── FIM AJUSTAR PROPOSTA ─────────────────────────────────────────────
 
         function buildLojaOptions() {
+            // Para Gerente Multiloja/loja única, o seletor mostra só as lojas permitidas + "Todas" (que agrega essas lojas).
+            const lojasPermitidasSel = getLojasPermitidas();
+            const lojasParaExibir = lojasPermitidasSel
+                ? listaLojas.filter(l => lojasPermitidasSel.includes(l.id_loja))
+                : listaLojas;
             let opts = `<option value="todas">Todas as lojas</option>`;
-            listaLojas.slice().sort((a,b) => a.nome_loja.localeCompare(b.nome_loja)).forEach(l => {
+            lojasParaExibir.slice().sort((a,b) => a.nome_loja.localeCompare(b.nome_loja)).forEach(l => {
                 opts += `<option value="${l.id_loja}" ${selectedLoja === l.id_loja ? 'selected' : ''}>${escapeHtml(l.nome_loja)}</option>`;
             });
             return opts;
@@ -1447,7 +1572,11 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         function buildVendedorOptions() {
             let filtrados = todosVendedores;
             if (currentUser.perfil === 'Gerente') {
-                filtrados = todosVendedores.filter(v => v.id_loja === currentUser.id_loja);
+                const lojasPermitidasVend = getLojasPermitidas();
+                filtrados = lojasPermitidasVend
+                    ? todosVendedores.filter(v => lojasPermitidasVend.includes(v.id_loja))
+                    : todosVendedores;
+                if (selectedLoja !== 'todas') filtrados = filtrados.filter(v => v.id_loja === selectedLoja);
             } else if (selectedLoja !== 'todas') {
                 filtrados = todosVendedores.filter(v => v.id_loja === selectedLoja);
             }
@@ -1888,7 +2017,11 @@ function selectFilter(filter) {
                 if (isGerente) {
                     let vendedoresRanking = todosVendedores;
                     if (currentUser.perfil === 'Gerente') {
-                        vendedoresRanking = todosVendedores.filter(v => v.id_loja === currentUser.id_loja);
+                        const lojasPermitidasRanking = getLojasPermitidas();
+                        vendedoresRanking = lojasPermitidasRanking
+                            ? todosVendedores.filter(v => lojasPermitidasRanking.includes(v.id_loja))
+                            : todosVendedores;
+                        if (selectedLoja !== 'todas') vendedoresRanking = vendedoresRanking.filter(v => v.id_loja === selectedLoja);
                     } else if (selectedLoja !== 'todas') {
                         vendedoresRanking = todosVendedores.filter(v => v.id_loja === selectedLoja);
                     }
@@ -2089,7 +2222,10 @@ function selectFilter(filter) {
                 if (currentUser.perfil === 'Vendedor') {
                     query = query.eq('id_usuario', currentUser.id_usuario);
                 } else if (currentUser.perfil === 'Gerente' || (currentUser.perfil || '').toLowerCase() === 'terminal') {
-                    query = query.eq('usuarios.id_loja', currentUser.id_loja);
+                    const lojasPermitidasAgenda = getLojasPermitidas();
+                    if (lojasPermitidasAgenda && lojasPermitidasAgenda.length > 0) {
+                        query = query.in('usuarios.id_loja', lojasPermitidasAgenda);
+                    }
                     if (selectedVendedor !== 'todos') query = query.eq('id_usuario', selectedVendedor);
                 } else {
                     // Administrador
@@ -2330,7 +2466,12 @@ function selectFilter(filter) {
                     const ids = [...new Set((orcsV || []).map(o => o.id_cliente).filter(Boolean))];
                     query = query.in(pk, ids.length ? ids : ['00000000-0000-0000-0000-000000000000']);
                 } else if (currentUser.perfil === 'Gerente') {
-                    const { data: usrs } = await db.from('usuarios').select('id_usuario').eq('id_loja', currentUser.id_loja);
+                    const lojasPermitidasCli = getLojasPermitidas();
+                    let queryUsrs = db.from('usuarios').select('id_usuario');
+                    queryUsrs = lojasPermitidasCli && lojasPermitidasCli.length > 0
+                        ? queryUsrs.in('id_loja', lojasPermitidasCli)
+                        : queryUsrs.eq('id_loja', currentUser.id_loja);
+                    const { data: usrs } = await queryUsrs;
                     const idsU = (usrs || []).map(u => u.id_usuario);
                     const { data: orcsL } = idsU.length
                         ? await db.from('orcamentos').select('id_cliente').in('id_usuario', idsU)
@@ -2657,12 +2798,14 @@ function selectFilter(filter) {
             if (isGerenteOuAdmin && campoTransferencia && selectVendedor) {
                 // Popula o dropdown com os vendedores disponíveis
                 let optsVendedor = '<option value="">— Manter vendedor atual —</option>';
+                const lojasPermitidasTransf = getLojasPermitidas();
                 const listaFiltrada = currentUser.perfil === 'Gerente'
-                    ? todosVendedores.filter(v => v.id_loja === currentUser.id_loja)
+                    ? (lojasPermitidasTransf ? todosVendedores.filter(v => lojasPermitidasTransf.includes(v.id_loja)) : todosVendedores)
                     : todosVendedores;
 
-                // Para Admin: agrupa por loja para facilitar identificação
-                if (currentUser.perfil !== 'Gerente') {
+                // Agrupa por loja quando fizer sentido: Admin (vê tudo) ou Gerente Multiloja (mais de uma loja)
+                const isGerenteMultiloja = currentUser.perfil === 'Gerente' && lojasPermitidasTransf && lojasPermitidasTransf.length > 1;
+                if (currentUser.perfil !== 'Gerente' || isGerenteMultiloja) {
                     const lojaMap = {};
                     listaLojas.forEach(l => { lojaMap[l.id_loja] = l.nome_loja; });
                     // Agrupa por loja
@@ -2871,7 +3014,10 @@ function selectFilter(filter) {
             });
 
             if (currentUser.perfil === 'Gerente') {
-                lojaIds = lojaIds.filter(idL => idL === currentUser.id_loja);
+                const lojasPermitidasMetas = getLojasPermitidas();
+                lojaIds = lojasPermitidasMetas
+                    ? lojaIds.filter(idL => lojasPermitidasMetas.includes(idL))
+                    : lojaIds.filter(idL => idL === currentUser.id_loja);
             }
 
             lojaIds.forEach(idL => {
@@ -4035,7 +4181,10 @@ function selectFilter(filter) {
                     .not('id_status', 'is', null);
 
                 if (currentUser.perfil === 'Gerente') {
-                    query = query.eq('usuarios.id_loja', currentUser.id_loja);
+                    const lojasPermitidasKanban = getLojasPermitidas();
+                    if (lojasPermitidasKanban && lojasPermitidasKanban.length > 0) {
+                        query = query.in('usuarios.id_loja', lojasPermitidasKanban);
+                    }
                 } else if (currentUser.perfil === 'Vendedor') {
                     query = query.eq('id_usuario', currentUser.id_usuario);
                 } else if ((currentUser.perfil || '').toLowerCase() === 'terminal') {
