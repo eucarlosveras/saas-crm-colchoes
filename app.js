@@ -374,13 +374,19 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
             // NOVO CÓDIGO LEVE E ESCALÁVEL
             const isAdmin = AppState.usuarioLogado.perfil === 'Administrador' || AppState.usuarioLogado.perfil === 'Admin';
             try {
+                // Se for Gerente com mais de uma loja, manda a lista para a RPC agregar o resumo das 3.
+                // Terminal e Gerente de loja única continuam usando p_id_loja (comportamento antigo, intocado).
+                const lojasPermitidasRPC = getLojasPermitidas();
+                const isGerenteMultilojaRPC = AppState.usuarioLogado.perfil === 'Gerente' && lojasPermitidasRPC && lojasPermitidasRPC.length > 1;
+
                 // Chama a função direto no banco, passando apenas os filtros
                 const { data: kpisData, error: rpcError } = await db.rpc('calcular_kpis_dashboard', {
                     p_mes: currentMonth,
                     p_ano: currentYear,
                     p_id_usuario: AppState.usuarioLogado.id_usuario,
                     p_perfil: (AppState.usuarioLogado.perfil || '').toLowerCase() === 'terminal' ? 'Gerente' : AppState.usuarioLogado.perfil,
-                    p_id_loja: AppState.usuarioLogado.id_loja
+                    p_id_loja: AppState.usuarioLogado.id_loja,
+                    p_ids_loja: isGerenteMultilojaRPC ? lojasPermitidasRPC : null
                 });
                 if (rpcError) throw rpcError;
                 // Salvamos o resultado mastigado no objeto global
@@ -765,22 +771,19 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                     // CRIACAO: chama Edge Function que cria no Auth + insere em usuarios
                     const payload = { nome, email, loja, perfil, status, senha };
                     console.log("Payload sendo enviado para a Edge Function:", JSON.stringify(payload));
-                    const { data, error } = await db.functions.invoke('criar-usuario', {
+                    const { error } = await db.functions.invoke('criar-usuario', {
                         body: payload
                     });
                     if (error) throw new Error(error.message);
-                    // A Edge Function pode devolver o id do novo usuário em formatos diferentes; tentamos os mais comuns.
-                    idUsuarioAlvo = data?.id_usuario || data?.id || data?.user?.id_usuario || null;
+                    // A Edge Function 'criar-usuario' só retorna { success: true }, sem o id_usuario.
+                    // Buscamos o registro recém-criado pelo e-mail (único) para poder sincronizar usuario_lojas.
+                    const { data: userRecemCriado } = await db.from('usuarios').select('id_usuario').eq('email', email).single();
+                    idUsuarioAlvo = userRecemCriado?.id_usuario || null;
                     showToast('Usuário criado com sucesso!', 'success');
                 }
 
                 // Sincroniza a tabela usuario_lojas (Gerente Multiloja): remove associações antigas e grava as atuais.
                 if (perfil === 'Gerente') {
-                    // Se ainda não temos o id (caso de criação sem retorno direto), busca pelo e-mail.
-                    if (!idUsuarioAlvo) {
-                        const { data: userRecemCriado } = await db.from('usuarios').select('id_usuario').eq('email', email).single();
-                        idUsuarioAlvo = userRecemCriado?.id_usuario || null;
-                    }
                     if (idUsuarioAlvo) {
                         await db.from('usuario_lojas').delete().eq('id_usuario', idUsuarioAlvo);
                         if (lojasSelecionadas.length > 0) {
