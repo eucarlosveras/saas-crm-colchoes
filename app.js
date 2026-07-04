@@ -130,7 +130,7 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
             if(type === 'error') icon = '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
             if(type === 'warning') icon = '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
             if(type === 'info') icon = '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
-            toast.innerHTML = `${icon} <span>${message}</span>`;
+            toast.innerHTML = `${icon} <span>${escapeHtml(message)}</span>`;
             container.appendChild(toast);
             requestAnimationFrame(() => toast.classList.add('show'));
             setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3000);
@@ -1749,7 +1749,7 @@ function selectFilter(filter) {
                 html += `<div class="notif-item" ${onclick} style="cursor:pointer;">
                             <span class="notif-dot ${dotClass}"></span>
                             <div style="flex:1;">
-                                <div>${n.texto}</div>
+                                <div>${escapeHtml(n.texto)}</div>
                                 <div style="font-size:10px; color:var(--text-muted);">${escapeHtml(n.data)}</div>
                             </div>
                          </div>`;
@@ -4198,7 +4198,7 @@ function selectFilter(filter) {
                 board.appendChild(boardDiv);
 
             } catch (e) {
-                board.innerHTML = `<div style="padding:24px; text-align:center; color:#ef4444;">Erro ao carregar pipeline: ${e.message}</div>`;
+                board.innerHTML = `<div style="padding:24px; text-align:center; color:#ef4444;">Erro ao carregar pipeline: ${escapeHtml(e.message)}</div>`;
             }
         }
 
@@ -5121,11 +5121,11 @@ function renderRadarSignals(sellerFilter) {
             for (const s of sufixos) { if (signal.id.endsWith(s)) { orcId = signal.id.slice(0, -s.length); break; } }
 
             const leadLink = signal.id.startsWith('est-')
-                ? `<strong>${signal.leadName}</strong>`
-                : `<strong style="color:var(--brand-blue);cursor:pointer;" onclick="abrirDetalhesCliente('${orcId}')">${signal.leadName}</strong>`;
+                ? `<strong>${escapeHtml(signal.leadName)}</strong>`
+                : `<strong style="color:var(--brand-blue);cursor:pointer;" onclick="abrirDetalhesCliente('${orcId}')">${escapeHtml(signal.leadName)}</strong>`;
 
             const justHtml = signal.justification
-                ? `<div class="justification-block"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-top:2px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span>${signal.justification}</span></div>`
+                ? `<div class="justification-block"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-top:2px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span>${escapeHtml(signal.justification)}</span></div>`
                 : '';
 
             const execClass = signal.executed ? 'btn-exec executed' : 'btn-exec';
@@ -5398,11 +5398,12 @@ function renderizarMensagensChat() {
 }
 
 function formatarMensagemIA(texto) {
-    return texto
+    if (!texto) return '';
+    // Primeiro escapa o HTML para prevenir XSS, depois aplica formatação segura
+    const escaped = escapeHtml(texto);
+    return escaped
         .replace(/\n/g, '<br>')
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/^\s*[-•*]\s+/gm, '<li>')
-        .replace(/<\/li>(?!\s*<li>)/g, '</li>');
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 }
 
 async function enviarMensagemChatIA() {
