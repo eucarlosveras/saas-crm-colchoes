@@ -683,8 +683,13 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         async function exportarCSV() {
             showToast('Gerando relatório...', 'info');
             try {
-                let query = db.from('orcamentos').select('*, clientes!inner(nome_cliente, whatsapp), usuarios(nome), status_orcamento(nome)');
+                let query = db.from('orcamentos').select('*, clientes!inner(nome_cliente, whatsapp), usuarios!inner(nome, id_loja), status_orcamento(nome)');
                 if (currentUser.perfil === 'Vendedor') query = query.eq('id_usuario', currentUser.id_usuario);
+                else if (currentUser.perfil === 'Gerente') {
+                    const lojasPermitidasCSV = getLojasPermitidas();
+                    query = query.in('usuarios.id_loja', (lojasPermitidasCSV && lojasPermitidasCSV.length > 0) ? lojasPermitidasCSV : ['00000000-0000-0000-0000-000000000000']);
+                    if (selectedVendedor !== 'todos') query = query.eq('id_usuario', selectedVendedor);
+                }
                 else if ((currentUser.perfil || '').toLowerCase() === 'terminal') query = query.eq('usuarios.id_loja', currentUser.id_loja);
                 else if (selectedVendedor !== 'todos') query = query.eq('id_usuario', selectedVendedor);
                 
@@ -2231,7 +2236,7 @@ function selectFilter(filter) {
             try {
                 // Query direta e independente — não depende mais de kpisMensais
                 let query = db.from('orcamentos')
-                    .select('id_orcamento, valor_orcado, id_usuario, data_contato, hora_contato, observacao_agendamento, modelo_colchao, ligacao_confirmada, clientes(nome_cliente, whatsapp), status_orcamento(nome), usuarios(nome, id_loja)')
+                    .select('id_orcamento, valor_orcado, id_usuario, data_contato, hora_contato, observacao_agendamento, modelo_colchao, ligacao_confirmada, clientes(nome_cliente, whatsapp), status_orcamento(nome), usuarios!inner(nome, id_loja)')
                     .not('data_contato', 'is', null)
                     .not('id_status', 'is', null);
 
@@ -4193,7 +4198,7 @@ function selectFilter(filter) {
 
                 // Busca orçamentos do período selecionado (sem paginação — kanban precisa do total)
                 let query = db.from('orcamentos')
-                    .select('id_orcamento, protocolo, data_criacao, data_fechamento, valor_orcado, modelo_colchao, data_contato, hora_contato, usuarios(nome, id_loja), clientes(nome_cliente), status_orcamento(nome)')
+                    .select('id_orcamento, protocolo, data_criacao, data_fechamento, valor_orcado, modelo_colchao, data_contato, hora_contato, usuarios!inner(nome, id_loja), clientes(nome_cliente), status_orcamento(nome)')
                     .not('id_status', 'is', null);
 
                 if (currentUser.perfil === 'Gerente') {
