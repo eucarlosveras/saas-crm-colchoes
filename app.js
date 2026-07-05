@@ -4413,6 +4413,16 @@ function selectFilter(filter) {
                     header.appendChild(countSpan);
                     colDiv.appendChild(header);
 
+                    // Subtotal da coluna (valor acumulado + qtd. de orçamentos), logo abaixo do nome do estágio
+                    const totalFmt = total.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                    const subtotalDiv = document.createElement('div');
+                    subtotalDiv.className = 'kcol-subtotal';
+                    const strongSubtotal = document.createElement('strong');
+                    strongSubtotal.textContent = `R$ ${totalFmt}`;
+                    subtotalDiv.appendChild(strongSubtotal);
+                    subtotalDiv.appendChild(document.createTextNode(` em ${items.length} orçamento${items.length !== 1 ? 's' : ''}`));
+                    colDiv.appendChild(subtotalDiv);
+
                     // Zona de drop (kanban-cards)
                     const cardsDiv = document.createElement('div');
                     cardsDiv.className = 'kanban-cards';
@@ -4549,18 +4559,7 @@ function selectFilter(filter) {
                         });
                     }
 
-                    const totalFmt = total.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-
-                    // Rodapé da coluna
-                    const footerDiv = document.createElement('div');
-                    footerDiv.className = 'kcol-total';
-                    const strong = document.createElement('strong');
-                    strong.textContent = `R$ ${totalFmt}`;
-                    footerDiv.appendChild(strong);
-                    footerDiv.appendChild(document.createTextNode(` em ${items.length} orçamento${items.length !== 1 ? 's' : ''}`));
-
                     colDiv.appendChild(cardsDiv);
-                    colDiv.appendChild(footerDiv);
                     boardDiv.appendChild(colDiv);
                 });
 
