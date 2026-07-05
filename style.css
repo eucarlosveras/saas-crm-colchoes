@@ -1584,6 +1584,9 @@
         body.dark .produto-row:hover { border-color: #52525b; }
 
         .produto-row-top { display: flex; align-items: center; gap: 7px; }
+        .prod-nome-wrapper { position: relative; flex: 1; min-width: 0; }
+        .prod-nome-wrapper .prod-nome { padding-right: 34px; }
+        .prod-check { display: none; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); align-items: center; justify-content: center; color: #10b981; pointer-events: none; }
         .produto-row-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
         .produto-row-label { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
 
