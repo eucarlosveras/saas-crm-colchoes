@@ -279,7 +279,8 @@
         }
 
         .kanban-col { display:flex; flex-direction:column; gap:6px; min-height:200px; min-width:0; overflow:hidden; }
-        .kanban-col-header { display:flex; align-items:center; justify-content:space-between; padding:7px 10px; border-radius:var(--radius-sm); margin-bottom:4px; gap:6px; white-space:nowrap; }
+        .kanban-col-header { display:flex; flex-direction:column; gap:3px; padding:8px 10px; border-radius:var(--radius-sm); margin-bottom:4px; }
+        .kcol-header-top { display:flex; align-items:center; justify-content:space-between; gap:6px; white-space:nowrap; }
         .kcol-ci  { background:#eef8ff; } .kcol-nv  { background:#fefce8; } .kcol-ad  { background:#fff7ed; } .kcol-fec { background:#f0fdf9; } .kcol-pv  { background:#f5f3ff; } .kcol-per { background:#fff1f1; }
         body.dark .kcol-ci  { background:rgba(3,105,161,0.15); }
         body.dark .kcol-nv  { background:rgba(133,77,14,0.15); }
@@ -333,8 +334,10 @@
         .kcard-alert-chip svg { width:8px; height:8px; stroke:currentColor; fill:none; stroke-width:2.5; }
         .kcard-avatar { width:18px; height:18px; border-radius:4px; background:linear-gradient(135deg,var(--brand-blue),var(--brand-blue-dark)); color:#fff; font-size:8px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 
-        .kcol-subtotal { font-size:10px; font-weight:400; color:var(--text-placeholder); text-align:left; padding:0 2px 8px; margin-top:-2px; }
-        .kcol-subtotal strong { color:var(--text-secondary); font-weight:600; }
+        .kcol-subtotal { font-size:10.5px; font-weight:500; opacity:0.75; padding-left:12px; }
+        .kcol-subtotal strong { font-weight:700; opacity:1; }
+        .kcol-ci  .kcol-subtotal { color:#0369a1; } .kcol-nv  .kcol-subtotal { color:#854d0e; } .kcol-ad  .kcol-subtotal { color:#c2410c; } .kcol-fec .kcol-subtotal { color:#065f46; } .kcol-pv  .kcol-subtotal { color:#5b21b6; } .kcol-per .kcol-subtotal { color:#991b1b; }
+        body.dark .kcol-ci  .kcol-subtotal { color:#7dd3fc; } body.dark .kcol-nv  .kcol-subtotal { color:#fde047; } body.dark .kcol-ad  .kcol-subtotal { color:#fdba74; } body.dark .kcol-fec .kcol-subtotal { color:#6ee7b7; } body.dark .kcol-pv  .kcol-subtotal { color:#c4b5fd; } body.dark .kcol-per .kcol-subtotal { color:#fca5a5; }
         .kanban-empty   { display:flex; align-items:center; justify-content:center; height:80px; border:1.5px dashed var(--border-light); border-radius:var(--radius-md); color:var(--text-muted); font-size:var(--font-xs); }
         .kanban-loading { display:flex; align-items:center; justify-content:center; height:200px; color:var(--text-muted); font-size:var(--font-sm); gap:10px; }
 
