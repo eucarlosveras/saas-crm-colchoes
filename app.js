@@ -1309,7 +1309,10 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                         if (orcamento && orcamento.id_usuario !== currentUser.id_usuario) {
                             
                             // Grava o alerta na tabela 'notificacoes'
-                            await db.from('notificacoes').insert([{
+                            // IMPORTANTE: o cliente Supabase NÃO lança exceção em erro de insert,
+                            // ele retorna { error }. Sem checar isso, um bloqueio de RLS falha
+                            // em silêncio e o catch abaixo nunca é acionado.
+                            const { error: errNotif } = await db.from('notificacoes').insert([{
                                 id_usuario: orcamento.id_usuario, // Destinatário: Vendedor
                                 texto: `${currentUser.nome} fez um comentário`,
                                 tipo: 'comentario_gerente',
@@ -1317,6 +1320,10 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                                 id_cliente: orcamento.id_cliente,
                                 lida: false
                             }]);
+                            if (errNotif) {
+                                console.error('Erro ao gravar notificação de comentário (possível bloqueio de RLS na tabela notificacoes):', errNotif);
+                                showToast('Comentário salvo, mas a notificação ao vendedor falhou.', 'error');
+                            }
                         }
                     } catch (e) {
                         console.error('Erro ao gerar notificação de comentário do gerente:', e);
