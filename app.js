@@ -4396,9 +4396,13 @@ function selectFilter(filter) {
                     colDiv.className = 'kanban-col';
                     colDiv.dataset.status = statusDestino;
 
-                    // Header da coluna
+                    // Header da coluna (agora em duas linhas: título+contador, e logo abaixo o subtotal,
+                    // ambos dentro do mesmo bloco colorido para formar uma unidade visual só)
                     const header = document.createElement('div');
                     header.className = `kanban-col-header ${col.cls}`;
+
+                    const topRow = document.createElement('div');
+                    topRow.className = 'kcol-header-top';
                     const titleDiv = document.createElement('div');
                     titleDiv.className = 'kcol-title';
                     const dot = document.createElement('span');
@@ -4409,11 +4413,11 @@ function selectFilter(filter) {
                     countSpan.className = 'kcol-count';
                     countSpan.id = `count-${statusDestino.replace(/\s+/g, '-')}`;
                     countSpan.textContent = items.length;
-                    header.appendChild(titleDiv);
-                    header.appendChild(countSpan);
-                    colDiv.appendChild(header);
+                    topRow.appendChild(titleDiv);
+                    topRow.appendChild(countSpan);
+                    header.appendChild(topRow);
 
-                    // Subtotal da coluna (valor acumulado + qtd. de orçamentos), logo abaixo do nome do estágio
+                    // Subtotal da coluna (valor acumulado + qtd. de orçamentos), 2ª linha do mesmo bloco
                     const totalFmt = total.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
                     const subtotalDiv = document.createElement('div');
                     subtotalDiv.className = 'kcol-subtotal';
@@ -4421,7 +4425,8 @@ function selectFilter(filter) {
                     strongSubtotal.textContent = `R$ ${totalFmt}`;
                     subtotalDiv.appendChild(strongSubtotal);
                     subtotalDiv.appendChild(document.createTextNode(` em ${items.length} orçamento${items.length !== 1 ? 's' : ''}`));
-                    colDiv.appendChild(subtotalDiv);
+                    header.appendChild(subtotalDiv);
+                    colDiv.appendChild(header);
 
                     // Zona de drop (kanban-cards)
                     const cardsDiv = document.createElement('div');
