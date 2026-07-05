@@ -1298,12 +1298,14 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
 
                 if (error) throw error;
 
-                // --- INÍCIO DA MELHORIA: NOTIFICAÇÃO DO GERENTE ---
-                if (currentUser.perfil === 'Gerente') {
+                // --- INÍCIO DA MELHORIA: NOTIFICAÇÃO DO GERENTE/ADMIN ---
+                // Antes só disparava para perfil 'Gerente'; Administrador/Admin comentando
+                // não gerava notificação nenhuma para o vendedor responsável.
+                if (['Gerente', 'Administrador', 'Admin'].includes(currentUser.perfil)) {
                     try {
                         const orcamento = AppState.contextoVenda.clienteAtual;
                         
-                        // Garante que o gerente não está disparando alerta para si mesmo
+                        // Garante que quem comentou não está disparando alerta para si mesmo
                         if (orcamento && orcamento.id_usuario !== currentUser.id_usuario) {
                             
                             // Grava o alerta na tabela 'notificacoes'
