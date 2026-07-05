@@ -3600,15 +3600,29 @@ function selectFilter(filter) {
             return opts;
         }
 
+        // Opções do <datalist> usado pelo campo de digitação de produto (Novo Orçamento).
+        // Diferente do <select>, o <datalist> não tem opção "placeholder" — o texto do
+        // input já cumpre esse papel.
+        function buildProdutoDatalistOptions() {
+            if (todosProdutos.length === 0) return '';
+            return todosProdutos.map(p => {
+                const texto = p.codigo ? `${p.codigo} - ${p.nome}` : p.nome;
+                return `<option value="${escapeHtml(texto)}"></option>`;
+            }).join('');
+        }
+
         function adicionarProdutoRow() {
             const container = document.getElementById('produtosContainer'); 
             const row = document.createElement('div'); 
             row.className = 'produto-row';
             row.innerHTML = `
                 <div class="produto-row-top">
-                    <select class="form-input prod-nome" required>
-                        ${buildProdutoSelectOptions()}
-                    </select>
+                    <div class="prod-nome-wrapper">
+                        <input type="text" class="form-input prod-nome" list="produtosDatalist" placeholder="Digite para buscar um produto..." autocomplete="off" required oninput="validarProdutoSelecionado(this)">
+                        <span class="prod-check" title="Produto reconhecido">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                        </span>
+                    </div>
                     <button type="button" class="btn-remove-item" onclick="removerProdutoRow(this)" title="Remover item">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
                     </button>
@@ -3638,7 +3652,7 @@ function selectFilter(filter) {
             });
         
             if (produtoExiste && produtoDigitado !== '') {
-                checkSpan.style.display = 'inline';
+                checkSpan.style.display = 'inline-flex';
                 input.style.borderColor = '#10b981';
             } else {
                 checkSpan.style.display = 'none';
@@ -3762,6 +3776,7 @@ function selectFilter(filter) {
                         </div>
                         
                         <div class="produtos-wrapper" id="produtosContainer"></div>
+                        <datalist id="produtosDatalist">${buildProdutoDatalistOptions()}</datalist>
                         
                         <button type="button" class="btn-add-item-premium" onclick="adicionarProdutoRow()">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Adicionar linha de produto
