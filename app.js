@@ -1888,7 +1888,7 @@ function selectFilter(filter) {
                     texto: n.texto,
                     id: n.id_referencia, // ID do orçamento para redirecionar
                     id_notif: n.id,      // ID da notificação para marcar como lida
-                    data: 'Novo comentário do gerente'
+                    data: 'Novo comentário' // Genérico: pode vir de Gerente, Administrador ou Admin
                 });
             });
             // --- FIM DA MELHORIA ---
