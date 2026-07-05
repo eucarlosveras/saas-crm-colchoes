@@ -3663,7 +3663,6 @@ function selectFilter(filter) {
                 const texto = p.codigo ? `${p.codigo} - ${p.nome}` : p.nome;
                 return `<div class="prod-suggestion-item" data-texto="${escapeHtml(texto)}" onmousedown="event.preventDefault(); selecionarProdutoSugestao(this)">
                     <span class="psi-nome">${escapeHtml(p.nome)}</span>
-                    ${p.codigo ? `<span class="psi-codigo">${escapeHtml(p.codigo)}</span>` : ''}
                 </div>`;
             }).join('');
             box.classList.add('show');
