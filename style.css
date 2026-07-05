@@ -1596,10 +1596,10 @@
         .prod-suggestions.show { display: block; }
         .prod-suggestion-item {
             display: flex; align-items: center; gap: 8px;
-            padding: 9px 10px; border-radius: 6px; cursor: pointer;
+            padding: 7px 10px; border-radius: 6px; cursor: pointer;
         }
         .prod-suggestion-item:hover, .prod-suggestion-item.active { background: var(--surface-2, #f1f5f9); }
-        .psi-nome { flex: 1; min-width: 0; color: var(--text-primary); font-weight: 500; font-size: var(--font-sm); font-family: 'Inter', sans-serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .psi-nome { flex: 1; min-width: 0; color: var(--text-primary); font-weight: 500; font-size: var(--font-xs); font-family: 'Inter', sans-serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .prod-suggestion-empty { padding: 10px; text-align: center; font-size: 12px; color: var(--text-muted); }
         body.dark .prod-suggestions { background: var(--surface-2); border-color: var(--border-medium); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
         body.dark .prod-suggestion-item:hover, body.dark .prod-suggestion-item.active { background: var(--surface-3); }
