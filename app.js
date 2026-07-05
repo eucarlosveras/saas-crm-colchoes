@@ -196,7 +196,15 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         // então a aritmética de dias não sofre interferência de fuso horário.
         function addDiasBrasilia(dias) { const base = new Date(getHojeBrasilia() + 'T00:00:00Z'); base.setUTCDate(base.getUTCDate() + dias); return base.toISOString().split('T')[0]; }
         function escapeHtml(str) { if (!str) return ''; const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
-        function timeAgo(dateString) { const now = new Date(); const date = new Date(dateString); const diff = Math.floor((now - date) / (1000 * 60 * 60 * 24)); if (diff === 0) return 'Hoje'; if (diff === 1) return 'Ontem'; return 'há ' + diff + ' dias'; }
+        function timeAgo(dateString) {
+            if (!dateString) return '-';
+            const dataStr = new Date(dateString).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+            const hojeStr = getHojeBrasilia();
+            if (dataStr === hojeStr) return 'Hoje';
+            if (dataStr === addDiasBrasilia(-1)) return 'Ontem';
+            const diff = Math.round((new Date(hojeStr + 'T00:00:00Z') - new Date(dataStr + 'T00:00:00Z')) / (1000 * 60 * 60 * 24));
+            return 'há ' + diff + ' dias';
+        }
         function getDateLabel(dateStr) { const d = new Date(dateStr); const hoje = new Date(); const ontem = new Date(hoje); ontem.setDate(hoje.getDate() - 1); if (d.toDateString() === hoje.toDateString()) return 'Hoje'; if (d.toDateString() === ontem.toDateString()) return 'Ontem'; return d.toLocaleDateString('pt-BR'); }
         function getUltimaVisita(id) { const ts = localStorage.getItem('ultima_visita_' + id); return ts ? parseInt(ts) : 0; }
         function setUltimaVisita(id) { localStorage.setItem('ultima_visita_' + id, Date.now().toString()); }
