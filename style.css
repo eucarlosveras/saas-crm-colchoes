@@ -333,8 +333,8 @@
         .kcard-alert-chip svg { width:8px; height:8px; stroke:currentColor; fill:none; stroke-width:2.5; }
         .kcard-avatar { width:18px; height:18px; border-radius:4px; background:linear-gradient(135deg,var(--brand-blue),var(--brand-blue-dark)); color:#fff; font-size:8px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 
-        .kcol-total { font-size:10px; font-weight:400; color:var(--text-placeholder); text-align:center; padding:6px 4px 2px; border-top:1px solid var(--divider); margin-top:6px; }
-        .kcol-total strong { color:var(--text-secondary); font-weight:600; }
+        .kcol-subtotal { font-size:10px; font-weight:400; color:var(--text-placeholder); text-align:left; padding:0 2px 8px; margin-top:-2px; }
+        .kcol-subtotal strong { color:var(--text-secondary); font-weight:600; }
         .kanban-empty   { display:flex; align-items:center; justify-content:center; height:80px; border:1.5px dashed var(--border-light); border-radius:var(--radius-md); color:var(--text-muted); font-size:var(--font-xs); }
         .kanban-loading { display:flex; align-items:center; justify-content:center; height:200px; color:var(--text-muted); font-size:var(--font-sm); gap:10px; }
 
