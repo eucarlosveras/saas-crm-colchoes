@@ -999,6 +999,7 @@
         .client-name {
             font-weight: 600; color: var(--brand-blue); cursor: pointer;
             transition: color var(--transition);
+            display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
         .client-name:hover { color: var(--brand-blue-dark); text-decoration: underline; }
 
