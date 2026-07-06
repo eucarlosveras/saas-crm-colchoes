@@ -3,7 +3,7 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
         const META_PADRAO = 50000;
-        const ITEMS_PER_PAGE = 10;
+        const ITEMS_PER_PAGE = 7;
         const STATUS = {
 	CONTATO_INICIAL: 'Contato Inicial',
   	NEGOCIACAO: 'Negociação',
@@ -2043,8 +2043,8 @@ function selectFilter(filter) {
         // quanto em cada linha, pra ambos ficarem sempre alinhados.
         function getNegociacoesGridTemplate(isGerente) {
             return isGerente
-                ? '40px 1.6fr 1.3fr 1fr 130px 100px 120px 20px'
-                : '40px 1.8fr 1.6fr 130px 100px 120px 20px';
+                ? '40px 190px 1.6fr 1fr 130px 100px 120px 20px'
+                : '40px 210px 1.9fr 130px 100px 120px 20px';
         }
         // Monta a lista de páginas exibidas na paginação, com "…" quando há muitas páginas.
         function getPaginaNumeros(atual, total) {
