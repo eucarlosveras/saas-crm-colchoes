@@ -2046,8 +2046,8 @@ function selectFilter(filter) {
         // quanto em cada linha, pra ambos ficarem sempre alinhados.
         function getNegociacoesGridTemplate(isGerente) {
             return isGerente
-                ? '40px 190px minmax(200px,380px) 120px 130px 100px 120px 24px'
-                : '40px 210px minmax(220px,440px) 130px 100px 120px 24px';
+                ? '40px 190px minmax(200px,1fr) 120px 130px 100px 120px 24px'
+                : '40px 210px minmax(220px,1fr) 130px 100px 120px 24px';
         }
         // Monta a lista de páginas exibidas na paginação, com "…" quando há muitas páginas.
         function getPaginaNumeros(atual, total) {
