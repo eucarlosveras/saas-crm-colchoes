@@ -575,6 +575,9 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                         const statusTexto = o.status_orcamento ? o.status_orcamento.nome : STATUS.CONTATO_INICIAL;
                         const idNumerico = o.protocolo && o.protocolo.includes('-') ? o.protocolo.split('-')[1] : (o.protocolo || '');
                         const produtos = o.modelo_colchao ? o.modelo_colchao.split(',').map(p => p.trim()).filter(Boolean) : [];
+                        // Exibição sem o código do produto (ex: "5014077 - Colchão X" -> "Colchão X").
+                        // O código só aparece dentro do orçamento após a seleção do item, não nesta lista.
+                        const nomeProdutoSemCodigo = p => p.replace(/^\d+\s*-\s*/, '');
                         const qtdExtra = produtos.length - 1;
                         const vendedorNome = o.usuarios?.nome || '-';
 
@@ -595,7 +598,7 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                                 <div class="cliente-proto">#${escapeHtml(idNumerico)}</div>
                             </div>
                             <div class="produto-cell">
-                                <div class="produto-nome">${escapeHtml(produtos.length > 0 ? produtos[0] : '-')}</div>
+                                <div class="produto-nome">${escapeHtml(produtos.length > 0 ? nomeProdutoSemCodigo(produtos[0]) : '-')}</div>
                                 ${qtdExtra > 0 ? `<button type="button" class="btn-expand-produtos produto-extra-btn">+ ${qtdExtra} item${qtdExtra > 1 ? 'ns' : ''} <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg></button>` : ''}
                             </div>
                             ${isGerente ? `
@@ -632,7 +635,7 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                                 bullet.style.cssText = 'color:var(--brand-blue); font-weight:bold;';
                                 bullet.textContent = '•';
                                 li.appendChild(bullet);
-                                li.appendChild(document.createTextNode(' ' + p));
+                                li.appendChild(document.createTextNode(' ' + nomeProdutoSemCodigo(p)));
                                 ul.appendChild(li);
                             });
                             divAcc.appendChild(strong);
@@ -2043,8 +2046,8 @@ function selectFilter(filter) {
         // quanto em cada linha, pra ambos ficarem sempre alinhados.
         function getNegociacoesGridTemplate(isGerente) {
             return isGerente
-                ? '40px 190px 1.6fr 1fr 130px 100px 120px 20px'
-                : '40px 210px 1.9fr 130px 100px 120px 20px';
+                ? '40px 190px minmax(200px,380px) 120px 130px 100px 120px 24px'
+                : '40px 210px minmax(220px,440px) 130px 100px 120px 24px';
         }
         // Monta a lista de páginas exibidas na paginação, com "…" quando há muitas páginas.
         function getPaginaNumeros(atual, total) {
