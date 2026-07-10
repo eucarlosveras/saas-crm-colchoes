@@ -576,8 +576,9 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         // comparação ao período anterior equivalente. Vendas Hoje / Ticket Médio / Produtos
         // Vendidos vêm da tabela 'orcamentos', filtrando por id_usuario (vendedor), status
         // 'Fechado' e data_fechamento (data em que o pedido foi de fato concluído). Novos
-        // Clientes vem da tabela 'clientes', usando a coluna id_usuario_cadastro — que precisa
-        // existir na tabela (ver migração SQL fornecida separadamente).
+        // Clientes também vem de 'orcamentos': conta clientes cujo orçamento criado pelo
+        // vendedor no período é o PRIMEIRO orçamento que esse cliente já teve no sistema
+        // (não depende de nenhuma coluna extra em 'clientes').
         async function carregarKpisDiariosVendedor(periodo = kpiPeriodoVendedor) {
             const idVendedor = AppState.usuarioLogado.id_usuario;
             const { inicioAtual, fimAtualExclusivo, inicioAnterior, fimAnteriorExclusivo, labelComparacao } = getIntervalosPeriodoKpi(periodo);
@@ -596,16 +597,31 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                 return data || [];
             };
 
-            // Conta clientes cadastrados pelo vendedor no período. Se a coluna id_usuario_cadastro
-            // ainda não existir em 'clientes', falha graciosamente e mostra 0 (não quebra o dashboard).
+            // "Novo cliente" = o vendedor criou um orçamento no período para um cliente que
+            // NUNCA teve nenhum orçamento antes do início desse período (em todo o sistema,
+            // não só com esse vendedor). Não depende de nenhuma coluna extra em 'clientes' —
+            // usa só o histórico da própria tabela 'orcamentos'.
             const buscarClientesCadastradosNoPeriodo = async (inicioStr, fimStr) => {
-                const { count, error } = await db.from('clientes')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('id_usuario_cadastro', idVendedor)
+                // 1. Clientes para quem o vendedor criou orçamento dentro do período (qualquer status).
+                const { data: orcsPeriodo, error: errPeriodo } = await db.from('orcamentos')
+                    .select('id_cliente')
+                    .eq('id_usuario', idVendedor)
                     .gte('data_criacao', `${inicioStr}T00:00:00`)
                     .lt('data_criacao', `${fimStr}T00:00:00`);
-                if (error) { console.warn('Não foi possível contar novos clientes (verifique se a coluna id_usuario_cadastro existe em "clientes"):', error.message); return 0; }
-                return count || 0;
+                if (errPeriodo) { console.error('Erro ao buscar orçamentos do período (KPI novos clientes):', errPeriodo); return 0; }
+                const candidatos = [...new Set((orcsPeriodo || []).map(o => o.id_cliente).filter(Boolean))];
+                if (candidatos.length === 0) return 0;
+
+                // 2. Desses, quais já tinham QUALQUER orçamento (de qualquer vendedor) antes do
+                // início do período? Esses não são "novos" — já existiam antes.
+                const { data: orcsAnteriores, error: errAnteriores } = await db.from('orcamentos')
+                    .select('id_cliente')
+                    .in('id_cliente', candidatos)
+                    .lt('data_criacao', `${inicioStr}T00:00:00`);
+                if (errAnteriores) { console.error('Erro ao checar histórico de clientes (KPI novos clientes):', errAnteriores); return 0; }
+                const clientesComHistorico = new Set((orcsAnteriores || []).map(o => o.id_cliente));
+
+                return candidatos.filter(id => !clientesComHistorico.has(id)).length;
             };
 
             const [vendasAtual, vendasAnterior, clientesAtual, clientesAnterior] = await Promise.all([
