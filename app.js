@@ -485,9 +485,84 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                 notificacoesBanco = []; 
             }
 
+            // KPIs diários do vendedor (Vendas Hoje, Ticket Médio, Novos Clientes, Produtos Vendidos)
+            // com comparação hoje x ontem — só se aplica a quem loga como Vendedor.
+            if (AppState.usuarioLogado.perfil === 'Vendedor') {
+                await carregarKpisDiariosVendedor();
+            }
+
             atualizarBadge();
             const notificacoes = buildNotifications();
             renderNotificationBadge(notificacoes.length);
+        }
+
+        // Regra de variação percentual combinada com o pedido: se ontem foi 0 e hoje > 0, a
+        // variação é +100%. Se os dois forem 0, não há variação (0%). Caso contrário, fórmula padrão.
+        function calcularVariacaoPercentual(hoje, ontem) {
+            if (ontem === 0) return hoje > 0 ? 100 : 0;
+            return ((hoje - ontem) / ontem) * 100;
+        }
+
+        // Busca as 4 métricas diárias (hoje e ontem) exclusivamente do vendedor logado.
+        // Vendas Hoje / Ticket Médio / Produtos Vendidos vêm da tabela 'orcamentos' (equivalente
+        // ao 'Order' da proposta original), filtrando por id_usuario (vendedor), status 'Fechado'
+        // e data_fechamento (data em que o pedido foi de fato concluído) dentro do dia.
+        // Novos Clientes vem da tabela 'clientes', usando a coluna id_usuario_cadastro — que
+        // precisa existir na tabela (ver migração SQL fornecida separadamente).
+        async function carregarKpisDiariosVendedor() {
+            const idVendedor = AppState.usuarioLogado.id_usuario;
+            const hojeStr = getHojeBrasilia();
+            const ontemStr = addDiasBrasilia(-1);
+            const amanhaStr = addDiasBrasilia(1);
+
+            const idsFechado = mapStatusUUID.filter(s => s.nome === STATUS.FECHADO).map(s => s.id_status);
+            const idsFechadoSafe = idsFechado.length ? idsFechado : ['00000000-0000-0000-0000-000000000000'];
+
+            const buscarVendasDoDia = async (inicioStr, fimStr) => {
+                const { data, error } = await db.from('orcamentos')
+                    .select('valor_orcado, modelo_colchao')
+                    .eq('id_usuario', idVendedor)
+                    .in('id_status', idsFechadoSafe)
+                    .gte('data_fechamento', `${inicioStr}T00:00:00`)
+                    .lt('data_fechamento', `${fimStr}T00:00:00`);
+                if (error) { console.error('Erro ao buscar vendas do dia (KPI vendedor):', error); return []; }
+                return data || [];
+            };
+
+            // Conta clientes cadastrados pelo vendedor no dia. Se a coluna id_usuario_cadastro
+            // ainda não existir em 'clientes', falha graciosamente e mostra 0 (não quebra o dashboard).
+            const buscarClientesCadastradosNoDia = async (inicioStr, fimStr) => {
+                const { count, error } = await db.from('clientes')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('id_usuario_cadastro', idVendedor)
+                    .gte('data_criacao', `${inicioStr}T00:00:00`)
+                    .lt('data_criacao', `${fimStr}T00:00:00`);
+                if (error) { console.warn('Não foi possível contar novos clientes (verifique se a coluna id_usuario_cadastro existe em "clientes"):', error.message); return 0; }
+                return count || 0;
+            };
+
+            const [vendasHoje, vendasOntem, clientesHoje, clientesOntem] = await Promise.all([
+                buscarVendasDoDia(hojeStr, amanhaStr),
+                buscarVendasDoDia(ontemStr, hojeStr),
+                buscarClientesCadastradosNoDia(hojeStr, amanhaStr),
+                buscarClientesCadastradosNoDia(ontemStr, hojeStr)
+            ]);
+
+            const somarValor = arr => arr.reduce((acc, o) => acc + parseFloat(o.valor_orcado || 0), 0);
+            const contarProdutos = arr => arr.reduce((acc, o) => acc + (o.modelo_colchao ? o.modelo_colchao.split(',').map(p => p.trim()).filter(Boolean).length : 0), 0);
+
+            const valorHoje = somarValor(vendasHoje);
+            const valorOntem = somarValor(vendasOntem);
+
+            AppState.kpisDiariosVendedor = {
+                vendas: { hoje: valorHoje, ontem: valorOntem },
+                ticket: {
+                    hoje: vendasHoje.length ? valorHoje / vendasHoje.length : 0,
+                    ontem: vendasOntem.length ? valorOntem / vendasOntem.length : 0
+                },
+                clientes: { hoje: clientesHoje, ontem: clientesOntem },
+                produtos: { hoje: contarProdutos(vendasHoje), ontem: contarProdutos(vendasOntem) }
+            };
         }
 
         async function atualizarTabelaPaginadaServer() {
@@ -2108,7 +2183,17 @@ function selectFilter(filter) {
     // 5. CARDS E GRÁFICOS
     const progressHtml = `<div class="gamified-progress-card"><div class="progress-icon" style="background:${gamified.iconBg}; box-shadow:${gamified.shadow};">${gamified.iconSvg}</div><div class="progress-info"><h3>Atingimento de Meta</h3><p class="progress-subtitle">R$ ${valorVendido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} / R$ ${metaAtual.toLocaleString('pt-BR')}</p></div><div class="progress-bar-wrap"><div class="progress-bar-outer"><div class="progress-bar-inner-gamified" style="width:${Math.min(100, percMetaExato)}%; background:${gamified.bg}; box-shadow:${gamified.shadow};"></div></div><span class="progress-percent" style="color:${gamified.motiveColor};">${percMetaExato > 100 ? '100+' : percMetaExato}%</span></div><div class="progress-motive-text" style="color:${gamified.motiveColor};">${gamified.motive}</div></div>`;
     
-    const kpiHtml = `<div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot blue"></span><span class="kpi-label">Oportunidades Geradas</span></div><div class="kpi-value">${total}</div></div><div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot orange"></span><span class="kpi-label">Em Tratativa</span></div><div class="kpi-value">${negociacao}</div></div><div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Taxa de Conversão</span></div><div class="kpi-value">${conversao}%</div></div><div class="kpi-card vendido-highlight"><div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Vendas Fechadas</span></div><div class="kpi-value">R$ ${valorVendido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div></div>`;
+    let kpiHtml;
+    if (!isGerente && currentUser.perfil === 'Vendedor') {
+        const k = AppState.kpisDiariosVendedor || { vendas: { hoje: 0, ontem: 0 }, ticket: { hoje: 0, ontem: 0 }, clientes: { hoje: 0, ontem: 0 }, produtos: { hoje: 0, ontem: 0 } };
+        const badge = variacao => {
+            const positivo = variacao >= 0;
+            return `<span class="kpi-variacao ${positivo ? 'kpi-var-up' : 'kpi-var-down'}">${positivo ? '▲' : '▼'} ${Math.abs(Math.round(variacao))}%</span>`;
+        };
+        kpiHtml = `<div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Vendas Hoje</span></div><div class="kpi-value">R$ ${k.vendas.hoje.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>${badge(calcularVariacaoPercentual(k.vendas.hoje, k.vendas.ontem))}</div><div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot blue"></span><span class="kpi-label">Ticket Médio</span></div><div class="kpi-value">R$ ${k.ticket.hoje.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>${badge(calcularVariacaoPercentual(k.ticket.hoje, k.ticket.ontem))}</div><div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot orange"></span><span class="kpi-label">Novos Clientes</span></div><div class="kpi-value">${k.clientes.hoje}</div>${badge(calcularVariacaoPercentual(k.clientes.hoje, k.clientes.ontem))}</div><div class="kpi-card vendido-highlight"><div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Produtos Vendidos</span></div><div class="kpi-value">${k.produtos.hoje}</div>${badge(calcularVariacaoPercentual(k.produtos.hoje, k.produtos.ontem))}</div>`;
+    } else {
+        kpiHtml = `<div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot blue"></span><span class="kpi-label">Oportunidades Geradas</span></div><div class="kpi-value">${total}</div></div><div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot orange"></span><span class="kpi-label">Em Tratativa</span></div><div class="kpi-value">${negociacao}</div></div><div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Taxa de Conversão</span></div><div class="kpi-value">${conversao}%</div></div><div class="kpi-card vendido-highlight"><div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Vendas Fechadas</span></div><div class="kpi-value">R$ ${valorVendido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div></div>`;
+    }
     
     const donutHtml = `<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Aproveitamento</h3><div class="donut-wrapper"><canvas id="donutCanvas" width="200" height="200"></canvas></div><div class="donut-legend"><div style="display:flex; align-items:center; gap:8px;"><span class="legend-color orcados"></span> Orçados <strong>${total}</strong></div><div style="display:flex; align-items:center; gap:8px;"><span class="legend-color fechados"></span> Fechados <strong>${fechados}</strong></div></div></div>`;
 
@@ -4027,7 +4112,7 @@ function selectFilter(filter) {
                     const emailOrc = document.getElementById('modEmail') ? document.getElementById('modEmail').value.trim() : '';
                     const pkIns = await detectClientePK();
                     const { data: newCliente, error: errClient } = await db.from('clientes')
-                    .insert([{ nome_cliente: nome, whatsapp: whats, cpf: cpf || null, email: emailOrc || null, id_cliente_codigo: nextCodigo }])                        .select(pkIns)
+                    .insert([{ nome_cliente: nome, whatsapp: whats, cpf: cpf || null, email: emailOrc || null, id_cliente_codigo: nextCodigo, id_usuario_cadastro: currentUser.id_usuario }])                        .select(pkIns)
                         .single();
                     if (errClient) throw new Error('Erro ao criar cliente: ' + errClient.message);
                     idCliente = newCliente[pkIns];
