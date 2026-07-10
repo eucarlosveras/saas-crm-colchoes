@@ -817,6 +817,20 @@
         }
         .kpi-var-up { color: #059669; }
         .kpi-var-down { color: #dc2626; }
+        .kpi-comparacao-label { font-size: var(--font-2xs); font-weight: 500; color: var(--text-muted); margin-top: 8px; }
+
+        .kpi-periodo-toggle {
+            display: inline-flex; gap: 3px; background: var(--surface-2); padding: 3px;
+            border-radius: var(--radius-sm); margin: 0 0 14px; width: fit-content;
+        }
+        .kpi-periodo-btn {
+            border: none; background: transparent; padding: 6px 16px; border-radius: calc(var(--radius-sm) - 2px);
+            font-size: var(--font-xs); font-weight: 600; color: var(--text-secondary); cursor: pointer;
+            transition: all 0.15s ease; font-family: 'Inter', sans-serif;
+        }
+        .kpi-periodo-btn:hover:not(.active) { color: var(--text-primary); }
+        .kpi-periodo-btn.active { background: var(--card-bg); color: var(--brand-blue-dark); box-shadow: var(--shadow-xs); }
+        body.dark .kpi-periodo-btn.active { color: var(--brand-blue); }
 
         /* ────────────────────────────────────────────────────────
            PROGRESS / GAMIFICATION CARD
