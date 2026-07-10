@@ -819,9 +819,14 @@
         .kpi-var-down { color: #dc2626; }
         .kpi-comparacao-label { font-size: var(--font-2xs); font-weight: 500; color: var(--text-muted); margin-top: 8px; }
 
+        .kpi-section-header {
+            display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+            margin: 4px 0 12px;
+        }
+        .kpi-section-title { margin: 0; font-size: var(--font-sm); font-weight: 700; color: var(--text-secondary); }
         .kpi-periodo-toggle {
             display: inline-flex; gap: 3px; background: var(--surface-2); padding: 3px;
-            border-radius: var(--radius-sm); margin: 0 0 14px; width: fit-content;
+            border-radius: var(--radius-sm); width: fit-content;
         }
         .kpi-periodo-btn {
             border: none; background: transparent; padding: 6px 16px; border-radius: calc(var(--radius-sm) - 2px);
