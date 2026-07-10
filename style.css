@@ -811,6 +811,12 @@
             font-size: 1.875rem; font-weight: 800;
             line-height: 1; color: var(--text-primary); letter-spacing: -0.04em;
         }
+        .kpi-variacao {
+            display: inline-flex; align-items: center; gap: 3px; margin-top: 8px;
+            font-size: var(--font-2xs); font-weight: 700; letter-spacing: 0.02em;
+        }
+        .kpi-var-up { color: #059669; }
+        .kpi-var-down { color: #dc2626; }
 
         /* ────────────────────────────────────────────────────────
            PROGRESS / GAMIFICATION CARD
