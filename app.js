@@ -110,6 +110,7 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         let currentFilter = 'todos';
         let kanbanAtivo = false;
         let searchTerm = '';
+        let kpiPeriodoVendedor = 'hoje'; // 'hoje' | 'semana' | 'mes' — período selecionado nos cards de KPI do vendedor
         let searchProtocolo = '';
         
         let clienteSelecionadoParaAcao = null;
@@ -496,42 +497,108 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
             renderNotificationBadge(notificacoes.length);
         }
 
-        // Regra de variação percentual combinada com o pedido: se ontem foi 0 e hoje > 0, a
-        // variação é +100%. Se os dois forem 0, não há variação (0%). Caso contrário, fórmula padrão.
-        function calcularVariacaoPercentual(hoje, ontem) {
-            if (ontem === 0) return hoje > 0 ? 100 : 0;
-            return ((hoje - ontem) / ontem) * 100;
+        // Regra de variação percentual combinada com o pedido: se o período anterior foi 0 e o
+        // atual > 0, a variação é +100%. Se os dois forem 0, não há variação (0%). Caso
+        // contrário, fórmula padrão.
+        function calcularVariacaoPercentual(atual, anterior) {
+            if (anterior === 0) return atual > 0 ? 100 : 0;
+            return ((atual - anterior) / anterior) * 100;
         }
 
-        // Busca as 4 métricas diárias (hoje e ontem) exclusivamente do vendedor logado.
-        // Vendas Hoje / Ticket Médio / Produtos Vendidos vêm da tabela 'orcamentos' (equivalente
-        // ao 'Order' da proposta original), filtrando por id_usuario (vendedor), status 'Fechado'
-        // e data_fechamento (data em que o pedido foi de fato concluído) dentro do dia.
-        // Novos Clientes vem da tabela 'clientes', usando a coluna id_usuario_cadastro — que
-        // precisa existir na tabela (ver migração SQL fornecida separadamente).
-        async function carregarKpisDiariosVendedor() {
-            const idVendedor = AppState.usuarioLogado.id_usuario;
+        // Soma "dias" (podendo ser negativo) a uma data (YYYY-MM-DD) qualquer, não só "hoje".
+        // Faz a aritmética inteiramente em UTC, usando a data como âncora — mesma lógica seica
+        // usada em addDiasBrasilia, só que genérica para qualquer data de partida.
+        function addDiasADataStr(dataStr, dias) {
+            const d = new Date(dataStr + 'T00:00:00Z');
+            d.setUTCDate(d.getUTCDate() + dias);
+            return d.toISOString().split('T')[0];
+        }
+
+        // Data (YYYY-MM-DD) da segunda-feira da semana atual em Brasília, com deslocamento em
+        // semanas (ex: -1 = segunda da semana passada).
+        function getInicioSemanaBrasilia(deslocamentoSemanas = 0) {
+            const hoje = new Date(getHojeBrasilia() + 'T00:00:00Z');
+            const diaSemana = hoje.getUTCDay(); // 0=domingo...6=sábado
+            const diasDesdeSegunda = (diaSemana + 6) % 7; // segunda=0
+            return addDiasBrasilia(-diasDesdeSegunda + deslocamentoSemanas * 7);
+        }
+
+        // Primeiro dia (YYYY-MM-DD) do mês de uma data qualquer.
+        function getPrimeiroDiaMes(dataStr) {
+            const d = new Date(dataStr + 'T00:00:00Z');
+            return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)).toISOString().split('T')[0];
+        }
+
+        // Desloca uma data em N meses, ajustando o dia se o mês de destino for mais curto
+        // (ex: 31/01 - 1 mês = 28/02, não "03/03"). JS normaliza ano automaticamente.
+        function deslocarDataEmMeses(dataStr, deslocamentoMeses) {
+            const d = new Date(dataStr + 'T00:00:00Z');
+            const ano = d.getUTCFullYear(), mes = d.getUTCMonth(), dia = d.getUTCDate();
+            const novoMesIndex = mes + deslocamentoMeses;
+            const ultimoDiaDoMesDestino = new Date(Date.UTC(ano, novoMesIndex + 1, 0)).getUTCDate();
+            return new Date(Date.UTC(ano, novoMesIndex, Math.min(dia, ultimoDiaDoMesDestino))).toISOString().split('T')[0];
+        }
+
+        // Monta o intervalo [inícioAtual, fimAtualExclusivo, inícioAnterior, fimAnteriorExclusivo]
+        // e o texto de comparação, de acordo com o período escolhido (hoje/semana/mes).
+        function getIntervalosPeriodoKpi(periodo) {
             const hojeStr = getHojeBrasilia();
-            const ontemStr = addDiasBrasilia(-1);
             const amanhaStr = addDiasBrasilia(1);
+
+            if (periodo === 'semana') {
+                const inicioAtual = getInicioSemanaBrasilia(0);
+                return {
+                    inicioAtual, fimAtualExclusivo: amanhaStr,
+                    inicioAnterior: addDiasADataStr(inicioAtual, -7),
+                    fimAnteriorExclusivo: addDiasADataStr(amanhaStr, -7),
+                    labelComparacao: 'vs. semana passada'
+                };
+            }
+            if (periodo === 'mes') {
+                const inicioAtual = getPrimeiroDiaMes(hojeStr);
+                const diaEquivalenteMesPassado = deslocarDataEmMeses(hojeStr, -1);
+                return {
+                    inicioAtual, fimAtualExclusivo: amanhaStr,
+                    inicioAnterior: getPrimeiroDiaMes(diaEquivalenteMesPassado),
+                    fimAnteriorExclusivo: addDiasADataStr(diaEquivalenteMesPassado, 1),
+                    labelComparacao: 'vs. mês passado'
+                };
+            }
+            // 'hoje' (padrão)
+            return {
+                inicioAtual: hojeStr, fimAtualExclusivo: amanhaStr,
+                inicioAnterior: addDiasBrasilia(-1), fimAnteriorExclusivo: hojeStr,
+                labelComparacao: 'vs. ontem'
+            };
+        }
+
+        // Busca as 4 métricas do vendedor logado no período escolhido (hoje/semana/mês), com
+        // comparação ao período anterior equivalente. Vendas Hoje / Ticket Médio / Produtos
+        // Vendidos vêm da tabela 'orcamentos', filtrando por id_usuario (vendedor), status
+        // 'Fechado' e data_fechamento (data em que o pedido foi de fato concluído). Novos
+        // Clientes vem da tabela 'clientes', usando a coluna id_usuario_cadastro — que precisa
+        // existir na tabela (ver migração SQL fornecida separadamente).
+        async function carregarKpisDiariosVendedor(periodo = kpiPeriodoVendedor) {
+            const idVendedor = AppState.usuarioLogado.id_usuario;
+            const { inicioAtual, fimAtualExclusivo, inicioAnterior, fimAnteriorExclusivo, labelComparacao } = getIntervalosPeriodoKpi(periodo);
 
             const idsFechado = mapStatusUUID.filter(s => s.nome === STATUS.FECHADO).map(s => s.id_status);
             const idsFechadoSafe = idsFechado.length ? idsFechado : ['00000000-0000-0000-0000-000000000000'];
 
-            const buscarVendasDoDia = async (inicioStr, fimStr) => {
+            const buscarVendasDoPeriodo = async (inicioStr, fimStr) => {
                 const { data, error } = await db.from('orcamentos')
                     .select('valor_orcado, modelo_colchao')
                     .eq('id_usuario', idVendedor)
                     .in('id_status', idsFechadoSafe)
                     .gte('data_fechamento', `${inicioStr}T00:00:00`)
                     .lt('data_fechamento', `${fimStr}T00:00:00`);
-                if (error) { console.error('Erro ao buscar vendas do dia (KPI vendedor):', error); return []; }
+                if (error) { console.error('Erro ao buscar vendas do período (KPI vendedor):', error); return []; }
                 return data || [];
             };
 
-            // Conta clientes cadastrados pelo vendedor no dia. Se a coluna id_usuario_cadastro
+            // Conta clientes cadastrados pelo vendedor no período. Se a coluna id_usuario_cadastro
             // ainda não existir em 'clientes', falha graciosamente e mostra 0 (não quebra o dashboard).
-            const buscarClientesCadastradosNoDia = async (inicioStr, fimStr) => {
+            const buscarClientesCadastradosNoPeriodo = async (inicioStr, fimStr) => {
                 const { count, error } = await db.from('clientes')
                     .select('*', { count: 'exact', head: true })
                     .eq('id_usuario_cadastro', idVendedor)
@@ -541,28 +608,38 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                 return count || 0;
             };
 
-            const [vendasHoje, vendasOntem, clientesHoje, clientesOntem] = await Promise.all([
-                buscarVendasDoDia(hojeStr, amanhaStr),
-                buscarVendasDoDia(ontemStr, hojeStr),
-                buscarClientesCadastradosNoDia(hojeStr, amanhaStr),
-                buscarClientesCadastradosNoDia(ontemStr, hojeStr)
+            const [vendasAtual, vendasAnterior, clientesAtual, clientesAnterior] = await Promise.all([
+                buscarVendasDoPeriodo(inicioAtual, fimAtualExclusivo),
+                buscarVendasDoPeriodo(inicioAnterior, fimAnteriorExclusivo),
+                buscarClientesCadastradosNoPeriodo(inicioAtual, fimAtualExclusivo),
+                buscarClientesCadastradosNoPeriodo(inicioAnterior, fimAnteriorExclusivo)
             ]);
 
             const somarValor = arr => arr.reduce((acc, o) => acc + parseFloat(o.valor_orcado || 0), 0);
             const contarProdutos = arr => arr.reduce((acc, o) => acc + (o.modelo_colchao ? o.modelo_colchao.split(',').map(p => p.trim()).filter(Boolean).length : 0), 0);
 
-            const valorHoje = somarValor(vendasHoje);
-            const valorOntem = somarValor(vendasOntem);
+            const valorAtual = somarValor(vendasAtual);
+            const valorAnterior = somarValor(vendasAnterior);
 
             AppState.kpisDiariosVendedor = {
-                vendas: { hoje: valorHoje, ontem: valorOntem },
+                labelComparacao,
+                vendas: { hoje: valorAtual, ontem: valorAnterior },
                 ticket: {
-                    hoje: vendasHoje.length ? valorHoje / vendasHoje.length : 0,
-                    ontem: vendasOntem.length ? valorOntem / vendasOntem.length : 0
+                    hoje: vendasAtual.length ? valorAtual / vendasAtual.length : 0,
+                    ontem: vendasAnterior.length ? valorAnterior / vendasAnterior.length : 0
                 },
-                clientes: { hoje: clientesHoje, ontem: clientesOntem },
-                produtos: { hoje: contarProdutos(vendasHoje), ontem: contarProdutos(vendasOntem) }
+                clientes: { hoje: clientesAtual, ontem: clientesAnterior },
+                produtos: { hoje: contarProdutos(vendasAtual), ontem: contarProdutos(vendasAnterior) }
             };
+        }
+
+        // Troca o período (hoje/semana/mes) dos cards de KPI do vendedor e recarrega só eles,
+        // sem precisar re-executar toda a carregarKpisEDashboard nem redesenhar a página inteira.
+        async function selecionarPeriodoKpiVendedor(periodo) {
+            if (periodo === kpiPeriodoVendedor) return;
+            kpiPeriodoVendedor = periodo;
+            await carregarKpisDiariosVendedor(periodo);
+            if (currentView === 'inicio') renderInicio();
         }
 
         async function atualizarTabelaPaginadaServer() {
@@ -2184,12 +2261,17 @@ function selectFilter(filter) {
     const progressHtml = `<div class="gamified-progress-card"><div class="progress-icon" style="background:${gamified.iconBg}; box-shadow:${gamified.shadow};">${gamified.iconSvg}</div><div class="progress-info"><h3>Atingimento de Meta</h3><p class="progress-subtitle">R$ ${valorVendido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} / R$ ${metaAtual.toLocaleString('pt-BR')}</p></div><div class="progress-bar-wrap"><div class="progress-bar-outer"><div class="progress-bar-inner-gamified" style="width:${Math.min(100, percMetaExato)}%; background:${gamified.bg}; box-shadow:${gamified.shadow};"></div></div><span class="progress-percent" style="color:${gamified.motiveColor};">${percMetaExato > 100 ? '100+' : percMetaExato}%</span></div><div class="progress-motive-text" style="color:${gamified.motiveColor};">${gamified.motive}</div></div>`;
     
     let kpiHtml;
+    let kpiToggleHtml = '';
     if (!isGerente && currentUser.perfil === 'Vendedor') {
-        const k = AppState.kpisDiariosVendedor || { vendas: { hoje: 0, ontem: 0 }, ticket: { hoje: 0, ontem: 0 }, clientes: { hoje: 0, ontem: 0 }, produtos: { hoje: 0, ontem: 0 } };
+        const k = AppState.kpisDiariosVendedor || { labelComparacao: 'vs. ontem', vendas: { hoje: 0, ontem: 0 }, ticket: { hoje: 0, ontem: 0 }, clientes: { hoje: 0, ontem: 0 }, produtos: { hoje: 0, ontem: 0 } };
         const badge = variacao => {
             const positivo = variacao >= 0;
-            return `<span class="kpi-variacao ${positivo ? 'kpi-var-up' : 'kpi-var-down'}">${positivo ? '▲' : '▼'} ${Math.abs(Math.round(variacao))}%</span>`;
+            return `<span class="kpi-variacao ${positivo ? 'kpi-var-up' : 'kpi-var-down'}">${positivo ? '▲' : '▼'} ${Math.abs(Math.round(variacao))}%</span> <span class="kpi-comparacao-label">${k.labelComparacao}</span>`;
         };
+        const periodos = [['hoje', 'Hoje'], ['semana', 'Semana'], ['mes', 'Mês']];
+        kpiToggleHtml = `<div class="kpi-periodo-toggle">${periodos.map(([valor, rotulo]) =>
+            `<button type="button" class="kpi-periodo-btn ${kpiPeriodoVendedor === valor ? 'active' : ''}" onclick="selecionarPeriodoKpiVendedor('${valor}')">${rotulo}</button>`
+        ).join('')}</div>`;
         kpiHtml = `<div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Vendas Hoje</span></div><div class="kpi-value">R$ ${k.vendas.hoje.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>${badge(calcularVariacaoPercentual(k.vendas.hoje, k.vendas.ontem))}</div><div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot blue"></span><span class="kpi-label">Ticket Médio</span></div><div class="kpi-value">R$ ${k.ticket.hoje.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>${badge(calcularVariacaoPercentual(k.ticket.hoje, k.ticket.ontem))}</div><div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot orange"></span><span class="kpi-label">Novos Clientes</span></div><div class="kpi-value">${k.clientes.hoje}</div>${badge(calcularVariacaoPercentual(k.clientes.hoje, k.clientes.ontem))}</div><div class="kpi-card vendido-highlight"><div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Produtos Vendidos</span></div><div class="kpi-value">${k.produtos.hoje}</div>${badge(calcularVariacaoPercentual(k.produtos.hoje, k.produtos.ontem))}</div>`;
     } else {
         kpiHtml = `<div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot blue"></span><span class="kpi-label">Oportunidades Geradas</span></div><div class="kpi-value">${total}</div></div><div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot orange"></span><span class="kpi-label">Em Tratativa</span></div><div class="kpi-value">${negociacao}</div></div><div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Taxa de Conversão</span></div><div class="kpi-value">${conversao}%</div></div><div class="kpi-card vendido-highlight"><div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Vendas Fechadas</span></div><div class="kpi-value">R$ ${valorVendido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div></div>`;
@@ -2328,7 +2410,7 @@ function selectFilter(filter) {
                 chartsRowHtml = `<section class="charts-row-triplo">${donutHtml}${barrasOuVazio}<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg> Mais Vendidos</h3><ul class="top5-list">${top5Html}</ul></div></section>`;
             }
 
-            main.innerHTML = `${headerHtml}${progressHtml}<section class="kpi-row">${kpiHtml}</section>${chartsRowHtml}${tabelaHtml}`;
+            main.innerHTML = `${headerHtml}${progressHtml}${kpiToggleHtml}<section class="kpi-row">${kpiHtml}</section>${chartsRowHtml}${tabelaHtml}`;
 
             requestAnimationFrame(() => { tentarRenderizarGraficos(total, fechados); });
            
