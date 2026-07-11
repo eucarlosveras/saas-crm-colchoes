@@ -1714,29 +1714,6 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                     .eq('id_orcamento', orc.id_orcamento);
                 if (errUpdate) throw errUpdate;
 
-                // 2. INSERT auditoria na timeline (formato rico com timestamp)
-                const dataHoraAtual = new Date().toLocaleString('pt-BR', {
-                    day: '2-digit', month: '2-digit', year: 'numeric',
-                    hour: '2-digit', minute: '2-digit'
-                });
-                const linhaMotivo = motivo ? `📝 Motivo: ${motivo}` : '';
-                const textoAuditoria = [
-                    `🔄 Proposta Atualizada na Mesa`,
-                    `💰 Valor: de R$ ${valorAntigoFmt} para R$ ${valorNovoFmt}`,
-                    `🛏️ Itens: ${novosProdutos}`,
-                    linhaMotivo,
-                    ``,
-                    `🕐 Ajuste realizado em ${dataHoraAtual}`
-                ].filter(l => l !== undefined && !(l === '' && !linhaMotivo)).join('\n').replace(/\n\n+$/, '');
-
-                const { error: errLog } = await db.from('comentarios').insert([{
-                    id_orcamento: orc.id_orcamento,
-                    texto: textoAuditoria,
-                    tipo: 'Sistema',
-                    autor: currentUser.nome
-                }]);
-                if (errLog) console.warn('Auditoria falhou (proposta já salva):', errLog);
-
                 // 3. Atualiza estado local
                 AppState.contextoVenda.clienteAtual.modelo_colchao = novosProdutos;
                 AppState.contextoVenda.clienteAtual.valor_orcado   = valorTotal;
@@ -2698,14 +2675,6 @@ function selectFilter(filter) {
                 // Atualiza estado local
                 const idx = kpisMensais.findIndex(o => o.id_orcamento === orcamentoId);
                 if (idx !== -1) kpisMensais[idx].ligacao_confirmada = true;
-
-                // Histórico
-                await db.from('comentarios').insert([{
-                    id_orcamento: orcamentoId,
-                    texto: '✅ Contato confirmado como realizado via agenda.',
-                    tipo: 'Sistema',
-                    autor: currentUser.nome
-                }]);
 
                 // Animação de saída e remoção da linha
                 const row = btnElement.closest('tr');
@@ -4269,13 +4238,6 @@ function selectFilter(filter) {
                     .single();
                 if (errOrc) throw errOrc;
                 
-                await db.from('comentarios').insert([{
-                    id_orcamento: newOrc.id_orcamento,
-                    texto: `Orçamento criado via sistema. Produtos: ${produtosList.map(p => p.nome).join(', ')}. Valor total: R$ ${valorTotal.toFixed(2)}. Próximo contato agendado para ${dataContato} às ${horaContato}.`,
-                    tipo: 'Sistema',
-                    autor: currentUser.nome
-                }]);
-                
                 showToast(`Orçamento ${newOrc.protocolo} salvo com sucesso!`, 'success');
                 navigateTo(previousView);
             } catch (error) {
@@ -4414,15 +4376,6 @@ function selectFilter(filter) {
                 if (modoFechamentoSelecionado === 'entrega') {
                     const dataEntregaObj = new Date(dataEntrega + 'T00:00:00');
                     const dataEntregaFormatada = dataEntregaObj.toLocaleDateString('pt-BR');
-                    const valorFechadoFmt = parseFloat(AppState.contextoVenda.clienteAtual?.valor_orcado || 0)
-                        .toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-                    await db.from('comentarios').insert([{
-                        id_orcamento: id,
-                        texto: `🏆 Venda Fechada! (R$ ${valorFechadoFmt})\n📦 Modalidade: Entrega\n📅 Previsão de Entrega: ${dataEntregaFormatada}`,
-                        tipo: 'Sistema',
-                        autor: currentUser.nome
-                    }]);
 
                     // Criar agendamento automático de confirmação de recebimento
                     await db.from('orcamentos').update({
@@ -4431,6 +4384,7 @@ function selectFilter(filter) {
                         observacao_agendamento: `Confirmação de recebimento - ${dataEntregaFormatada}`
                     }).eq('id_orcamento', id);
 
+                    // Única mensagem automática mantida no Histórico de Contatos: o agendamento da entrega.
                     await db.from('comentarios').insert([{
                         id_orcamento: id,
                         texto: `Agendamento automático criado: Confirmação de recebimento para ${dataEntregaFormatada} às 09:00.`,
@@ -4444,16 +4398,6 @@ function selectFilter(filter) {
 
                 } else {
                     // Retirada na loja
-                    const valorFechadoFmt = parseFloat(AppState.contextoVenda.clienteAtual?.valor_orcado || 0)
-                        .toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-                    await db.from('comentarios').insert([{
-                        id_orcamento: id,
-                        texto: `🏆 Venda Fechada! (R$ ${valorFechadoFmt})\n📦 Modalidade: Retirada na Loja`,
-                        tipo: 'Sistema',
-                        autor: currentUser.nome
-                    }]);
-
                     closeModal('modalConfirmaFechamento');
 
                     // Exibir parabéns antes de redirecionar
@@ -4487,13 +4431,6 @@ function selectFilter(filter) {
                 const obsAgendamento = obs ? `${tipo}\n${obs}` : tipo;
                 const { error: err1 } = await db.from('orcamentos').update({ data_contato: data, hora_contato: hora, observacao_agendamento: obsAgendamento }).eq('id_orcamento', AppState.contextoVenda.clienteAtual.id_orcamento);
                 if (err1) throw new Error(err1.message);
-                
-                const dataFormatada = new Date(data + 'T00:00:00').toLocaleDateString('pt-BR');
-                let texto = `Retorno agendado para ${dataFormatada}${hora ? ' às ' + hora : ''} • ${tipo}`;
-                if (obs) texto += `\nLembrete: ${obs}`;
-                
-                const { error: err2 } = await db.from('comentarios').insert([{ id_orcamento: AppState.contextoVenda.clienteAtual.id_orcamento, texto: texto, tipo: 'Sistema', autor: currentUser.nome }]);
-                if (err2) throw new Error(err2.message);
                 
                 showToast('Agendamento confirmado!', 'success'); await abrirDetalhesCliente(AppState.contextoVenda.clienteAtual.id_orcamento);
             } catch (e) { showToast('Erro ao agendar: ' + e.message, 'error'); } 
