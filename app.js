@@ -505,6 +505,31 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
             return ((atual - anterior) / anterior) * 100;
         }
 
+        // Ícones (estilo Lucide/Feather, 18x18, mesmo padrão visual usado no resto do sistema)
+        // usados nos cards de KPI do vendedor, um por métrica.
+        const KPI_ICONES = {
+            vendas: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>',
+            ticket: '<path d="M21 12V7H5a2 2 0 010-4h14v4"/><path d="M3 5v14a2 2 0 002 2h16v-5"/><path d="M18 12a2 2 0 000 4h4v-4z"/>',
+            clientes: '<path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>',
+            produtos: '<path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" y1="22" x2="12" y2="12"/>'
+        };
+
+        // Monta um card de KPI "rico": ícone com badge colorido, rótulo, valor e (opcionalmente)
+        // a variação percentual em relação ao período anterior.
+        function buildKpiCard({ icone, cor, label, valor, variacao, comparacaoLabel, destaque = false }) {
+            const temVariacao = variacao !== undefined && variacao !== null;
+            const positivo = temVariacao && variacao >= 0;
+            const rodape = temVariacao
+                ? `<div class="kpi-footer"><span class="kpi-variacao ${positivo ? 'kpi-var-up' : 'kpi-var-down'}">${positivo ? '▲' : '▼'} ${Math.abs(Math.round(variacao))}%</span>${comparacaoLabel ? `<span class="kpi-comparacao-label">${comparacaoLabel}</span>` : ''}</div>`
+                : '';
+            return `<div class="kpi-card${destaque ? ' vendido-highlight' : ''}">
+                <div class="kpi-icon-badge kpi-badge-${cor}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icone}</svg></div>
+                <div class="kpi-label-row"><span class="kpi-dot ${cor}"></span><span class="kpi-label">${label}</span></div>
+                <div class="kpi-value">${valor}</div>
+                ${rodape}
+            </div>`;
+        }
+
         // Soma "dias" (podendo ser negativo) a uma data (YYYY-MM-DD) qualquer, não só "hoje".
         // Faz a aritmética inteiramente em UTC, usando a data como âncora — mesma lógica seica
         // usada em addDiasBrasilia, só que genérica para qualquer data de partida.
@@ -2257,10 +2282,6 @@ function selectFilter(filter) {
     let kpiToggleHtml = '';
     if (!isGerente && currentUser.perfil === 'Vendedor') {
         const k = AppState.kpisDiariosVendedor || { labelComparacao: 'vs. ontem', vendas: { hoje: 0, ontem: 0 }, ticket: { hoje: 0, ontem: 0 }, clientes: { hoje: 0, ontem: 0 }, produtos: { hoje: 0, ontem: 0 } };
-        const badge = variacao => {
-            const positivo = variacao >= 0;
-            return `<span class="kpi-variacao ${positivo ? 'kpi-var-up' : 'kpi-var-down'}">${positivo ? '▲' : '▼'} ${Math.abs(Math.round(variacao))}%</span> <span class="kpi-comparacao-label">${k.labelComparacao}</span>`;
-        };
         // Sufixo do nome do card muda junto com o período selecionado (Vendas Hoje / Vendas Semana / Vendas Mês...)
         const sufixoPeriodo = { hoje: 'Hoje', semana: 'Semana', mes: 'Mês' }[kpiPeriodoVendedor];
         const fmtMoeda = n => n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -2271,7 +2292,12 @@ function selectFilter(filter) {
                 `<button type="button" class="kpi-periodo-btn ${kpiPeriodoVendedor === valor ? 'active' : ''}" onclick="selecionarPeriodoKpiVendedor('${valor}')">${rotulo}</button>`
             ).join('')}</div>
         </div>`;
-        kpiHtml = `<div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Vendas ${sufixoPeriodo}</span></div><div class="kpi-value">R$ ${fmtMoeda(k.vendas.hoje)}</div>${badge(calcularVariacaoPercentual(k.vendas.hoje, k.vendas.ontem))}</div><div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot blue"></span><span class="kpi-label">Ticket Médio ${sufixoPeriodo}</span></div><div class="kpi-value">R$ ${fmtMoeda(k.ticket.hoje)}</div>${badge(calcularVariacaoPercentual(k.ticket.hoje, k.ticket.ontem))}</div><div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot orange"></span><span class="kpi-label">Novos Clientes ${sufixoPeriodo}</span></div><div class="kpi-value">${k.clientes.hoje}</div>${badge(calcularVariacaoPercentual(k.clientes.hoje, k.clientes.ontem))}</div><div class="kpi-card vendido-highlight"><div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Produtos Vendidos ${sufixoPeriodo}</span></div><div class="kpi-value">${k.produtos.hoje}</div>${badge(calcularVariacaoPercentual(k.produtos.hoje, k.produtos.ontem))}</div>`;
+        kpiHtml = [
+            buildKpiCard({ icone: KPI_ICONES.vendas, cor: 'green', label: `Vendas ${sufixoPeriodo}`, valor: `R$ ${fmtMoeda(k.vendas.hoje)}`, variacao: calcularVariacaoPercentual(k.vendas.hoje, k.vendas.ontem), comparacaoLabel: k.labelComparacao }),
+            buildKpiCard({ icone: KPI_ICONES.ticket, cor: 'blue', label: `Ticket Médio ${sufixoPeriodo}`, valor: `R$ ${fmtMoeda(k.ticket.hoje)}`, variacao: calcularVariacaoPercentual(k.ticket.hoje, k.ticket.ontem), comparacaoLabel: k.labelComparacao }),
+            buildKpiCard({ icone: KPI_ICONES.clientes, cor: 'orange', label: `Novos Clientes ${sufixoPeriodo}`, valor: k.clientes.hoje, variacao: calcularVariacaoPercentual(k.clientes.hoje, k.clientes.ontem), comparacaoLabel: k.labelComparacao }),
+            buildKpiCard({ icone: KPI_ICONES.produtos, cor: 'green', label: `Produtos Vendidos ${sufixoPeriodo}`, valor: k.produtos.hoje, variacao: calcularVariacaoPercentual(k.produtos.hoje, k.produtos.ontem), comparacaoLabel: k.labelComparacao, destaque: true })
+        ].join('');
     } else {
         kpiHtml = `<div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot blue"></span><span class="kpi-label">Oportunidades Geradas</span></div><div class="kpi-value">${total}</div></div><div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot orange"></span><span class="kpi-label">Em Tratativa</span></div><div class="kpi-value">${negociacao}</div></div><div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Taxa de Conversão</span></div><div class="kpi-value">${conversao}%</div></div><div class="kpi-card vendido-highlight"><div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Vendas Fechadas</span></div><div class="kpi-value">R$ ${valorVendido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div></div>`;
     }
