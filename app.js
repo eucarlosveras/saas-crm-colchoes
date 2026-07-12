@@ -2403,18 +2403,43 @@ function selectFilter(filter) {
             </div>`;
 
             let chartsRowHtml = '';
+            let secaoInferiorHtml = tabelaHtml;
             if (isGerente) {
                 chartsRowHtml = `<section class="charts-row">${donutHtml}${rankingHtml}<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg> Mais Vendidos</h3><ul class="top5-list">${top5Html}</ul></div></section>`;
             } else {
-                const barrasOuVazio = barChartHtml || `<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg> Evolução Mensal</h3><div style="display:flex; align-items:center; justify-content:center; height:200px; color:var(--text-muted);">Dados insuficientes para o gráfico.</div></div>`;
-                chartsRowHtml = `<section class="charts-row-triplo">${donutHtml}${barrasOuVazio}<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg> Mais Vendidos</h3><ul class="top5-list">${top5Html}</ul></div></section>`;
+                // Vendedor: só o gráfico "Aproveitamento" (Evolução Mensal e Mais Vendidos saíram do layout).
+                chartsRowHtml = `<section class="charts-row-unico">${donutHtml}</section>`;
+                // No lugar do card "Carteira de Negociações", a página "Meu Radar" embutida (sem os KPIs dela).
+                secaoInferiorHtml = `
+                <div class="table-card">
+                  <div class="table-card-header">
+                    <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 2v10l6 3"/></svg> Meu Radar</h3>
+                    <div class="filter-wrapper">
+                        <select class="vendedor-select" id="sellerFilter" style="border-radius:20px; padding:8px 16px;">
+                            <option value="Todos">Todos os vendedores</option>
+                        </select>
+                    </div>
+                  </div>
+                  <div style="padding: 20px;">
+                    <div id="signalContainer" class="signal-list"></div>
+                    <div class="empty-state" id="emptyState" style="display: none; text-align: center; padding: 64px 24px; color: var(--text-muted);">
+                        <svg viewBox="0 0 24 24" width="48" height="48" stroke="var(--brand-blue)" fill="none" stroke-width="2" style="opacity: 0.5; margin-bottom: 16px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        <h3 style="font-weight: 600; margin-bottom: 8px; font-size: 18px; color: var(--text-primary);">Nenhum sinal no momento.</h3>
+                        <p style="font-size: 14px;">Seu radar está limpo. Vá fechar negócios.</p>
+                    </div>
+                  </div>
+                </div>`;
             }
 
-            main.innerHTML = `${headerHtml}${progressHtml}${kpiToggleHtml}<section class="kpi-row">${kpiHtml}</section>${chartsRowHtml}${tabelaHtml}`;
+            main.innerHTML = `${headerHtml}${progressHtml}${kpiToggleHtml}<section class="kpi-row">${kpiHtml}</section>${chartsRowHtml}${secaoInferiorHtml}`;
 
             requestAnimationFrame(() => { tentarRenderizarGraficos(total, fechados); });
-           
+
+            if (!isGerente && currentUser.perfil === 'Vendedor') {
+                initMeuRadar();
+            } else {
                 atualizarTabelaPaginadaServer();
+            }
             renderNotificationBadge(buildNotifications().length);
 
         }
