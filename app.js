@@ -2407,8 +2407,8 @@ function selectFilter(filter) {
             if (isGerente) {
                 chartsRowHtml = `<section class="charts-row">${donutHtml}${rankingHtml}<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg> Mais Vendidos</h3><ul class="top5-list">${top5Html}</ul></div></section>`;
             } else {
-                // Vendedor: só o gráfico "Aproveitamento" (Evolução Mensal e Mais Vendidos saíram do layout).
-                chartsRowHtml = `<section class="charts-row-unico">${donutHtml}</section>`;
+                // Vendedor: nenhum gráfico nessa linha (Evolução Mensal, Mais Vendidos e Aproveitamento saíram do layout).
+                chartsRowHtml = '';
                 // No lugar do card "Carteira de Negociações", a página "Meu Radar" embutida (sem os KPIs dela).
                 secaoInferiorHtml = `
                 <div class="table-card">
@@ -2433,7 +2433,7 @@ function selectFilter(filter) {
 
             main.innerHTML = `${headerHtml}${progressHtml}${kpiToggleHtml}<section class="kpi-row">${kpiHtml}</section>${chartsRowHtml}${secaoInferiorHtml}`;
 
-            requestAnimationFrame(() => { tentarRenderizarGraficos(total, fechados); });
+            if (isGerente) requestAnimationFrame(() => { tentarRenderizarGraficos(total, fechados); });
 
             if (!isGerente && currentUser.perfil === 'Vendedor') {
                 initMeuRadar();
