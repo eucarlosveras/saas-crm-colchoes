@@ -776,17 +776,17 @@
            KPI CARDS
         ──────────────────────────────────────────────────────── */
         .kpi-row {
-            display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
         }
         .kpi-card {
             background: var(--card-bg); border-radius: var(--radius-md);
-            padding: 22px 22px 20px;
+            padding: 24px 24px 22px;
             box-shadow: var(--shadow-sm); border: 1px solid var(--border-light);
             display: flex; flex-direction: column; justify-content: center;
-            transition: box-shadow var(--transition), transform var(--transition);
-            position: relative; overflow: hidden;
+            transition: box-shadow var(--transition), transform var(--transition), border-color var(--transition);
+            position: relative; overflow: hidden; min-height: 140px;
         }
-        .kpi-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+        .kpi-card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); border-color: var(--border-medium); }
         .kpi-card.vendido-highlight {
             border-top: 3px solid var(--accent-orange);
         }
@@ -796,7 +796,21 @@
             background: linear-gradient(90deg, var(--brand-blue), var(--accent-orange));
         }
 
-        .kpi-label-row { display: flex; align-items: center; gap: 7px; margin-bottom: 10px; }
+        .kpi-icon-badge {
+            position: absolute; top: 20px; right: 20px;
+            width: 34px; height: 34px; border-radius: var(--radius-sm);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .kpi-badge-green  { background: rgba(16, 185, 129, 0.12); color: #059669; }
+        .kpi-badge-blue   { background: rgba(15, 118, 110, 0.12); color: var(--brand-blue-dark); }
+        .kpi-badge-orange { background: rgba(217, 119, 6, 0.12); color: #b45309; }
+        .kpi-badge-red    { background: rgba(220, 38, 38, 0.12); color: #b91c1c; }
+        body.dark .kpi-badge-green  { background: rgba(16, 185, 129, 0.16); color: #34d399; }
+        body.dark .kpi-badge-blue   { background: rgba(45, 212, 191, 0.16); color: #5eead4; }
+        body.dark .kpi-badge-orange { background: rgba(251, 146, 60, 0.16); color: #fdba74; }
+        body.dark .kpi-badge-red    { background: rgba(248, 113, 113, 0.16); color: #fca5a5; }
+
+        .kpi-label-row { display: flex; align-items: center; gap: 7px; margin-bottom: 12px; padding-right: 40px; }
         .kpi-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
         .kpi-dot.blue   { background: var(--brand-blue); }
         .kpi-dot.green  { background: var(--accent-green); }
@@ -808,20 +822,24 @@
         }
         .kpi-value {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 1.875rem; font-weight: 800;
-            line-height: 1; color: var(--text-primary); letter-spacing: -0.04em;
+            font-size: 1.75rem; font-weight: 800;
+            line-height: 1.15; color: var(--text-primary); letter-spacing: -0.03em;
         }
+        .kpi-footer { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
         .kpi-variacao {
-            display: inline-flex; align-items: center; gap: 3px; margin-top: 8px;
+            display: inline-flex; align-items: center; gap: 3px;
             font-size: var(--font-2xs); font-weight: 700; letter-spacing: 0.02em;
+            padding: 3px 8px; border-radius: var(--radius-full);
         }
-        .kpi-var-up { color: #059669; }
-        .kpi-var-down { color: #dc2626; }
-        .kpi-comparacao-label { font-size: var(--font-2xs); font-weight: 500; color: var(--text-muted); margin-top: 8px; }
+        .kpi-var-up { color: #059669; background: rgba(5, 150, 105, 0.1); }
+        .kpi-var-down { color: #dc2626; background: rgba(220, 38, 38, 0.1); }
+        body.dark .kpi-var-up { color: #34d399; background: rgba(52, 211, 153, 0.14); }
+        body.dark .kpi-var-down { color: #f87171; background: rgba(248, 113, 113, 0.14); }
+        .kpi-comparacao-label { font-size: var(--font-2xs); font-weight: 500; color: var(--text-muted); }
 
         .kpi-section-header {
             display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
-            margin: 4px 0 12px;
+            margin: 4px 0 14px;
         }
         .kpi-section-title { margin: 0; font-size: var(--font-sm); font-weight: 700; color: var(--text-secondary); }
         .kpi-periodo-toggle {
