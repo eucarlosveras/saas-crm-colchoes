@@ -5626,12 +5626,28 @@ function addIgnoredRadarId(idOrcamento) {
     }
 }
 
+// Tarefas marcadas como concluídas (botão de check) — usa localStorage (não sessionStorage) pra
+// continuar marcada mesmo depois de fechar o navegador, já que agora o Radar funciona como uma
+// lista de tarefas do dia a dia, não só alertas descartáveis da sessão atual.
+function getConcludedRadarIds() {
+    const stored = localStorage.getItem('radar_concluidos');
+    return stored ? JSON.parse(stored) : [];
+}
+
+function addConcludedRadarId(idOrcamento) {
+    const concluidos = getConcludedRadarIds();
+    if (!concluidos.includes(idOrcamento)) {
+        concluidos.push(idOrcamento);
+        localStorage.setItem('radar_concluidos', JSON.stringify(concluidos));
+    }
+}
+
 async function carregarSinaisRadar() {
     const hojeIso = getHojeBrasilia();
     const hoje = new Date(`${hojeIso}T00:00:00`);
     
     radarSignalsData = [];
-    const ignoredIds = getIgnoredRadarIds();
+    const ignoredIds = [...getIgnoredRadarIds(), ...getConcludedRadarIds()];
 
     try {
         // 1. Busca Orçamentos
@@ -5850,36 +5866,26 @@ function renderRadarSignals(sellerFilter) {
                 ? `<strong>${signal.leadName}</strong>`
                 : `<strong style="color:var(--brand-blue);cursor:pointer;" onclick="abrirDetalhesCliente('${orcId}')">${signal.leadName}</strong>`;
 
-            const justHtml = signal.justification
-                ? `<div class="justification-block"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-top:2px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span>${signal.justification}</span></div>`
-                : '';
-
-            const execClass = signal.executed ? 'btn-exec executed' : 'btn-exec';
-            const execLabel = signal.executed
-                ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Executado'
-                : signal.actionText;
-
             const cardHtml = `
-                <div class="signal-card" id="radar-card-${signal.id}">
-                    <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <span class="badge badge-${signal.type}">${conf.label}</span>
-                        <span style="font-size:var(--font-xs);color:var(--text-muted);">${signal.time}</span>
-                    </div>
-                    <div>
-                        <p class="signal-message">${signal.message}</p>
-                        <div class="signal-meta">
+                <div class="radar-task" id="radar-card-${signal.id}" data-tipo="${signal.type}">
+                    <button class="radar-check-btn" onclick="handleRadarCheck('${signal.id}')" title="Marcar tarefa como concluída" aria-label="Marcar tarefa como concluída">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </button>
+                    <div class="radar-task-body" onclick="handleRadarAction('${signal.id}')" title="${signal.justification ? signal.justification.replace(/"/g, '&quot;') : signal.actionText}">
+                        <div class="radar-task-top">
+                            <span class="badge badge-${signal.type}">${conf.label}</span>
+                            <p class="radar-task-message">${signal.message}</p>
+                            <span class="radar-task-time">${signal.time}</span>
+                        </div>
+                        <div class="radar-task-meta">
                             <span>Lead: ${leadLink}</span>
-                            <span style="color:var(--border-medium);">|</span>
+                            <span class="radar-dot-sep">•</span>
                             <span>Vendedor: ${signal.seller}</span>
                         </div>
                     </div>
-                    ${justHtml}
-                    <div class="card-actions">
-                        <button id="btn-exec-${signal.id}" onclick="handleRadarAction('${signal.id}')" ${signal.executed ? 'disabled' : ''} class="${execClass}" style="display:flex;align-items:center;gap:6px;">
-                            ${execLabel}
-                        </button>
-                        <button onclick="handleRadarIgnore('${signal.id}')" class="btn-ignore">Ignorar</button>
-                    </div>
+                    <button onclick="handleRadarIgnore('${signal.id}')" class="radar-ignore-btn" title="Ignorar" aria-label="Ignorar">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
                 </div>
             `;
             container.insertAdjacentHTML('beforeend', cardHtml);
@@ -5902,6 +5908,21 @@ window.handleRadarAction = function(id) {
             if (id.endsWith(s)) { orcamentoId = id.slice(0, -s.length); break; }
         }
         abrirDetalhesCliente(orcamentoId);
+    }
+};
+
+window.handleRadarCheck = function(id) {
+    const card = document.getElementById(`radar-card-${id}`);
+    if (card) {
+        card.classList.add('radar-task-checked');
+        setTimeout(() => {
+            addConcludedRadarId(id);
+            const index = radarSignalsData.findIndex(s => s.id === id);
+            if (index > -1) radarSignalsData[index].ignored = true; // some da lista igual ao "ignorar"
+
+            const select = document.getElementById('sellerFilter');
+            renderRadarSignals(select ? select.value : 'Todos');
+        }, 450);
     }
 };
 
