@@ -1946,104 +1946,83 @@
         .signal-list {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 6px;
         }
-        .signal-card {
+        .radar-task {
             background: var(--card-bg);
             border: 1px solid var(--border-light);
-            border-radius: var(--radius-md);
-            box-shadow: var(--shadow-sm);
-            padding: 20px 22px;
+            border-radius: var(--radius-sm);
+            padding: 10px 12px;
             display: flex;
-            flex-direction: column;
-            gap: 14px;
-            transition: box-shadow var(--transition), transform var(--transition), border-color var(--transition);
+            align-items: flex-start;
+            gap: 10px;
+            transition: box-shadow var(--transition), border-color var(--transition), opacity 0.3s ease, transform 0.3s ease;
         }
-        .signal-card:hover {
-            box-shadow: var(--shadow-md);
+        .radar-task:hover {
+            box-shadow: var(--shadow-sm);
             border-color: var(--border-medium);
-            transform: translateY(-1px);
         }
+        .radar-task[data-tipo="alert"] { border-left: 3px solid #dc2626; }
+        .radar-task[data-tipo="tip"] { border-left: 3px solid var(--brand-blue); }
+        .radar-task[data-tipo="suggestion"] { border-left: 3px solid #16a34a; }
+
+        /* Botão circular de check — clique confirma a conclusão da tarefa */
+        .radar-check-btn {
+            flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
+            border: 1.5px solid var(--border-medium); background: var(--card-bg);
+            display: flex; align-items: center; justify-content: center;
+            color: transparent; cursor: pointer; margin-top: 1px;
+            transition: all 0.15s ease;
+        }
+        .radar-check-btn:hover { border-color: var(--accent-green); color: var(--accent-green); background: rgba(16,185,129,0.08); }
+        .radar-task-checked { opacity: 0; transform: scale(0.97); }
+        .radar-task-checked .radar-check-btn { border-color: var(--accent-green); background: var(--accent-green); color: #fff; }
+
+        .radar-task-body { flex: 1; min-width: 0; cursor: pointer; }
+        .radar-task-top { display: flex; align-items: baseline; gap: 8px; flex-wrap: nowrap; }
+        .radar-task-message {
+            font-size: var(--font-sm);
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.01em;
+            margin: 0;
+            flex: 1; min-width: 0;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .radar-task-time { font-size: var(--font-2xs); color: var(--text-muted); flex-shrink: 0; }
+        .radar-task-meta {
+            font-size: var(--font-2xs);
+            color: var(--text-muted);
+            display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+            margin-top: 2px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .radar-task-meta strong { color: var(--text-secondary); font-weight: 600; }
+        .radar-dot-sep { color: var(--border-medium); }
+
+        .radar-ignore-btn {
+            flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
+            border: none; background: transparent; color: var(--text-muted);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; margin-top: 1px; transition: all 0.15s ease;
+        }
+        .radar-ignore-btn:hover { background: var(--surface-2); color: var(--danger-text); }
 
         .badge {
             display: inline-flex;
             align-items: center;
             gap: 5px;
-            padding: 2px 9px;
+            padding: 1px 7px;
             border-radius: var(--radius-full);
-            font-size: var(--font-2xs);
+            font-size: 9px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.06em;
+            flex-shrink: 0;
         }
         .badge-alert      { background: #fee2e2; color: #b91c1c; }
         .badge-tip        { background: var(--brand-blue-subtle); color: var(--brand-blue-dark); }
         .badge-suggestion { background: #dcfce7; color: #15803d; }
-
-        .signal-message {
-            font-size: var(--font-base);
-            font-weight: 700;
-            color: var(--text-primary);
-            letter-spacing: -0.02em;
-            margin: 0;
-        }
-        .signal-meta {
-            font-size: var(--font-sm);
-            color: var(--text-secondary);
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-        .justification-block {
-            background: var(--bg-body);
-            border: 1px solid var(--border-light);
-            border-radius: var(--radius-sm);
-            padding: 10px 14px;
-            font-size: var(--font-sm);
-            color: var(--text-secondary);
-            display: flex;
-            gap: 8px;
-            align-items: flex-start;
-        }
-
-        .card-actions { display: flex; gap: 8px; }
-
-        .btn-exec {
-            background: linear-gradient(135deg, var(--brand-blue), var(--accent-orange));
-            color: #fff;
-            padding: 6px 14px;
-            border-radius: var(--radius-sm);
-            font-size: var(--font-sm);
-            font-weight: 600;
-            border: none;
-            cursor: pointer;
-            transition: background 0.18s ease, box-shadow 0.18s ease;
-        }
-        .btn-exec:hover:not(:disabled) {
-            background: linear-gradient(135deg, var(--brand-blue-dark), #B45309);
-            box-shadow: 0 0 0 3px var(--brand-blue-subtle);
-        }
-        .btn-exec.executed {
-            background: var(--accent-green);
-            cursor: default;
-        }
-        .btn-ignore {
-            background: transparent;
-            color: var(--text-muted);
-            border: 1px solid var(--border-light);
-            padding: 6px 14px;
-            border-radius: var(--radius-sm);
-            font-size: var(--font-sm);
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
-        }
-        .btn-ignore:hover {
-            background: var(--bg-body);
-            border-color: var(--border-medium);
-            color: var(--text-secondary);
-        }
 
         /* ────────────────────────────────────────────────────────
            MODAL CHAT IA
