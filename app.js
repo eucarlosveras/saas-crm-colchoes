@@ -2437,21 +2437,21 @@ function selectFilter(filter) {
                 chartsRowHtml = '';
                 // No lugar do card "Carteira de Negociações", a página "Meu Radar" embutida (sem os KPIs dela).
                 secaoInferiorHtml = `
-                <div class="table-card">
+                <div class="table-card radar-embed-card">
                   <div class="table-card-header">
-                    <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 2v10l6 3"/></svg> Meu Radar</h3>
+                    <h3><span class="radar-header-badge"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 2v10l6 3"/></svg></span> Meu Radar</h3>
                     <div class="filter-wrapper">
                         <select class="vendedor-select" id="sellerFilter" style="border-radius:20px; padding:8px 16px;">
                             <option value="Todos">Todos os vendedores</option>
                         </select>
                     </div>
                   </div>
-                  <div style="padding: 20px;">
+                  <div style="padding: 4px 20px 20px;">
                     <div id="signalContainer" class="signal-list"></div>
-                    <div class="empty-state" id="emptyState" style="display: none; text-align: center; padding: 64px 24px; color: var(--text-muted);">
-                        <svg viewBox="0 0 24 24" width="48" height="48" stroke="var(--brand-blue)" fill="none" stroke-width="2" style="opacity: 0.5; margin-bottom: 16px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                        <h3 style="font-weight: 600; margin-bottom: 8px; font-size: 18px; color: var(--text-primary);">Nenhum sinal no momento.</h3>
-                        <p style="font-size: 14px;">Seu radar está limpo. Vá fechar negócios.</p>
+                    <div class="empty-state" id="emptyState" style="display: none;">
+                        <div class="empty-state-icon"><svg viewBox="0 0 24 24" width="26" height="26" stroke="#fff" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+                        <h3>Tudo em dia por aqui!</h3>
+                        <p>Nenhuma pendência no seu radar agora. Bom trabalho — hora de gerar novas oportunidades.</p>
                     </div>
                   </div>
                 </div>`;
@@ -5827,11 +5827,14 @@ function renderRadarSignals(sellerFilter) {
     const emptyState = document.getElementById('emptyState');
     if(!container) return;
 
-    const filtered = radarSignalsData.filter(s => {
-        if (s.ignored) return false;
-        if (sellerFilter === 'Todos') return true;
-        return s.seller === sellerFilter;
-    });
+    const ordemPrioridade = { high: 0, medium: 1, low: 2 };
+    const filtered = radarSignalsData
+        .filter(s => {
+            if (s.ignored) return false;
+            if (sellerFilter === 'Todos') return true;
+            return s.seller === sellerFilter;
+        })
+        .sort((a, b) => (ordemPrioridade[a.priority] ?? 3) - (ordemPrioridade[b.priority] ?? 3));
 
     // Atualiza contadores
     const elAlerts = document.getElementById('count-alerts');
@@ -5849,9 +5852,9 @@ function renderRadarSignals(sellerFilter) {
         container.innerHTML = '';
         
         const configMap = {
-            alert: { bg: '#fee2e2', color: '#b91c1c', label: 'Alerta' },
-            tip: { bg: '#dbeafe', color: '#1d4ed8', label: 'Dica' },
-            suggestion: { bg: '#dcfce7', color: '#15803d', label: 'Sugestão' }
+            alert:      { label: 'Alerta',    icone: '<path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>' },
+            tip:        { label: 'Dica',       icone: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>' },
+            suggestion: { label: 'Sugestão',   icone: '<path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 00-4 12.75c.44.37.7.86.7 1.42V17h6.6v-.83c0-.56.26-1.05.7-1.42A7 7 0 0012 2z"/>' }
         };
 
         filtered.forEach(signal => {
@@ -5867,10 +5870,11 @@ function renderRadarSignals(sellerFilter) {
                 : `<strong style="color:var(--brand-blue);cursor:pointer;" onclick="abrirDetalhesCliente('${orcId}')">${signal.leadName}</strong>`;
 
             const cardHtml = `
-                <div class="radar-task" id="radar-card-${signal.id}" data-tipo="${signal.type}">
+                <div class="radar-task" id="radar-card-${signal.id}" data-tipo="${signal.type}" data-prioridade="${signal.priority || 'low'}">
                     <button class="radar-check-btn" onclick="handleRadarCheck('${signal.id}')" title="Marcar tarefa como concluída" aria-label="Marcar tarefa como concluída">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                     </button>
+                    <div class="radar-task-icon badge-${signal.type}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${conf.icone}</svg></div>
                     <div class="radar-task-body" onclick="handleRadarAction('${signal.id}')" title="${signal.justification ? signal.justification.replace(/"/g, '&quot;') : signal.actionText}">
                         <div class="radar-task-top">
                             <span class="badge badge-${signal.type}">${conf.label}</span>
