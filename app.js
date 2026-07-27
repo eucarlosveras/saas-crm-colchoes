@@ -192,6 +192,48 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         // fuso do navegador/servidor. Evita o bug de "toISOString()" (que é sempre UTC) fazer
         // a data virar o dia seguinte entre 21h e 23h59 no horário de Brasília.
         function getHojeBrasilia() { return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }); }
+
+        // Timestamp completo (data + hora) já ajustado para o fuso de Brasília,
+        // para ser usado em qualquer coluna timestamp (ex: data_fechamento) em vez
+        // de new Date().toISOString(), que grava em UTC e pode "pular" o dia
+        // perto da meia-noite em horário de Brasília.
+        function getAgoraBrasiliaISO() {
+            const agora = new Date();
+            const partes = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'America/Sao_Paulo',
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit',
+                hour12: false
+            }).formatToParts(agora).reduce((acc, p) => { acc[p.type] = p.value; return acc; }, {});
+            return `${partes.year}-${partes.month}-${partes.day}T${partes.hour}:${partes.minute}:${partes.second}-03:00`;
+        }
+
+        // --- TRATAMENTO DE ERRO GLOBAL ---
+        // Garante que falhas não capturadas (Supabase fora do ar, erro de rede,
+        // promise rejeitada sem .catch, etc.) nunca travem a UI silenciosamente:
+        // sempre reseta o loader e avisa o usuário via toast.
+        window.addEventListener('error', function (event) {
+            console.error('Erro global capturado:', event.error || event.message);
+            esconderLoaderGlobalSeExistir();
+            mostrarToastErroGenerico();
+        });
+
+        window.addEventListener('unhandledrejection', function (event) {
+            console.error('Promise rejeitada sem tratamento:', event.reason);
+            esconderLoaderGlobalSeExistir();
+            mostrarToastErroGenerico();
+        });
+
+        function esconderLoaderGlobalSeExistir() {
+            const loader = document.getElementById('globalLoader');
+            if (loader) loader.style.display = 'none';
+        }
+
+        function mostrarToastErroGenerico() {
+            if (typeof showToast === 'function') {
+                showToast('Ocorreu um erro inesperado. Tente novamente.', 'error');
+            }
+        }
         // Soma/subtrai dias a partir do "hoje" de Brasília, retornando YYYY-MM-DD.
         // Usa horário fixo em UTC (T00:00:00Z) apenas como âncora de cálculo de calendário,
         // então a aritmética de dias não sofre interferência de fuso horário.
@@ -983,7 +1025,6 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                 } else {
                     // CRIACAO: chama Edge Function que cria no Auth + insere em usuarios
                     const payload = { nome, email, loja, perfil, status, senha };
-                    console.log("Payload sendo enviado para a Edge Function:", JSON.stringify(payload));
                     const { error } = await db.functions.invoke('criar-usuario', {
                         body: payload
                     });
@@ -1117,7 +1158,6 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                 codigo: p.codigo || '',
                 nome: p.nome_produto || ''
             })).filter(p => p.nome.trim() !== '');
-            console.log('Produtos carregados:', todosProdutos.length);
         }
     } catch (e) {
         console.error('Erro ao carregar tabela de produtos:', e);
@@ -4239,7 +4279,7 @@ function selectFilter(filter) {
                 let dataCriacaoFinal = dataOrcamento;
                 const hojeData = getHojeBrasilia();
                 if (dataOrcamento === hojeData) {
-                    dataCriacaoFinal = new Date().toISOString();
+                    dataCriacaoFinal = getAgoraBrasiliaISO();
                 } else {
                     dataCriacaoFinal = `${dataOrcamento}T12:00:00.000Z`;
                 }
@@ -4291,14 +4331,13 @@ function selectFilter(filter) {
             const btn = event.currentTarget;
             btn.classList.add('saving'); btn.disabled = true; isConfirmingPerda = true;
             try {
-                console.log("mapStatusUUID ao perder:", JSON.stringify(mapStatusUUID));
                 if (!mapStatusUUID.length) {
                     const { data } = await db.from('status_orcamento').select('*');
                     mapStatusUUID = data || [];
                 }
                 const statusPerdido = mapStatusUUID.find(s => s.nome === STATUS.PERDIDO);
                 if (!statusPerdido) throw new Error('Status "Perdido" não encontrado');
-                const { error } = await db.from('orcamentos').update({ id_status: statusPerdido.id_status, data_fechamento: new Date().toISOString() }).eq('id_orcamento', idOrcamentoParaPerder);
+                const { error } = await db.from('orcamentos').update({ id_status: statusPerdido.id_status, data_fechamento: getAgoraBrasiliaISO() }).eq('id_orcamento', idOrcamentoParaPerder);
                 if (error) throw error;
                 const comentario = `Venda perdida. Motivo: ${motivo}${motivoDetalhes ? ' - Detalhes: ' + motivoDetalhes : ''}`;
                 await db.from('comentarios').insert([{ id_orcamento: idOrcamentoParaPerder, texto: comentario, tipo: 'Perda', autor: currentUser.nome }]);
@@ -4394,7 +4433,7 @@ function selectFilter(filter) {
                 const statusFechado = mapStatusUUID.find(s => s.nome === STATUS.FECHADO);
                 if (!statusFechado) throw new Error('Status "Fechado" não encontrado');
 
-                const updatePayload = { id_status: statusFechado.id_status, data_fechamento: new Date().toISOString() };
+                const updatePayload = { id_status: statusFechado.id_status, data_fechamento: getAgoraBrasiliaISO() };
                 if (dataEntrega) updatePayload.data_entrega = dataEntrega;
 
                 const { error } = await db.from('orcamentos').update(updatePayload).eq('id_orcamento', id);
@@ -5108,7 +5147,7 @@ async function dropCardFechado(event) {
     showToast('Fechando negócio...', 'info');
     try {
         const { error } = await db.from('orcamentos')
-            .update({ id_status: statusObj.id_status, data_fechamento: new Date().toISOString() })
+            .update({ id_status: statusObj.id_status, data_fechamento: getAgoraBrasiliaISO() })
             .eq('id_orcamento', idOrcamento);
         if (error) throw error;
 
@@ -6004,8 +6043,6 @@ async function analisarClienteComIA(idOrcamentoAtual) {
         });
 
         // Validação no Console para Engenharia de Prompt
-        console.log("=== DOSSIÊ ENVIADO PARA IA ===");
-        console.log(dossie);
 
         // 5. Chamada real ao Groq via Edge Function
         const promptFinal = isFechado
