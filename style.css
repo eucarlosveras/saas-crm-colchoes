@@ -1803,6 +1803,26 @@
         .input-por:focus { border-color: var(--brand-blue); background: var(--card-bg); color: var(--text-primary); }
         body.dark .input-por:focus { background: var(--surface-2); color: var(--text-primary); }
 
+        /* ── Ajustar Proposta: linha com De / % Desc. / Por ── */
+        .ajuste-row-bottom { grid-template-columns: 1fr 0.65fr 1fr; }
+        .ajuste-desc-wrapper { position: relative; }
+        .ajuste-input-desc {
+            width: 100%; height: 34px; padding: 0 20px 0 9px;
+            border: 1.5px solid var(--border-light); border-radius: var(--radius-xs);
+            font-family: 'JetBrains Mono', monospace; font-size: var(--font-sm);
+            color: var(--gold-dark); background: var(--card-bg); transition: 0.15s; text-align: right;
+            -moz-appearance: textfield;
+        }
+        .ajuste-input-desc::-webkit-outer-spin-button, .ajuste-input-desc::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .ajuste-input-desc:focus { border-color: var(--gold-dark); outline: none; box-shadow: 0 0 0 3px var(--gold-glow); }
+        .ajuste-input-desc::placeholder { color: var(--text-placeholder); font-size: var(--font-xs); }
+        body.dark .ajuste-input-desc { background: var(--surface-2); border-color: var(--border-medium); color: var(--gold); }
+        .ajuste-desc-sign {
+            position: absolute; right: 9px; bottom: 9px; font-size: 12px; font-weight: 700;
+            color: var(--text-muted); pointer-events: none;
+        }
+        .ajuste-input-por[readonly] { cursor: default; }
+
         .btn-remove-item {
             width: 28px; height: 28px; border-radius: var(--radius-xs);
             background: transparent; color: var(--text-muted); border: none;
