@@ -351,7 +351,7 @@
     <div class="modal-overlay" id="modalChatIA" onclick="if(event.target===this)fecharModalChatIA()">
         <div class="modal-card modal-chat-card" style="max-width:600px; width:95%; height:80vh; display:flex; flex-direction:column; padding:0; overflow:hidden;">
             <!-- Header -->
-            <div class="modal-chat-header" style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid var(--border-light); background:linear-gradient(135deg, #6366f1, #8b5cf6);">
+            <div class="modal-chat-header" style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid var(--border-light); background:linear-gradient(135deg, var(--brand-blue), var(--brand-blue-dark));">
                 <div style="display:flex; align-items:center; gap:10px;">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
                         <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
@@ -371,13 +371,13 @@
             </div>
             
             <!-- Input Area -->
-            <div class="modal-chat-input" style="padding:16px 20px; border-top:1px solid var(--border-light); background:white;">
+            <div class="modal-chat-input" style="padding:16px 20px; border-top:1px solid var(--border-light); background:var(--card-bg);">
                 <div style="display:flex; gap:10px; align-items:flex-end;">
                     <textarea 
                         id="chatInputIA" 
                         placeholder="Digite sua pergunta ou solicitação..." 
                         rows="2"
-                        style="flex:1; resize:none; border:1px solid var(--border-medium); border-radius:8px; padding:10px 12px; font-family:var(--font-primary); font-size:14px; line-height:1.5; outline:none; transition:border-color 0.2s;"
+                        style="flex:1; resize:none; border:1px solid var(--border-medium); border-radius:8px; padding:10px 12px; font-family:'Inter', sans-serif; font-size:14px; line-height:1.5; outline:none; transition:border-color 0.2s; background:var(--card-bg); color:var(--text-primary);"
                         onfocus="this.style.borderColor='var(--brand-blue)'"
                         onblur="this.style.borderColor='var(--border-medium)'"
                         onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); enviarMensagemChatIA();}"
@@ -385,7 +385,7 @@
                     <button 
                         id="btnEnviarChatIA"
                         onclick="enviarMensagemChatIA()"
-                        style="background:linear-gradient(135deg, #6366f1, #8b5cf6); color:white; border:none; border-radius:8px; padding:10px 16px; font-weight:600; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:6px; transition:transform 0.2s, opacity 0.2s;"
+                        style="background:linear-gradient(135deg, var(--brand-blue), var(--brand-blue-dark)); color:white; border:none; border-radius:8px; padding:10px 16px; font-weight:600; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:6px; transition:transform 0.2s, opacity 0.2s;"
                         onmouseover="this.style.transform='translateY(-1px)'"
                         onmouseout="this.style.transform='translateY(0)'"
                     >
