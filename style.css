@@ -1806,21 +1806,29 @@
         /* ── Ajustar Proposta: linha com De / % Desc. / Por ── */
         .ajuste-row-bottom { grid-template-columns: 1fr 0.65fr 1fr; }
         .ajuste-desc-wrapper { position: relative; }
+        .ajuste-desc-input-group { display: flex; align-items: stretch; }
         .ajuste-input-desc {
-            width: 100%; height: 34px; padding: 0 20px 0 9px;
-            border: 1.5px solid var(--border-light); border-radius: var(--radius-xs);
+            width: 100%; height: 34px; padding: 0 6px 0 9px;
+            border: 1.5px solid var(--border-light); border-right: none;
+            border-radius: var(--radius-xs) 0 0 var(--radius-xs);
             font-family: 'JetBrains Mono', monospace; font-size: var(--font-sm);
             color: var(--gold-dark); background: var(--card-bg); transition: 0.15s; text-align: right;
-            -moz-appearance: textfield;
+            -moz-appearance: textfield; min-width: 0;
         }
         .ajuste-input-desc::-webkit-outer-spin-button, .ajuste-input-desc::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         .ajuste-input-desc:focus { border-color: var(--gold-dark); outline: none; box-shadow: 0 0 0 3px var(--gold-glow); }
+        .ajuste-input-desc:focus + .ajuste-desc-sign { border-color: var(--gold-dark); }
         .ajuste-input-desc::placeholder { color: var(--text-placeholder); font-size: var(--font-xs); }
         body.dark .ajuste-input-desc { background: var(--surface-2); border-color: var(--border-medium); color: var(--gold); }
         .ajuste-desc-sign {
-            position: absolute; right: 9px; bottom: 9px; font-size: 12px; font-weight: 700;
+            flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+            width: 22px; height: 34px; font-size: 12px; font-weight: 700;
             color: var(--text-muted); pointer-events: none;
+            border: 1.5px solid var(--border-light); border-left: none;
+            border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+            background: var(--surface-2); transition: 0.15s;
         }
+        body.dark .ajuste-desc-sign { background: var(--surface-3); border-color: var(--border-medium); }
         .ajuste-input-por[readonly] { cursor: default; }
 
         .btn-remove-item {
