@@ -1637,6 +1637,28 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
             return total;
         }
 
+        /** Garante que o % de desconto fique sempre entre 0 e 100 */
+        function ajusteValidarDesconto(input) {
+            let v = parseFloat((input.value || '0').replace(',', '.'));
+            if (isNaN(v) || v < 0) v = 0;
+            if (v > 100) v = 100;
+            input.value = v === 0 ? '' : v;
+        }
+
+        /** Recalcula o "Por" (valor com desconto) de uma linha a partir do "De" e do "% Desc." */
+        function ajusteRecalcularLinha(el) {
+            const row = el.closest('.produto-row');
+            if (!row) return;
+            const deInput = row.querySelector('.ajuste-input-de');
+            const descInput = row.querySelector('.ajuste-input-desc');
+            const porInput = row.querySelector('.ajuste-input-por');
+            const de = parseCurrency(deInput?.value || '0');
+            const desc = Math.min(100, Math.max(0, parseFloat((descInput?.value || '0').replace(',', '.')) || 0));
+            const por = de * (1 - desc / 100);
+            if (porInput) porInput.value = 'R$ ' + por.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+            ajusteRecalcularTotal();
+        }
+
         /** Atualiza visibilidade dos botões de lixeira no modal de ajuste */
         function _ajusteAtualizarLixeiras() {
             const btns = document.querySelectorAll('#ajusteProdutosContainer .btn-remove-item');
@@ -1645,7 +1667,7 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         }
 
         /** Cria e appenda uma linha de produto ao container do modal de ajuste */
-        function ajusteAdicionarLinha(nomePre = '', valorDePre = '', valorPorPre = '') {
+        function ajusteAdicionarLinha(nomePre = '', valorDePre = '', valorDescPre = '') {
             const container = document.getElementById('ajusteProdutosContainer');
             const row = document.createElement('div');
             row.className = 'produto-row';
@@ -1658,23 +1680,29 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
                     </button>
                 </div>
-                <div class="produto-row-bottom">
+                <div class="produto-row-bottom ajuste-row-bottom">
                     <div>
                         <div class="produto-row-label">De</div>
                         <input type="text" class="form-input input-de font-data ajuste-input-de" placeholder="R$ 0,00" inputmode="decimal"
                             value="${escapeHtml(valorDePre)}"
-                            oninput="this.value = formatCurrency(this.value);">
+                            oninput="this.value = formatCurrency(this.value); ajusteRecalcularLinha(this);">
+                    </div>
+                    <div class="ajuste-desc-wrapper">
+                        <div class="produto-row-label">% Desc.</div>
+                        <input type="number" class="form-input ajuste-input-desc" placeholder="0" min="0" max="100" step="0.1"
+                            value="${escapeHtml(valorDescPre)}"
+                            oninput="ajusteValidarDesconto(this); ajusteRecalcularLinha(this);">
+                        <span class="ajuste-desc-sign">%</span>
                     </div>
                     <div>
                         <div class="produto-row-label">Por</div>
-                        <input type="text" class="form-input input-por font-data ajuste-input-por" placeholder="R$ 0,00" inputmode="decimal"
-                            value="${escapeHtml(valorPorPre)}"
-                            oninput="this.value = formatCurrency(this.value); ajusteRecalcularTotal();">
+                        <input type="text" class="form-input input-por font-data ajuste-input-por" placeholder="R$ 0,00" inputmode="decimal" readonly tabindex="-1"
+                            title="Calculado automaticamente a partir de 'De' e '% Desc.'">
                     </div>
                 </div>`;
             container.appendChild(row);
+            ajusteRecalcularLinha(row.querySelector('.ajuste-input-de'));
             _ajusteAtualizarLixeiras();
-            ajusteRecalcularTotal();
         }
 
         /** Abre o modal populando as linhas com base nos dados atuais do orçamento */
@@ -1714,11 +1742,11 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                 ajusteAdicionarLinha();
             } else {
                 produtos.forEach((nome, i) => {
-                    // Se só há 1 produto, pré-popula o "POR" com o total
-                    const valorPor = (umSoProduto && i === 0)
+                    // Se só há 1 produto, pré-popula o "DE" com o total (sem desconto aplicado ainda)
+                    const valorDe = (umSoProduto && i === 0)
                         ? 'R$ ' + valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
                         : '';
-                    ajusteAdicionarLinha(nome, '', valorPor);
+                    ajusteAdicionarLinha(nome, valorDe, '');
                 });
             }
 
