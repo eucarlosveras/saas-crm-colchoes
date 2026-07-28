@@ -26,6 +26,12 @@
             --accent-purple: #7c3aed;
             --accent-orange: #D97706;
 
+            /* Gold (Agendamento / Destaques) */
+            --gold: #D4AF37;
+            --gold-dark: #B8860B;
+            --gold-light: #F5E7B8;
+            --gold-glow: rgba(212, 175, 55, 0.4);
+
             /* Surface */
             --bg-body: #F8FAFC;
             --card-bg: #ffffff;
@@ -132,6 +138,11 @@
             --border-light: #334155;
             --border-medium: #475569;
             --divider: #1E293B;
+
+            --gold: #E5C158;
+            --gold-dark: #D4AF37;
+            --gold-light: #4A3F1F;
+            --gold-glow: rgba(229, 193, 88, 0.45);
 
             --shadow-xs: 0 1px 2px rgba(0,0,0,0.3);
             --shadow-sm: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
@@ -1186,7 +1197,7 @@
         .btn-perder-hero:hover { background: var(--danger-border); }
 
         .detalhes-page-wrapper {
-            display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
             align-items: stretch; height: calc(100vh - 140px); min-height: 560px;
         }
         .detalhes-page-wrapper .det-col-wide,
@@ -1449,10 +1460,60 @@
 
         .comment-badge-new {
             position: absolute; top: -5px; right: 10px;
-            background: var(--brand-blue); color: #fff;
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark)); color: #fff;
             font-size: 9px; font-weight: 700; padding: 2px 7px;
             border-radius: var(--radius-full); letter-spacing: 0.06em;
-            animation: pulse-glow 1.8s infinite;
+            box-shadow: 0 2px 6px var(--gold-glow);
+            animation: pulse-glow-gold 1.8s infinite;
+        }
+        @keyframes pulse-glow-gold {
+            0%   { box-shadow: 0 0 0 0 var(--gold-glow); }
+            70%  { box-shadow: 0 0 0 6px rgba(212, 175, 55, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0); }
+        }
+
+        /* ── Ícone de Agendamento (header, botão dourado) ── */
+        .btn-agendar-icon {
+            position: relative;
+            width: 52px; height: 52px; flex-shrink: 0;
+            border: none; border-radius: var(--radius-full);
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            color: #fff; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; box-shadow: 0 6px 16px var(--gold-glow), var(--shadow-sm);
+            transition: transform var(--transition), box-shadow var(--transition);
+        }
+        .btn-agendar-icon:hover { transform: translateY(-2px) scale(1.04); box-shadow: 0 10px 22px var(--gold-glow), var(--shadow-md); }
+        .btn-agendar-icon:active { transform: translateY(0) scale(0.98); }
+        .btn-agendar-icon::after {
+            content: attr(data-tooltip);
+            position: absolute; top: calc(100% + 8px); right: 0;
+            background: var(--text-primary); color: var(--card-bg);
+            font-size: 11px; font-weight: 600; white-space: nowrap;
+            padding: 6px 10px; border-radius: var(--radius-sm);
+            opacity: 0; pointer-events: none; transform: translateY(-4px);
+            transition: opacity var(--transition), transform var(--transition);
+            box-shadow: var(--shadow-md); z-index: 20;
+        }
+        .btn-agendar-icon:hover::after { opacity: 1; transform: translateY(0); }
+
+        /* ── Lista de produtos (sem interação, bullet dourado) ── */
+        .det-produtos-lista {
+            list-style: none; padding: 0; margin: 0;
+            display: flex; flex-direction: column; gap: 7px;
+        }
+        .det-produtos-lista li {
+            display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
+            font-size: var(--font-sm); color: var(--text-primary);
+            padding-bottom: 7px; border-bottom: 1px dashed var(--border-light);
+        }
+        .det-produtos-lista li:last-child { border-bottom: none; padding-bottom: 0; }
+        .det-produtos-lista .produto-bullet {
+            color: var(--gold-dark); font-weight: 900; flex-shrink: 0; line-height: 1.4;
+        }
+        .det-produtos-lista .produto-nome { flex: 1; min-width: 0; line-height: 1.4; }
+        .det-produtos-lista .produto-valor {
+            flex-shrink: 0; font-weight: 700; font-size: var(--font-xs);
+            color: var(--text-secondary); white-space: nowrap;
         }
         .comment-item .comment-header { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
         .comment-item .comment-avatar {
