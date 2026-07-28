@@ -3546,6 +3546,9 @@ function selectFilter(filter) {
                         <div style="font-size:1.25rem; font-weight:800; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;">${escapeHtml(orc.clientes?.nome_cliente || 'Cliente')}</div>
                         ${orc.protocolo ? `<span style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:var(--brand-blue-dark); background:#eff6ff; border:1px solid #bfdbfe; padding:2px 9px; border-radius:5px; white-space:nowrap; flex-shrink:0;">${escapeHtml(orc.protocolo)}</span>` : ''}
                     </div>
+                    <button type="button" class="btn-agendar-icon" data-tooltip="Agendar próximo contato" onclick="abrirModalAgendamento()">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    </button>
                 </header>
 
                 <div class="detalhes-page-wrapper">
@@ -3633,28 +3636,20 @@ function selectFilter(filter) {
                             
                             ${orc.modelo_colchao ? (() => {
                                 const prods = orc.modelo_colchao.split(',').map(p => p.trim()).filter(Boolean);
-                                const primeiro = escapeHtml(prods[0] || '-');
-                                const extra = prods.length - 1;
-                                const accId = `acc-det-${orc.id_orcamento}`;
-                                const listaHtml = prods.map(p => `<li><span style="color:var(--brand-blue);font-weight:bold;">•</span> ${escapeHtml(p)}</li>`).join('');
+                                if (prods.length === 0) return '';
+                                // Sem valores individuais persistidos no banco: quando há mais de 1 item,
+                                // referenciamos o valor total orçado apenas na linha do primeiro item.
+                                const listaHtml = prods.map((p, i) => `
+                                    <li>
+                                        <span class="produto-bullet">•</span>
+                                        <span class="produto-nome">${escapeHtml(p)}</span>
+                                        ${(i === 0 && prods.length === 1) ? `<span class="produto-valor">${valorFormatado}</span>` : ''}
+                                    </li>`).join('');
                                 return `
                                 <div class="det-pill-row" style="grid-template-columns:1fr;">
                                     <div class="det-pill">
                                         <span class="det-pill-label">Produto(s)</span>
-                                        <div style="display:flex; flex-direction:column; gap:6px;">
-                                            <span class="det-pill-value">${primeiro}</span>
-                                            ${extra > 0 ? `
-                                            <button class="btn-expand-produtos" onclick="
-                                                const acc=document.getElementById('${accId}');
-                                                const open=acc.style.display==='block';
-                                                acc.style.display=open?'none':'block';
-                                                this.classList.toggle('open',!open);
-                                            ">+ ${extra} item${extra > 1 ? 'ns' : ''} <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg></button>
-                                            <div id="${accId}" style="display:none; padding:10px 12px; background:var(--surface-2); border-left:3px solid var(--brand-blue); border-radius:0 var(--radius-sm) var(--radius-sm) 0; font-size:var(--font-xs); color:var(--text-secondary);">
-                                                <strong style="display:block; margin-bottom:6px;">Todos os itens:</strong>
-                                                <ul style="list-style:none; padding:0; display:flex; flex-direction:column; gap:5px;">${listaHtml}</ul>
-                                            </div>` : ''}
-                                        </div>
+                                        <ul class="det-produtos-lista">${listaHtml}</ul>
                                     </div>
                                 </div>`;
                             })() : ''}
@@ -3732,71 +3727,6 @@ function selectFilter(filter) {
                                     </button>
                                 </div>
                             </div>
-                        </section>
-                    </div>
-
-                    <div class="det-col-wide">
-                        <section class="det-section">
-                            <div class="det-section-header">
-                                <svg class="det-section-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                                <h2 class="det-section-title">Agendar Próximo Contato</h2>
-                            </div>
-
-                            <div style="margin-bottom:16px;">
-                                <div style="font-size:10px; font-weight:600; color:#94a3b8; text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px;">Acesso rápido</div>
-                                <div class="det-quick-dates">
-                                    <button class="btn-quick-date" onclick="setQuickDate(1)">Amanhã</button>
-                                    <button class="btn-quick-date" onclick="setQuickDate(3)">Em 3 dias</button>
-                                    <button class="btn-quick-date" onclick="setQuickDate(7)">Semana que vem</button>
-                                    <button class="btn-quick-date" onclick="setQuickDate(15)">Em 15 dias</button>
-                                </div>
-                            </div>
-
-                            <div class="schedule-form-grid" style="margin-bottom:16px;">
-                                <div class="form-group">
-                                    <label>Data *</label>
-                                    <input type="date" id="agendarData" value="${escapeHtml(orc.data_contato || '')}" class="form-input" style="height:40px; padding:0 12px; font-family:'JetBrains Mono',monospace; font-size:13px;">
-                                </div>
-                                <div class="form-group">
-                                    <label>Horário</label>
-                                    <input type="time" id="agendarHora" value="${escapeHtml(orc.hora_contato || '')}" class="form-input" style="height:40px; padding:0 12px; font-family:'JetBrains Mono',monospace; font-size:13px;">
-                                </div>
-                            </div>
-
-                            <div class="form-group" style="margin-bottom:16px;">
-                                <label>Tipo de Contato *</label>
-                                <select id="agendarTipo" class="form-input" style="height:40px; padding:0 12px; font-size:13px;">
-                                    <option value="">Selecionar...</option>
-                                    <optgroup label="Vendas">
-                                        <option value="Apresentação de Campanha/Promoção">Apresentação de Campanha/Promoção</option>
-                                        <option value="Reativação de Contato Antigo">Reativação de Contato Antigo</option>
-                                        <option value="Acompanhamento de Orçamento">Acompanhamento de Orçamento</option>
-                                        <option value="Virada de Tabela">Virada de Tabela</option>
-                                        <option value="Quebra de Objeção">Quebra de Objeção</option>
-                                        <option value="Cross-sell (Venda Cruzada)">Cross-sell (Venda Cruzada)</option>
-                                    </optgroup>
-                                    <optgroup label="Pós-Venda">
-                                        <option value="Alinhamento Logístico">Alinhamento Logístico</option>
-                                        <option value="Acompanhamento de Adaptação (Pós-Entrega)">Acompanhamento de Adaptação (Pós-Entrega)</option>
-                                        <option value="Assistência Técnica">Assistência Técnica</option>
-                                    </optgroup>
-                                </select>
-                                <div class="field-error" id="agendarTipoErro"></div>
-                            </div>
-
-                            <div class="form-group" style="flex:1; display:flex; flex-direction:column; margin-bottom:16px;">
-                                <label>Observações / Lembrete</label>
-                                <textarea id="agendarObservacao" class="form-input" style="flex:1; resize:none; font-size:13px; min-height:120px;" placeholder="Detalhes contextuais para o próximo contato..."></textarea>
-                            </div>
-
-                            <button class="btn-agendar-full" id="btnConfirmarAgendamento" onclick="agendarContato()" style="margin-top:0;">
-                                <span class="btn-spinner" style="display:none; width:16px; height:16px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin 1s linear infinite;"></span>
-                                <span class="btn-text" style="display:flex; align-items:center; gap:6px;">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                                    Confirmar Agendamento
-                                </span>
-                            </button>
-                            <div class="field-error" id="agendarMsg" style="text-align:center; margin-top:8px;"></div>
                         </section>
                     </div>
 
@@ -4480,6 +4410,18 @@ function selectFilter(filter) {
             }
         }
 
+        function abrirModalAgendamento() {
+            const orc = AppState.contextoVenda.clienteAtual;
+            if (!orc) return;
+            document.getElementById('agendarData').value = orc.data_contato || '';
+            document.getElementById('agendarHora').value = orc.hora_contato || '';
+            document.getElementById('agendarTipo').value = '';
+            document.getElementById('agendarObservacao').value = '';
+            document.getElementById('agendarTipoErro').textContent = '';
+            document.getElementById('agendarMsg').textContent = '';
+            openModal('modalAgendarContato');
+        }
+
         async function agendarContato() {
             const data = document.getElementById('agendarData').value;
             const hora = document.getElementById('agendarHora').value;
@@ -4498,6 +4440,7 @@ function selectFilter(filter) {
                 const { error: err1 } = await db.from('orcamentos').update({ data_contato: data, hora_contato: hora, observacao_agendamento: obsAgendamento }).eq('id_orcamento', AppState.contextoVenda.clienteAtual.id_orcamento);
                 if (err1) throw new Error(err1.message);
                 
+                closeModal('modalAgendarContato');
                 showToast('Agendamento confirmado!', 'success'); await abrirDetalhesCliente(AppState.contextoVenda.clienteAtual.id_orcamento);
             } catch (e) { showToast('Erro ao agendar: ' + e.message, 'error'); } 
             finally { btn.querySelector('.btn-spinner').style.display = 'none'; btn.querySelector('.btn-text').textContent = 'Confirmar Agendamento'; btn.disabled = false; }
@@ -5008,7 +4951,7 @@ function selectFilter(filter) {
 
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
-                const modais = ['modalMotivoPerda', 'modalConfirmaFechamento', 'modalEditarMeta', 'modalExcluirComentario', 'modalUsuarioAdmin', 'modalExcluirUsuarioAdmin', 'modalEditarCliente', 'modalExcluirCliente', 'modalCriarNegocio', 'modalAjusteProposta'];
+                const modais = ['modalMotivoPerda', 'modalConfirmaFechamento', 'modalEditarMeta', 'modalExcluirComentario', 'modalUsuarioAdmin', 'modalExcluirUsuarioAdmin', 'modalEditarCliente', 'modalExcluirCliente', 'modalCriarNegocio', 'modalAjusteProposta', 'modalAgendarContato'];
                 for (const id of modais) {
                     if (document.getElementById(id) && document.getElementById(id).classList.contains('open')) {
                         closeModal(id);
