@@ -3576,7 +3576,7 @@ function selectFilter(filter) {
                         <div style="font-size:1.25rem; font-weight:800; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;">${escapeHtml(orc.clientes?.nome_cliente || 'Cliente')}</div>
                         ${orc.protocolo ? `<span style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:var(--brand-blue-dark); background:#eff6ff; border:1px solid #bfdbfe; padding:2px 9px; border-radius:5px; white-space:nowrap; flex-shrink:0;">${escapeHtml(orc.protocolo)}</span>` : ''}
                     </div>
-                    <button type="button" class="btn-agendar-icon" data-tooltip="Agendar próximo contato" onclick="abrirModalAgendamento()">
+                    <button type="button" class="btn-agendar-icon" data-tooltip="Agendar contato" onclick="abrirModalAgendamento()">
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                     </button>
                 </header>
