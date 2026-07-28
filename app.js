@@ -3762,7 +3762,7 @@ function selectFilter(filter) {
 
                 </div>
 
-<button id="btnFabIA" onclick="analisarClienteComIA('${id}')" style="position: fixed; bottom: 32px; right: 32px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; border: none; padding: 14px 24px; border-radius: 30px; font-weight: 700; font-size: 14px; cursor: pointer; box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.4); display: flex; align-items: center; gap: 8px; z-index: 1000; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 15px 20px -3px rgba(99, 102, 241, 0.5)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 10px 15px -3px rgba(99, 102, 241, 0.4)'">
+<button id="btnFabIA" onclick="analisarClienteComIA('${id}')" style="position: fixed; bottom: 32px; right: 32px; background: linear-gradient(135deg, var(--gold), var(--gold-dark)); color: #fff; border: none; padding: 14px 24px; border-radius: 30px; font-weight: 700; font-size: 14px; cursor: pointer; box-shadow: 0 10px 20px -3px var(--gold-glow), var(--shadow-md); display: flex; align-items: center; gap: 8px; z-index: 1000; transition: transform 0.2s, box-shadow 0.2s; font-family: 'Inter', sans-serif;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 14px 26px -3px var(--gold-glow), var(--shadow-lg)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 10px 20px -3px var(--gold-glow), var(--shadow-md)'">
                     <span class="btn-text">✨ Destravar Venda</span>
                     <span class="btn-spinner" style="display:none; width:16px; height:16px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin 1s linear infinite;"></span>
                 </button>
@@ -6365,13 +6365,13 @@ function renderizarMensagensChat() {
         const isUser = msg.role === 'user';
         return `
             <div style="display:flex; gap:12px; ${isUser ? 'flex-direction:row-reverse;' : ''}">
-                <div style="width:32px; height:32px; border-radius:50%; background:${isUser ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'linear-gradient(135deg, #10b981, #059669)'}; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <div style="width:32px; height:32px; border-radius:50%; background:${isUser ? 'linear-gradient(135deg, var(--brand-blue), var(--brand-blue-dark))' : 'linear-gradient(135deg, var(--gold), var(--gold-dark))'}; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:var(--shadow-xs);">
                     ${isUser 
                         ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'
                         : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>'
                     }
                 </div>
-                <div style="max-width:75%; padding:12px 16px; border-radius:16px; background:${isUser ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'white'}; color:${isUser ? 'white' : 'var(--text-primary)'}; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+                <div style="max-width:75%; padding:12px 16px; border-radius:16px; background:${isUser ? 'linear-gradient(135deg, var(--brand-blue), var(--brand-blue-dark))' : 'var(--card-bg)'}; color:${isUser ? '#fff' : 'var(--text-primary)'}; border:${isUser ? 'none' : '1px solid var(--border-light)'}; box-shadow:var(--shadow-xs);">
                     <div style="font-size:13.5px; line-height:1.6; white-space:pre-wrap;">${formatarMensagemIA(msg.content)}</div>
                 </div>
             </div>
