@@ -31,6 +31,9 @@
             --gold-dark: #B8860B;
             --gold-light: #F5E7B8;
             --gold-glow: rgba(212, 175, 55, 0.4);
+            --brand-accent: var(--gold);
+            --brand-accent-dark: var(--gold-dark);
+            --brand-accent-glow: var(--gold-glow);
 
             /* Surface */
             --bg-body: #F8FAFC;
@@ -143,6 +146,9 @@
             --gold-dark: #D4AF37;
             --gold-light: #4A3F1F;
             --gold-glow: rgba(229, 193, 88, 0.45);
+            --brand-accent: var(--gold);
+            --brand-accent-dark: var(--gold-dark);
+            --brand-accent-glow: var(--gold-glow);
 
             --shadow-xs: 0 1px 2px rgba(0,0,0,0.3);
             --shadow-sm: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
@@ -1477,13 +1483,13 @@
             position: relative;
             width: 52px; height: 52px; flex-shrink: 0;
             border: none; border-radius: var(--radius-full);
-            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            background: linear-gradient(135deg, var(--brand-accent), var(--brand-accent-dark));
             color: #fff; display: flex; align-items: center; justify-content: center;
-            cursor: pointer; box-shadow: 0 6px 16px var(--gold-glow), var(--shadow-sm);
+            cursor: pointer; box-shadow: 0 4px 16px var(--brand-accent-glow);
             transition: transform var(--transition), box-shadow var(--transition);
         }
-        .btn-agendar-icon:hover { transform: translateY(-2px) scale(1.04); box-shadow: 0 10px 22px var(--gold-glow), var(--shadow-md); }
-        .btn-agendar-icon:active { transform: translateY(0) scale(0.98); }
+        .btn-agendar-icon:hover { transform: scale(1.06); box-shadow: 0 8px 24px var(--brand-accent-glow); }
+        .btn-agendar-icon:active { transform: scale(0.98); }
         .btn-agendar-icon::after {
             content: attr(data-tooltip);
             position: absolute; top: calc(100% + 8px); right: 0;
