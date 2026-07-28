@@ -1689,10 +1689,12 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                     </div>
                     <div class="ajuste-desc-wrapper">
                         <div class="produto-row-label">% Desc.</div>
-                        <input type="number" class="form-input ajuste-input-desc" placeholder="0" min="0" max="100" step="0.1"
-                            value="${escapeHtml(valorDescPre)}"
-                            oninput="ajusteValidarDesconto(this); ajusteRecalcularLinha(this);">
-                        <span class="ajuste-desc-sign">%</span>
+                        <div class="ajuste-desc-input-group">
+                            <input type="number" class="form-input ajuste-input-desc" placeholder="0" min="0" max="100" step="0.1"
+                                value="${escapeHtml(valorDescPre)}"
+                                oninput="ajusteValidarDesconto(this); ajusteRecalcularLinha(this);">
+                            <span class="ajuste-desc-sign">%</span>
+                        </div>
                     </div>
                     <div>
                         <div class="produto-row-label">Por</div>
@@ -3871,19 +3873,43 @@ function selectFilter(filter) {
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
                     </button>
                 </div>
-                <div class="produto-row-bottom">
+                <div class="produto-row-bottom ajuste-row-bottom">
                     <div>
                         <div class="produto-row-label">De</div>
-                        <input type="text" class="form-input input-de font-data" placeholder="R$ 0,00" inputmode="decimal" oninput="this.value = formatCurrency(this.value);">
+                        <input type="text" class="form-input input-de font-data" placeholder="R$ 0,00" inputmode="decimal"
+                            oninput="this.value = formatCurrency(this.value); recalcularLinhaNovoOrcamento(this);">
+                    </div>
+                    <div class="ajuste-desc-wrapper">
+                        <div class="produto-row-label">% Desc.</div>
+                        <div class="ajuste-desc-input-group">
+                            <input type="number" class="form-input ajuste-input-desc" placeholder="0" min="0" max="100" step="0.1"
+                                oninput="ajusteValidarDesconto(this); recalcularLinhaNovoOrcamento(this);">
+                            <span class="ajuste-desc-sign">%</span>
+                        </div>
                     </div>
                     <div>
                         <div class="produto-row-label">Por</div>
-                        <input type="text" class="form-input input-por font-data" placeholder="R$ 0,00" inputmode="decimal" oninput="this.value = formatCurrency(this.value); calcTotalModal();">
+                        <input type="text" class="form-input input-por font-data" placeholder="R$ 0,00" inputmode="decimal" readonly tabindex="-1"
+                            title="Calculado automaticamente a partir de 'De' e '% Desc.'">
                     </div>
                 </div>
             `;
             container.appendChild(row); 
             atualizarBotoesLixeira();
+        }
+
+        /** Recalcula o "Por" (valor com desconto) de uma linha do Novo Orçamento a partir do "De" e do "% Desc." */
+        function recalcularLinhaNovoOrcamento(el) {
+            const row = el.closest('.produto-row');
+            if (!row) return;
+            const deInput = row.querySelector('.input-de');
+            const descInput = row.querySelector('.ajuste-input-desc');
+            const porInput = row.querySelector('.input-por');
+            const de = parseCurrency(deInput?.value || '0');
+            const desc = Math.min(100, Math.max(0, parseFloat((descInput?.value || '0').replace(',', '.')) || 0));
+            const por = de * (1 - desc / 100);
+            if (porInput) porInput.value = 'R$ ' + por.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+            calcTotalModal();
         }
 
         // Monta e exibe a lista de sugestões de produto conforme o usuário digita.
