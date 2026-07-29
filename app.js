@@ -3574,7 +3574,7 @@ function selectFilter(filter) {
                     </button>
                     <div style="flex:1; min-width:0; display:flex; align-items:center; gap:12px; overflow:hidden;">
                         <div style="font-size:1.25rem; font-weight:800; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;">${escapeHtml(orc.clientes?.nome_cliente || 'Cliente')}</div>
-                        ${orc.protocolo ? `<span style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:var(--brand-blue-dark); background:#eff6ff; border:1px solid #bfdbfe; padding:2px 9px; border-radius:5px; white-space:nowrap; flex-shrink:0;">${escapeHtml(orc.protocolo)}</span>` : ''}
+                        ${orc.protocolo ? `<span style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:var(--brand-blue-dark); background:var(--brand-blue-subtle); border:1px solid rgba(15, 118, 110, 0.25); padding:2px 9px; border-radius:5px; white-space:nowrap; flex-shrink:0;">${escapeHtml(orc.protocolo)}</span>` : ''}
                     </div>
                     <button type="button" class="btn-agendar-icon" data-tooltip="Agendar contato" onclick="abrirModalAgendamento()">
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -3838,7 +3838,7 @@ function selectFilter(filter) {
             const qtdExtra = produtos.length - 1;
             const tagPlural = qtdExtra > 1 ? 'itens' : 'item';
             
-            return `${primeiroProduto} <br><span style="display:inline-block; margin-top:4px; font-size:10px; font-weight:700; color:var(--brand-blue-dark); background:#eff6ff; border: 1px solid #bfdbfe; padding:2px 8px; border-radius:12px;">+ ${qtdExtra} ${tagPlural}</span>`;
+            return `${primeiroProduto} <br><span style="display:inline-block; margin-top:4px; font-size:10px; font-weight:700; color:var(--brand-blue-dark); background:var(--brand-blue-subtle); border: 1px solid rgba(15, 118, 110, 0.25); padding:2px 8px; border-radius:12px;">+ ${qtdExtra} ${tagPlural}</span>`;
         }
 
 
@@ -4068,10 +4068,10 @@ function selectFilter(filter) {
         
             main.innerHTML = `
                 <header class="dashboard-header" style="display:flex; align-items:center; gap:16px; margin-bottom:24px;">
-                    <button class="btn-voltar" onclick="navigateTo(previousView)" style="background:#fff; border:1px solid #e2e8f0; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:600; color:#475569; display:flex; align-items:center; gap:6px;">
+                    <button class="btn-voltar" onclick="navigateTo(previousView)">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Voltar
                     </button>
-                    <h1 style="font-size: 20px; font-weight: 800; color:#0f172a;">Novo Orçamento</h1>
+                    <h1 style="font-size: 20px; font-weight: 800; color:var(--text-primary);">Novo Orçamento</h1>
                 </header>
 
                 <div class="novo-orcamento-wrapper">
@@ -4142,7 +4142,7 @@ function selectFilter(filter) {
                                     Confirmar e Salvar
                                 </span>
                             </button>
-                            <button style="background:#fff; color:#475569; border:1px solid #e2e8f0; padding:14px; border-radius:8px; font-weight:600; cursor:pointer; transition:0.2s;" onclick="navigateTo(previousView)">Cancelar Alterações</button>
+                            <button style="background:var(--card-bg); color:var(--text-secondary); border:1.5px solid var(--border-light); padding:14px; border-radius:8px; font-weight:600; cursor:pointer; transition:0.2s;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background='var(--card-bg)'" onclick="navigateTo(previousView)">Cancelar Alterações</button>
                             <p class="msg" id="modalMsg" style="text-align: center; font-size: 12px;"></p>
                         </div>
                     </section>
@@ -4345,10 +4345,10 @@ function selectFilter(filter) {
 
             // Highlight selecionado
             btnEntrega.style.borderColor = modo === 'entrega' ? 'var(--brand-blue)' : 'var(--border-light)';
-            btnEntrega.style.background = modo === 'entrega' ? '#eff6ff' : 'var(--card-bg)';
+            btnEntrega.style.background = modo === 'entrega' ? 'var(--brand-blue-subtle)' : 'var(--card-bg)';
             btnEntrega.style.color = modo === 'entrega' ? 'var(--brand-blue-dark)' : 'var(--text-primary)';
             btnRetirada.style.borderColor = modo === 'retirada' ? 'var(--accent-green)' : 'var(--border-light)';
-            btnRetirada.style.background = modo === 'retirada' ? '#f0fdf4' : 'var(--card-bg)';
+            btnRetirada.style.background = modo === 'retirada' ? 'var(--accent-green-subtle)' : 'var(--card-bg)';
             btnRetirada.style.color = modo === 'retirada' ? 'var(--accent-green-dark)' : 'var(--text-primary)';
 
             if (modo === 'entrega') {
@@ -5369,11 +5369,11 @@ async function renderEstoque() {
             </div>
             <div class="kpi-card">
                 <div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Disponível</span></div>
-                <div class="kpi-value" style="color: var(--success-text);" id="estoqueKpiDisponivel">-</div>
+                <div class="kpi-value" style="color: var(--status-success-text);" id="estoqueKpiDisponivel">-</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-label-row"><span class="kpi-dot orange"></span><span class="kpi-label">Reservado</span></div>
-                <div class="kpi-value" style="color: var(--warning-text);" id="estoqueKpiReservado">-</div>
+                <div class="kpi-value" style="color: var(--status-warning-text);" id="estoqueKpiReservado">-</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-label-row"><span class="kpi-dot red"></span><span class="kpi-label">Baixo Estoque</span></div>
@@ -6066,231 +6066,6 @@ async function analisarClienteComIA(idOrcamentoAtual) {
     }
 }
 
-function abrirModalChatIA(resposta, nomeCliente) {
-    const anterior = document.getElementById('modalChatIA');
-    if (anterior) anterior.remove();
-
-	// 1. Remove negrito
-// 0. Remove raciocínio interno do modelo (tudo antes de "1. Estratégia" ou "1. Situação")
-let textoLimpo = resposta;
-const marcadorInicio = /1\.\s*(Estratégia|Situação Pós-Venda)/i;
-const matchInicio = textoLimpo.match(marcadorInicio);
-if (matchInicio) {
-    textoLimpo = textoLimpo.slice(textoLimpo.indexOf(matchInicio[0]));
-}
-
-// 1. Remove negrito
-let textoTemp = textoLimpo.replace(/\*\*(.*?)\*\*/g, '$1');
-
-// 2. REMOVE totalmente o asterisco ou hífen no início da linha
-textoTemp = textoTemp.replace(/^[\*\-]\s*/gm, ''); 
-
-// 3. Garante espaço entre linhas principais
-textoTemp = textoTemp.replace(/\n\n/g, '<br><br>');
-
-// 4. Converte quebras restantes
-const formatado = textoTemp.replace(/\n/g, '<br>');
-	
-    const modal = document.createElement('div');
-    modal.id = 'modalChatIA';
-    modal.style.cssText = `
-        position: fixed; inset: 0; z-index: 9999;
-        display: flex; align-items: flex-end; justify-content: flex-end;
-asasdasd        padding: 100px 24px 100px 0; pointer-events: none;
-    `;
-
-    modal.innerHTML = `
-        <div class="chat-modal-container" style="background: white; border-radius: 16px 16px 0 0; width: 100%; max-width: 400px; 
-                    box-shadow: 0 -4px 24px rgba(0,0,0,0.2); pointer-events: auto; display: flex; flex-direction: column; 
-                    max-height: 80vh; color: #1f2937;">
-            <div class="chat-header" style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); padding: 16px 20px; 
-                        border-radius: 16px 16px 0 0; display: flex; align-items: center; justify-content: space-between;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="background: rgba(255,255,255,0.2); padding: 8px; border-radius: 8px;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                            <line x1="12" x2="12" y1="19" y2="22"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <h3 style="color: white; font-weight: 600; font-size: 16px; margin: 0;">Assistente de Vendas</h3>
-                        <p style="color: rgba(255,255,255,0.8); font-size: 12px; margin: 0;">Análise de ${escapeHtml(nomeCliente)}</p>
-                    </div>
-                </div>
-                <button onclick="fecharModalChatIA()" style="background: rgba(255,255,255,0.2); border: none; 
-                           color: white; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; 
-                           display: flex; align-items: center; justify-content: center; font-size: 18px;">×</button>
-            </div>
-            
-            <div id="chatIAPanel" class="chat-messages-area" style="flex: 1; overflow-y: auto; padding: 16px; background: #f3f4f6; color: #1f2937;">
-                <div class="message-assistant" style="display: flex; gap: 12px; margin-bottom: 16px;">
-                    <div style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); 
-                                width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; 
-                                display: flex; align-items: center; justify-content: center;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                            <line x1="12" x2="12" y1="19" y2="22"/>
-                        </svg>
-                    </div>
-                    <div class="message-bubble" style="background: white; padding: 12px 16px; border-radius: 12px; 
-                                box-shadow: 0 1px 3px rgba(0,0,0,0.1); flex: 1; max-width: calc(100% - 44px);">
-                        <p style="margin: 0; line-height: 1.5; color: #000000; font-weight: 400;">${formatado}</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="chat-input-area" style="padding: 16px; border-top: 1px solid #e5e7eb; background: white;">
-                <div style="display: flex; gap: 8px; align-items: flex-end;">
-                    <textarea id="chatIAInput" class="chat-input" placeholder="Pergunte algo sobre este cliente..." 
-                              style="flex: 1; padding: 12px; border: 1px solid #d1d5db; border-radius: 12px; 
-                                     resize: none; font-family: inherit; font-size: 14px; outline: none; 
-                                     max-height: 100px; min-height: 44px;" rows="1"></textarea>
-                    <button id="chatIASendBtn" onclick="enviarMensagemChatIA()" class="chat-send-btn" style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); 
-                               border: none; color: white; width: 44px; height: 44px; border-radius: 12px; 
-                               cursor: pointer; display: flex; align-items: center; justify-content: center;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="22" x2="11" y1="2" y2="13"/>
-                            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
-
-    document.body.appendChild(modal);
-    setTimeout(() => document.getElementById('chatIAInput')?.focus(), 100);
-
-    window._chatIAHistorico = [
-        { role: 'user', content: 'Analise este cliente e sugira estratégias de venda.' },
-        { role: 'assistant', content: resposta }
-    ];
-}
-
-async function enviarMensagemChatIA() {
-    const input = document.getElementById('chatIAInput');
-    const texto = input?.value?.trim();
-    if (!texto) return;
-
-    const chatBody = document.querySelector('#chatIAPanel > div[style*="overflow-y"]');
-    if (!chatBody) return;
-
-    input.value = '';
-    input.disabled = true;
-
-    chatBody.insertAdjacentHTML('beforeend', `
-        <div class="message-user" style="display: flex; gap: 12px; margin-bottom: 16px; justify-content: flex-end;">
-            <div class="message-bubble" style="background: #7c3aed; padding: 12px 16px; border-radius: 12px; 
-                        box-shadow: 0 1px 3px rgba(0,0,0,0.1); flex: 1; max-width: calc(100% - 44px);">
-                <p style="margin: 0; line-height: 1.5; color: white;">${escapeHtml(texto)}</p>
-            </div>
-            <div style="width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; 
-                        background: #e5e7eb; display: flex; align-items: center; justify-content: center;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2">
-                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
-                    <circle cx="12" cy="7" r="4"/>
-                </svg>
-            </div>
-        </div>
-    `);
-
-    const typingId = 'typing_' + Date.now();
-    chatBody.insertAdjacentHTML('beforeend', `
-        <div class="message-assistant typing-bubble" style="display: flex; gap: 12px; margin-bottom: 16px;" id="${typingId}">
-            <div style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); 
-                        width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; 
-                        display: flex; align-items: center; justify-content: center;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                    <line x1="12" x2="12" y1="19" y2="22"/>
-                </svg>
-            </div>
-            <div class="message-bubble" style="background: white; padding: 12px 16px; border-radius: 12px; 
-                        box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                <div class="typing-dots" style="display: flex; gap: 4px;">
-                    <div class="typing-dot" style="width: 8px; height: 8px; background: #7c3aed; border-radius: 50%; 
-                                animation: bounce 1.4s infinite ease-in-out both;"></div>
-                    <div class="typing-dot" style="width: 8px; height: 8px; background: #7c3aed; border-radius: 50%; 
-                                animation: bounce 1.4s infinite ease-in-out both; animation-delay: 0.16s;"></div>
-                    <div class="typing-dot" style="width: 8px; height: 8px; background: #7c3aed; border-radius: 50%; 
-                                animation: bounce 1.4s infinite ease-in-out both; animation-delay: 0.32s;"></div>
-                </div>
-            </div>
-        </div>
-    `);
-    chatBody.scrollTop = chatBody.scrollHeight;
-
-    try {
-        window._chatIAHistorico = window._chatIAHistorico || [];
-        window._chatIAHistorico.push({ role: 'user', content: texto });
-
-        const { data: { session } } = await db.auth.getSession();
-        const res = await fetch(
-            'https://blumqkxwasdbyozdvrsp.supabase.co/functions/v1/gemini-proxy ',
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-                body: JSON.stringify({
-                    prompt: `${texto}\n\nContexto da conversa anterior: ${JSON.stringify(window._chatIAHistorico.slice(0,-1))}`
-                }),
-            }
-        );
-        const data = await res.json();
-        if (data.error) throw new Error(data.error);
-
-        const respostaFormatada = (data.text || '')
-            .replace(/\*\*(.*?)\*\*/g, '$1')
-            .replace(/^\* /gm, '• ')
-            .replace(/\n/g, '<br>');
-
-        window._chatIAHistorico.push({ role: 'assistant', content: data.text });
-
-        document.getElementById(typingId)?.remove();
-        chatBody.insertAdjacentHTML('beforeend', `
-            <div class="message-assistant" style="display: flex; gap: 12px; margin-bottom: 16px;">
-                <div style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); 
-                            width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; 
-                            display: flex; align-items: center; justify-content: center;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                        <line x1="12" x2="12" y1="19" y2="22"/>
-                    </svg>
-                </div>
-                <div class="message-bubble" style="background: white; padding: 12px 16px; border-radius: 12px; 
-                            box-shadow: 0 1px 3px rgba(0,0,0,0.1); flex: 1; max-width: calc(100% - 44px);">
-                    <p style="margin: 0; line-height: 1.5; color: #000000; font-weight: 400;">${respostaFormatada}</p>
-                </div>
-            </div>
-        `);
-    } catch(e) {
-        document.getElementById(typingId)?.remove();
-        chatBody.insertAdjacentHTML('beforeend', `
-            <div class="message-assistant" style="display: flex; gap: 12px; margin-bottom: 16px;">
-                <div style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); 
-                            width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; 
-                            display: flex; align-items: center; justify-content: center;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                        <line x1="12" x2="12" y1="19" y2="22"/>
-                    </svg>
-                </div>
-                <div class="message-bubble" style="background: white; padding: 12px 16px; border-radius: 12px; 
-                            box-shadow: 0 1px 3px rgba(0,0,0,0.1); flex: 1; max-width: calc(100% - 44px);">
-                    <p style="margin: 0; line-height: 1.5; color: #ef4444; font-weight: 400;">Erro ao responder. Tente novamente.</p>
-                </div>
-            </div>
-        `);
-    } finally {
-        input.disabled = false;
-        input.focus();
-        chatBody.scrollTop = chatBody.scrollHeight;
-    }
-}
 
 async function chamarIA(prompt, contexto = '') {
     const { data: { session } } = await db.auth.getSession();
