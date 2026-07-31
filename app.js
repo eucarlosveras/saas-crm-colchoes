@@ -532,6 +532,8 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
             // com comparação hoje x ontem — só se aplica a quem loga como Vendedor.
             if (AppState.usuarioLogado.perfil === 'Vendedor') {
                 await carregarKpisDiariosVendedor();
+            } else if (AppState.usuarioLogado.perfil === 'Gerente' || (AppState.usuarioLogado.perfil || '').toLowerCase() === 'terminal') {
+                await carregarKpisDiariosGerente();
             }
 
             atualizarBadge();
@@ -721,7 +723,11 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         async function selecionarPeriodoKpiVendedor(periodo) {
             if (periodo === kpiPeriodoVendedor) return;
             kpiPeriodoVendedor = periodo;
-            await carregarKpisDiariosVendedor(periodo);
+            if (AppState.usuarioLogado.perfil === 'Vendedor') {
+                await carregarKpisDiariosVendedor(periodo);
+            } else if (AppState.usuarioLogado.perfil === 'Gerente' || (AppState.usuarioLogado.perfil || '').toLowerCase() === 'terminal') {
+                await carregarKpisDiariosGerente(periodo);
+            }
             if (currentView === 'inicio') renderInicio();
         }
 
@@ -928,7 +934,98 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
 
                 pagination.innerHTML = '';
                 pagination.appendChild(fragPag);
-            } catch (error) { tbody.innerHTML = `<div class="negociacoes-empty erro">Erro ao carregar dados da tabela.</div>`; }
+            }
+
+        function carregarKpisDiariosGerente(periodo = kpiPeriodoVendedor) {
+            const { inicioAtual, fimAtualExclusivo, inicioAnterior, fimAnteriorExclusivo, labelComparacao } = getIntervalosPeriodoKpi(periodo);
+
+            // Determina quais vendedores entram na agregação
+            const lojasPermitidas = getLojasPermitidas();
+            let vendedoresFiltrados = todosVendedores;
+
+            if (selectedLoja !== 'todas') {
+                // Uma loja específica selecionada no filtro
+                vendedoresFiltrados = todosVendedores.filter(v => v.id_loja === selectedLoja);
+            } else if (lojasPermitidas && lojasPermitidas.length > 0) {
+                // "Todas" = todas as lojas permitidas para este gerente
+                vendedoresFiltrados = todosVendedores.filter(v => lojasPermitidas.includes(v.id_loja));
+            }
+
+            const idsVendedores = vendedoresFiltrados.map(v => v.id_usuario);
+            const idsFechado = mapStatusUUID.filter(s => s.nome === STATUS.FECHADO).map(s => s.id_status);
+            const idsFechadoSafe = idsFechado.length ? idsFechado : ['00000000-0000-0000-0000-000000000000'];
+
+            const buscarVendasDoPeriodo = async (inicioStr, fimStr) => {
+                let query = db.from('orcamentos')
+                    .select('valor_orcado, modelo_colchao, id_usuario')
+                    .in('id_status', idsFechadoSafe)
+                    .gte('data_fechamento', `${inicioStr}T00:00:00`)
+                    .lt('data_fechamento', `${fimStr}T00:00:00`);
+
+                if (idsVendedores.length > 0) {
+                    query = query.in('id_usuario', idsVendedores);
+                } else {
+                    query = query.eq('id_usuario', '00000000-0000-0000-0000-000000000000');
+                }
+
+                const { data, error } = await query;
+                if (error) { console.error('Erro ao buscar vendas do período (KPI gerente):', error); return []; }
+                return data || [];
+            };
+
+            const buscarClientesCadastradosNoPeriodo = async (inicioStr, fimStr) => {
+                let queryPeriodo = db.from('orcamentos')
+                    .select('id_cliente')
+                    .gte('data_criacao', `${inicioStr}T00:00:00`)
+                    .lt('data_criacao', `${fimStr}T00:00:00`);
+
+                if (idsVendedores.length > 0) {
+                    queryPeriodo = queryPeriodo.in('id_usuario', idsVendedores);
+                } else {
+                    queryPeriodo = queryPeriodo.eq('id_usuario', '00000000-0000-0000-0000-000000000000');
+                }
+
+                const { data: orcsPeriodo, error: errPeriodo } = await queryPeriodo;
+                if (errPeriodo) { console.error('Erro ao buscar orçamentos do período (KPI novos clientes gerente):', errPeriodo); return 0; }
+
+                const candidatos = [...new Set((orcsPeriodo || []).map(o => o.id_cliente).filter(Boolean))];
+                if (candidatos.length === 0) return 0;
+
+                const { data: orcsAnteriores, error: errAnteriores } = await db.from('orcamentos')
+                    .select('id_cliente')
+                    .in('id_cliente', candidatos)
+                    .lt('data_criacao', `${inicioStr}T00:00:00`);
+
+                if (errAnteriores) { console.error('Erro ao checar histórico de clientes (KPI novos clientes gerente):', errAnteriores); return 0; }
+                const clientesComHistorico = new Set((orcsAnteriores || []).map(o => o.id_cliente));
+
+                return candidatos.filter(id => !clientesComHistorico.has(id)).length;
+            };
+
+            const [vendasAtual, vendasAnterior, clientesAtual, clientesAnterior] = await Promise.all([
+                buscarVendasDoPeriodo(inicioAtual, fimAtualExclusivo),
+                buscarVendasDoPeriodo(inicioAnterior, fimAnteriorExclusivo),
+                buscarClientesCadastradosNoPeriodo(inicioAtual, fimAtualExclusivo),
+                buscarClientesCadastradosNoPeriodo(inicioAnterior, fimAnteriorExclusivo)
+            ]);
+
+            const somarValor = arr => arr.reduce((acc, o) => acc + parseFloat(o.valor_orcado || 0), 0);
+            const contarProdutos = arr => arr.reduce((acc, o) => acc + (o.modelo_colchao ? o.modelo_colchao.split(',').map(p => p.trim()).filter(Boolean).length : 0), 0);
+
+            const valorAtual = somarValor(vendasAtual);
+            const valorAnterior = somarValor(vendasAnterior);
+
+            AppState.kpisDiariosGerente = {
+                labelComparacao,
+                vendas: { hoje: valorAtual, ontem: valorAnterior },
+                ticket: {
+                    hoje: vendasAtual.length ? valorAtual / vendasAtual.length : 0,
+                    ontem: vendasAnterior.length ? valorAnterior / vendasAnterior.length : 0
+                },
+                clientes: { hoje: clientesAtual, ontem: clientesAnterior },
+                produtos: { hoje: contarProdutos(vendasAtual), ontem: contarProdutos(vendasAnterior) }
+            };
+        } catch (error) { tbody.innerHTML = `<div class="negociacoes-empty erro">Erro ao carregar dados da tabela.</div>`; }
         }
 
         async function exportarCSV() {
@@ -2350,14 +2447,27 @@ function selectFilter(filter) {
     
     let kpiHtml;
     let kpiToggleHtml = '';
-    if (!isGerente && currentUser.perfil === 'Vendedor') {
-        const k = AppState.kpisDiariosVendedor || { labelComparacao: 'vs. ontem', vendas: { hoje: 0, ontem: 0 }, ticket: { hoje: 0, ontem: 0 }, clientes: { hoje: 0, ontem: 0 }, produtos: { hoje: 0, ontem: 0 } };
-        // Sufixo do nome do card muda junto com o período selecionado (Vendas Hoje / Vendas Semana / Vendas Mês...)
+
+    // Verifica se deve mostrar KPIs diários (Vendedor individual ou Gerente agregado)
+    const mostrarKpisDiarios = currentUser.perfil === 'Vendedor' || currentUser.perfil === 'Gerente' || (currentUser.perfil || '').toLowerCase() === 'terminal';
+
+    if (mostrarKpisDiarios) {
+        // Vendedor usa kpisDiariosVendedor, Gerente usa kpisDiariosGerente
+        const isPerfGerente = currentUser.perfil === 'Gerente' || (currentUser.perfil || '').toLowerCase() === 'terminal';
+        const k = isPerfGerente 
+            ? (AppState.kpisDiariosGerente || { labelComparacao: 'vs. ontem', vendas: { hoje: 0, ontem: 0 }, ticket: { hoje: 0, ontem: 0 }, clientes: { hoje: 0, ontem: 0 }, produtos: { hoje: 0, ontem: 0 } })
+            : (AppState.kpisDiariosVendedor || { labelComparacao: 'vs. ontem', vendas: { hoje: 0, ontem: 0 }, ticket: { hoje: 0, ontem: 0 }, clientes: { hoje: 0, ontem: 0 }, produtos: { hoje: 0, ontem: 0 } });
+
+        // Sufixo do nome do card muda junto com o período selecionado
         const sufixoPeriodo = { hoje: 'Hoje', semana: 'Semana', mes: 'Mês' }[kpiPeriodoVendedor];
         const fmtMoeda = n => n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         const periodos = [['hoje', 'Hoje'], ['semana', 'Semana'], ['mes', 'Mês']];
+
+        // Título muda conforme o perfil
+        const tituloKpi = isPerfGerente ? 'Desempenho da Loja' : 'Meu Desempenho';
+
         kpiToggleHtml = `<div class="kpi-section-header">
-            <h3 class="kpi-section-title">Meu Desempenho</h3>
+            <h3 class="kpi-section-title">${tituloKpi}</h3>
             <div class="kpi-periodo-toggle">${periodos.map(([valor, rotulo]) =>
                 `<button type="button" class="kpi-periodo-btn ${kpiPeriodoVendedor === valor ? 'active' : ''}" onclick="selecionarPeriodoKpiVendedor('${valor}')">${rotulo}</button>`
             ).join('')}</div>
