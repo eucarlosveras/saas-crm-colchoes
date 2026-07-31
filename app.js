@@ -935,6 +935,9 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                 pagination.innerHTML = '';
                 pagination.appendChild(fragPag);
             }
+        } catch (error) { 
+            tbody.innerHTML = `<div class="negociacoes-empty erro">Erro ao carregar dados da tabela.</div>`; 
+        }
 
         async function carregarKpisDiariosGerente(periodo = kpiPeriodoVendedor) {
             const { inicioAtual, fimAtualExclusivo, inicioAnterior, fimAnteriorExclusivo, labelComparacao } = getIntervalosPeriodoKpi(periodo);
@@ -1025,7 +1028,6 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                 clientes: { hoje: clientesAtual, ontem: clientesAnterior },
                 produtos: { hoje: contarProdutos(vendasAtual), ontem: contarProdutos(vendasAnterior) }
             };
-        } catch (error) { tbody.innerHTML = `<div class="negociacoes-empty erro">Erro ao carregar dados da tabela.</div>`; }
         }
 
         async function exportarCSV() {
