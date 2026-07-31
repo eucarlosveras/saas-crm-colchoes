@@ -333,13 +333,24 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
             // NOVO CÓDIGO LEVE E ESCALÁVEL
             const isAdmin = AppState.usuarioLogado.perfil === 'Administrador' || AppState.usuarioLogado.perfil === 'Admin';
             try {
+                // Determina qual id_loja usar baseado no filtro selectedLoja
+                let filtroIdLoja = AppState.usuarioLogado.id_loja;
+                
+                // Se for Admin/Gerente e houver filtro de loja selecionado, usa esse filtro
+                if ((AppState.usuarioLogado.perfil === 'Gerente' || isAdmin) && selectedLoja !== 'todas') {
+                    filtroIdLoja = selectedLoja;
+                }
+                
+                // Para perfil terminal, também respeita o filtro de loja se aplicável
+                const perfilParaRPC = (AppState.usuarioLogado.perfil || '').toLowerCase() === 'terminal' ? 'Gerente' : AppState.usuarioLogado.perfil;
+                
                 // Chama a função direto no banco, passando apenas os filtros
                 const { data: kpisData, error: rpcError } = await db.rpc('calcular_kpis_dashboard', {
                     p_mes: currentMonth,
                     p_ano: currentYear,
                     p_id_usuario: AppState.usuarioLogado.id_usuario,
-                    p_perfil: (AppState.usuarioLogado.perfil || '').toLowerCase() === 'terminal' ? 'Gerente' : AppState.usuarioLogado.perfil,
-                    p_id_loja: AppState.usuarioLogado.id_loja
+                    p_perfil: perfilParaRPC,
+                    p_id_loja: filtroIdLoja
                 });
                 if (rpcError) throw rpcError;
                 // Salvamos o resultado mastigado no objeto global
@@ -379,8 +390,14 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                 }
                 if (orPartsDash.length) queryDetalhes = queryDetalhes.or(orPartsDash.join(','));
 
-                if (AppState.usuarioLogado.perfil === 'Gerente' || (AppState.usuarioLogado.perfil || '').toLowerCase() === 'terminal') {
-                    const ids = todosVendedores.filter(v => v.id_loja === AppState.usuarioLogado.id_loja).map(v => v.id_usuario);
+                // Aplica filtro de loja para Gerente/Admin quando selecionado
+                let filtroLojaParaDetalhes = AppState.usuarioLogado.id_loja;
+                if ((AppState.usuarioLogado.perfil === 'Gerente' || AppState.usuarioLogado.perfil === 'Administrador' || AppState.usuarioLogado.perfil === 'Admin') && selectedLoja !== 'todas') {
+                    filtroLojaParaDetalhes = selectedLoja;
+                }
+
+                if (AppState.usuarioLogado.perfil === 'Gerente' || AppState.usuarioLogado.perfil === 'Administrador' || AppState.usuarioLogado.perfil === 'Admin' || (AppState.usuarioLogado.perfil || '').toLowerCase() === 'terminal') {
+                    const ids = todosVendedores.filter(v => v.id_loja === filtroLojaParaDetalhes).map(v => v.id_usuario);
                     if (ids.length > 0) queryDetalhes = queryDetalhes.in('id_usuario', ids);
                     if (selectedVendedor !== 'todos') queryDetalhes = queryDetalhes.eq('id_usuario', selectedVendedor);
                 } else if (AppState.usuarioLogado.perfil === 'Vendedor') {
@@ -783,7 +800,41 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
 }
 
         async function carregarHistoricoFaturamento() {
-            if (!currentUser || (currentUser.perfil !== 'Vendedor' && (currentUser.perfil || '').toLowerCase() !== 'terminal')) { historicoFaturamento = []; return; }
+            // Historico de faturamento: para Gerente/Admin, usa a loja filtrada; para Vendedor, usa individual
+            const ehVendedor = currentUser.perfil === 'Vendedor' || (currentUser.perfil || '').toLowerCase() === 'terminal';
+            if (!currentUser) { historicoFaturamento = []; return; }
+            
+            // Determina quais vendedores considerar baseado no perfil e filtro de loja
+            let vendedoresParaHistorico = [];
+            if (ehVendedor && currentUser.perfil !== 'terminal') {
+                vendedoresParaHistorico = [currentUser];
+            } else if ((currentUser.perfil || '').toLowerCase() === 'terminal') {
+                vendedoresParaHistorico = todosVendedores.filter(v => v.id_loja === currentUser.id_loja);
+            } else if (currentUser.perfil === 'Gerente' || currentUser.perfil === 'Administrador' || currentUser.perfil === 'Admin') {
+                // Para Gerente/Admin, respeita o filtro de loja selecionada
+                if (selectedLoja !== 'todas') {
+                    vendedoresParaHistorico = todosVendedores.filter(v => v.id_loja === selectedLoja);
+                } else {
+                    vendedoresParaHistorico = todosVendedores.filter(v => v.id_loja === currentUser.id_loja);
+                }
+                // Se houver filtro de vendedor, aplica também
+                if (selectedVendedor !== 'todos') {
+                    vendedoresParaHistorico = vendedoresParaHistorico.filter(v => v.id_usuario === selectedVendedor);
+                }
+            } else {
+                // Admin geral sem filtro de loja
+                if (selectedLoja !== 'todas') {
+                    vendedoresParaHistorico = todosVendedores.filter(v => v.id_loja === selectedLoja);
+                } else {
+                    vendedoresParaHistorico = todosVendedores;
+                }
+                if (selectedVendedor !== 'todos') {
+                    vendedoresParaHistorico = vendedoresParaHistorico.filter(v => v.id_usuario === selectedVendedor);
+                }
+            }
+            
+            if (vendedoresParaHistorico.length === 0) { historicoFaturamento = []; return; }
+            
             const hoje = new Date(); historicoFaturamento = [];
             try {
                 const uuidsFechados = mapStatusUUID.filter(s => [STATUS.FECHADO, STATUS.VENDIDO].includes(s.nome)).map(s => s.id_status);
@@ -795,9 +846,10 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                     const startDate = new Date(ano, mesNum - 1, 1).toISOString(); 
                     const endDate = new Date(ano, mesNum, 0, 23, 59, 59).toISOString();
                     
+                    const idsVendedores = vendedoresParaHistorico.map(v => v.id_usuario);
                     let query = db.from('orcamentos')
                         .select('valor_orcado')
-                        .eq('id_usuario', currentUser.id_usuario)
+                        .in('id_usuario', idsVendedores)
                         .gte('data_fechamento', startDate)
                         .lte('data_fechamento', endDate);
                     
@@ -890,8 +942,13 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
             if ((currentUser.perfil || '').toLowerCase() === 'terminal') return todosVendedores.filter(v => v.id_loja === currentUser.id_loja).reduce((s, v) => s + getMetaVendedor(v.id_usuario), 0);
             
             let filtrados = todosVendedores;
-            if (currentUser.perfil === 'Gerente') {
-                filtrados = todosVendedores.filter(v => v.id_loja === currentUser.id_loja);
+            if (currentUser.perfil === 'Gerente' || currentUser.perfil === 'Administrador' || currentUser.perfil === 'Admin') {
+                // Para Gerente/Admin, respeita o filtro de loja selecionada
+                if (selectedLoja !== 'todas') {
+                    filtrados = todosVendedores.filter(v => v.id_loja === selectedLoja);
+                } else {
+                    filtrados = todosVendedores.filter(v => v.id_loja === currentUser.id_loja);
+                }
                 if (selectedVendedor !== 'todos') filtrados = filtrados.filter(v => v.id_usuario === selectedVendedor);
             } else {
                 if (selectedVendedor !== 'todos') {
@@ -1888,8 +1945,13 @@ function selectFilter(filter) {
     let rankingHtml = '';
                 if (isGerente) {
                     let vendedoresRanking = todosVendedores;
-                    if (currentUser.perfil === 'Gerente') {
-                        vendedoresRanking = todosVendedores.filter(v => v.id_loja === currentUser.id_loja);
+                    // Para Gerente/Admin, respeita o filtro de loja selecionada
+                    if (currentUser.perfil === 'Gerente' || currentUser.perfil === 'Administrador' || currentUser.perfil === 'Admin') {
+                        if (selectedLoja !== 'todas') {
+                            vendedoresRanking = todosVendedores.filter(v => v.id_loja === selectedLoja);
+                        } else {
+                            vendedoresRanking = todosVendedores.filter(v => v.id_loja === currentUser.id_loja);
+                        }
                     } else if (selectedLoja !== 'todas') {
                         vendedoresRanking = todosVendedores.filter(v => v.id_loja === selectedLoja);
                     }
