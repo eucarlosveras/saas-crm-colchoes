@@ -936,7 +936,7 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
                 pagination.appendChild(fragPag);
             }
 
-        function carregarKpisDiariosGerente(periodo = kpiPeriodoVendedor) {
+        async function carregarKpisDiariosGerente(periodo = kpiPeriodoVendedor) {
             const { inicioAtual, fimAtualExclusivo, inicioAnterior, fimAnteriorExclusivo, labelComparacao } = getIntervalosPeriodoKpi(periodo);
 
             // Determina quais vendedores entram na agregação
