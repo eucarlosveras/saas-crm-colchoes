@@ -1,0 +1,24 @@
+{
+  "name": "saas-crm-colchoes",
+  "version": "1.0.0",
+  "description": "CRM para gestão de vendas de colchões",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "crm",
+    "saas",
+    "colchoes"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "vite": "^8.2.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.109.0"
+  }
+}
