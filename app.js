@@ -3929,6 +3929,35 @@ function selectFilter(filter) {
                 const statusFechado = mapStatusUUID.find(s => s.nome === STATUS.FECHADO);
                 if (!statusFechado) throw new Error('Status "Fechado" não encontrado');
 
+                // === NOVA LÓGICA DE ESTOQUE ===
+                // 1. Obter detalhes completos do orçamento com os produtos
+                const { data: orcamentoDetalhes, error: erroOrcamento } = await db
+                    .from('orcamentos')
+                    .select('modelo_colchao, valor_orcado')
+                    .eq('id_orcamento', id)
+                    .single();
+                
+                if (erroOrcamento) throw erroOrcamento;
+                
+                // 2. Extrair lista de produtos do campo modelo_colchao
+                const produtosStr = orcamentoDetalhes?.modelo_colchao || '';
+                const produtosLista = produtosStr.split(',').map(p => p.trim()).filter(Boolean);
+                
+                if (produtosLista.length > 0) {
+                    // 3. Verificar e baixar estoque para cada produto
+                    const resultadoBaixa = await baixarEstoqueProdutos(produtosLista, id);
+                    
+                    if (!resultadoBaixa.sucesso) {
+                        throw new Error(resultadoBaixa.erro || 'Erro ao baixar estoque');
+                    }
+                    
+                    if (resultadoBaixa.alertas && resultadoBaixa.alertas.length > 0) {
+                        // Mostrar alertas de estoque baixo mas permitir o fechamento
+                        console.log('Alertas de estoque:', resultadoBaixa.alertas);
+                    }
+                }
+                // ===============================
+
                 const updatePayload = { id_status: statusFechado.id_status, data_fechamento: new Date().toISOString() };
                 if (dataEntrega) updatePayload.data_entrega = dataEntrega;
 
@@ -4614,6 +4643,38 @@ async function dropCardFechado(event) {
 
     showToast('Fechando negócio...', 'info');
     try {
+        // === NOVA LÓGICA DE ESTOQUE PARA DRAG & DROP ===
+        // 1. Obter detalhes do orçamento com os produtos
+        const { data: orcamentoDetalhes, error: erroOrcamento } = await db
+            .from('orcamentos')
+            .select('modelo_colchao, valor_orcado')
+            .eq('id_orcamento', idOrcamento)
+            .single();
+        
+        if (erroOrcamento) throw erroOrcamento;
+        
+        // 2. Extrair lista de produtos
+        const produtosStr = orcamentoDetalhes?.modelo_colchao || '';
+        const produtosLista = produtosStr.split(',').map(p => p.trim()).filter(Boolean);
+        
+        if (produtosLista.length > 0) {
+            // 3. Baixar estoque
+            const resultadoBaixa = await baixarEstoqueProdutos(produtosLista, idOrcamento);
+            
+            if (!resultadoBaixa.sucesso) {
+                throw new Error(resultadoBaixa.erro || 'Erro ao baixar estoque');
+            }
+            
+            if (resultadoBaixa.alertas && resultadoBaixa.alertas.length > 0) {
+                console.log('Alertas de estoque:', resultadoBaixa.alertas);
+                // Exibir alertas no toast
+                resultadoBaixa.alertas.forEach(alerta => {
+                    console.warn(alerta);
+                });
+            }
+        }
+        // ================================================
+
         const { error } = await db.from('orcamentos')
             .update({ id_status: statusObj.id_status, data_fechamento: new Date().toISOString() })
             .eq('id_orcamento', idOrcamento);
@@ -5006,6 +5067,98 @@ function renderizarTabelaEstoque(data) {
         `;
     }).join('');
 }
+
+// === FUNÇÃO PARA BAIXAR ESTOQUE AO FECHAR VENDA ===
+async function baixarEstoqueProdutos(produtosLista, idOrcamento) {
+    try {
+        const alertas = [];
+        
+        // Para cada produto na lista do orçamento
+        for (const nomeProduto of produtosLista) {
+            const nomeNormalizado = nomeProduto.trim();
+            
+            // Buscar no estoque o produto correspondente pelo nome
+            const { data: itensEstoque, error: erroBusca } = await db
+                .from('estoque')
+                .select('id_estoque, id_produto, nome_produto, qtd_disponivel, qtd_reservada, qualidade')
+                .ilike('nome_produto', `%${nomeNormalizado}%`)
+                .eq('status', 'Ativo')
+                .limit(1);
+            
+            if (erroBusca || !itensEstoque || itensEstoque.length === 0) {
+                // Produto não encontrado no estoque - apenas alerta, não impede o fechamento
+                alertas.push(`Produto "${nomeNormalizado}" não encontrado no estoque.`);
+                continue;
+            }
+            
+            const itemEstoque = itensEstoque[0];
+            const qtdDisponivel = parseInt(itemEstoque.qtd_disponivel) || 0;
+            
+            // Verificar se há estoque disponível
+            if (qtdDisponivel <= 0) {
+                alertas.push(`⚠️ Produto "${nomeNormalizado}" está sem estoque disponível!`);
+                // Continua mesmo sem estoque para não bloquear a venda
+                // Mas registra o alerta
+                continue;
+            }
+            
+            // Baixar 1 unidade do estoque (considerando venda de 1 unidade por produto)
+            const novaQtd = qtdDisponivel - 1;
+            
+            const { error: erroUpdate } = await db
+                .from('estoque')
+                .update({ 
+                    qtd_disponivel: novaQtd,
+                    // Se quiser registrar histórico, pode adicionar um campo de última movimentação
+                    ultima_movimentacao: new Date().toISOString()
+                })
+                .eq('id_estoque', itemEstoque.id_estoque);
+            
+            if (erroUpdate) {
+                throw new Error(`Erro ao atualizar estoque para "${nomeNormalizado}": ${erroUpdate.message}`);
+            }
+            
+            // Registrar movimentação de saída na tabela de histórico (se existir)
+            try {
+                await db.from('movimentacoes_estoque').insert([{
+                    id_produto: itemEstoque.id_produto,
+                    id_estoque: itemEstoque.id_estoque,
+                    tipo: 'saida',
+                    quantidade: 1,
+                    motivo: `Venda fechada - Orçamento #${idOrcamento}`,
+                    id_orcamento: idOrcamento,
+                    data_movimentacao: new Date().toISOString(),
+                    usuario_responsavel: currentUser?.nome || 'Sistema'
+                }]);
+            } catch (e) {
+                // Tabela de movimentações pode não existir - ignora silenciosamente
+                console.log('Tabela movimentacoes_estoque não disponível:', e.message);
+            }
+            
+            // Verificar se ficou com estoque baixo após a baixa
+            if (novaQtd <= 5) {
+                alertas.push(`⚠️ Estoque baixo: "${nomeNormalizado}" agora tem apenas ${novaQtd} unidade(s).`);
+            }
+        }
+        
+        return {
+            sucesso: true,
+            alertas: alertas,
+            mensagem: alertas.length > 0 ? 
+                `Baixa realizada com ${alertas.length} alerta(s)` : 
+                'Estoque atualizado com sucesso!'
+        };
+        
+    } catch (e) {
+        console.error('Erro ao baixar estoque:', e);
+        return {
+            sucesso: false,
+            erro: e.message,
+            alertas: []
+        };
+    }
+}
+// ================================================
 
 function renderMeuRadar() {
     const main = document.getElementById('mainContent');
@@ -5924,6 +6077,9 @@ window.fecharModalNovoProduto = fecharModalNovoProduto;
 
 // Agenda
 window.setAgendaFiltro = setAgendaFiltro;
+
+// Estoque - Nova função de baixa automática
+window.baixarEstoqueProdutos = baixarEstoqueProdutos;
 
 // Radar (já existiam)
 // window.handleRadarAction = handleRadarAction;

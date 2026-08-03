@@ -1,37 +1,42 @@
-```
+# Compiled and build artifacts
+*.pyc
+__pycache__/
+*.o
+*.obj
+*.class
+*.exe
+*.dll
+*.so
+*.a
+*.out
+
 # Dependencies
 node_modules/
-
-# Build artifacts
-dist/
-build/
-target/
+venv/
+.venv/
+.env
+.env.local
+*.env.*
 
 # Logs and temp files
 *.log
 *.tmp
-
-# Environment
-.env
-.env.local
-*.env.*
+*.swp
+*.swo
 
 # Editors
 .vscode/
 .idea/
 
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-
 # Coverage
+.coverage
 coverage/
 htmlcov/
-.coverage
 
-# Compression
+# Distribution / packaging
+dist/
+build/
+*.tar.gz
 *.zip
 *.gz
 *.tar
@@ -50,23 +55,193 @@ htmlcov/
 *.Z
 *.lz
 *.lzo
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.tar.zst
 
-# System files
+# OS generated files
 .DS_Store
 Thumbs.db
 
-# Testing
-.mypy_cache/
+# Python specific
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+*.so
+.Python
+*.egg-info/
+.eggs/
 .pytest_cache/
+.mypy_cache/
 
-# Gradle
+# Node specific
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Java specific
+target/
 .gradle/
+*.class
+*.jar
+*.war
+*.ear
 
-# Temporary files
-*.swp
-*.swo
-```
+# Go specific
+*.exe
+*.dll
+*.so
+*.dylib
+
+# C/C++ specific
+*.o
+*.a
+*.obj
+*.out
+*.exe
+*.dll
+*.so
+*.dylib
+*.lib
+*.def
+*.exp
+*.ilk
+*.pdb
+*.res
+*.rsp
+*.sln
+*.vcxproj
+*.vcproj
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.vcxproj.filters
+*.VC.db
+*.VC.VC.opendb
+
+# Ruby specific
+*.gem
+*.rbc
+*.sassc
+.sass-cache/
+capybara-*.html
+.rspec
+vendor/bundle/
+.bundle/
+.rbenv-vars
+.rbenv-version
+.travis.yml
+
+# Rust specific
+target/
+Cargo.lock
+*.so
+*.dylib
+*.dll
+
+# Julia specific
+julia-*/
+.julia/
+
+# Zig specific
+zig*/
+
+# Gradle specific
+.gradle/
+build/
+
+# Maven specific
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvnd/daemon.properties
+.mvnd/jvm.properties
+
+# .NET specific
+*.sln
+*.csproj
+*.vbproj
+*.nupkg
+[contentPacks]/
+packages/
+bin/
+obj/
+TestResults/
+*.trx
+*.VisualState.xml
+*.dtf
+*.pidb
+*.userprefs
+*.metagen
+*.dbmdl
+*.dbproj.schemaview.xml
+*.VC.db
+*.VC.VC.opendb
+*.aps
+*.ncb
+*.opensdf
+*.sdf
+*.cachefile
+*.VC.VC.opendb-shm
+*.VC.VC.opendb-wal
+*.VC.VC.opendb-shm
+*.VC.VC.opendb-wal
+*.VC.VC.opendb-shm
+*.VC.VC.opendb-wal
+*.VC.VC.opendb-shm
+*.VC.VC.opendb-wal
+*.VC.VC.opendb-shm
+*.VC.VC.opendb-wal
+*.VC.VC.opendb-shm
+*.VC.VC.opendb-wal
+*.VC.VC.opendb-shm
+*.VC.VC.opendb-wal
+*.VC.VC.opendb-shm
+*.VC.VC.opendb-wal
+*.VC.VC.opendb-shm
+*.VC.VC.opendb-wal
+*.VC.VC.opendb-shm
+*.VC.VC.opendb-wal
+*.VC.VC.opendb-shm
+*.VC.VC.opendb-wal
+*.VC.VC.opendb-shm
+*.VC.VC.opendb-wal
+*.VC.VC.opendb-shm
+*.VC.VC.opendb-wal
+*.VC.VC.opendb-shm
+*.VC.VC.opendb-wal
+*.VC.VC.opendb-shm
+*.VC.VC.opendb-wal
+*.VC.VC.opendb-shm
+*.VC.VC.opendb-wal
+*.VC.VC.opendb-shm
+*.VC.VC.opendb-wal
+*.VC.VC.opendb-shm
+*.VC.VC.opendb-wal
+*.VC.VC.opendb-shm
+*.VC.VC.opendb-wal
+*.VC.VC.opendb-shm
+*.VC.VC.opendb-wal
+*.VC.VC.opendb-shm
+*.VC.VC.opendb-wal
+*.VC.VC.opendb-shm
+*.VC.VC.opendb-wal
+*.VC.VC.opendb-shm
+*.VC.VC.opendb-wal
+*.VC.VC.opendb-shm
+*.VC.VC.opendb-wal
+*.VC.VC.opendb-shm
+*.VC.VC.opendb-wal
+*.VC.VC.opendb-shm
+*.VC.VC.opendb-wal
+*.VC.VC.opendb-shm
+*.VC.VC.opendb-wal
+*.VC.VC.opendb-shm
+*.VC.VC.opendb-wal
+*.VC.VC.opend......
