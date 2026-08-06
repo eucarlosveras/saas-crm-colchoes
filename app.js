@@ -401,18 +401,30 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
 
         async function carregarDadosIniciais() {
             showLoader();
-            const [resStatus, resInteresse, resLojas] = await Promise.all([
+            
+            // ═══════════════════════════════════════════════════════
+            // NOVO: Carregar dados básicos com soft delete
+            // ═══════════════════════════════════════════════════════
+            const [resStatus, resInteresse, resLojas, resProdutos] = await Promise.all([
                 db.from('status_orcamento').select('*'),
                 db.from('niveis_interesse').select('*'),
-                db.from('lojas').select('*')
+                db.from('lojas').select('*'),
+                db.from('produtos').select('*').is('deleted_at', null)  // ← NOVO
             ]);
+            
             mapStatusUUID = resStatus.data || [];
             mapInteresseUUID = resInteresse.data || [];
             listaLojas = resLojas.data || [];
+            listaProdutos = resProdutos.data || [];  // ← NOVO: Cache de produtos
 
             await carregarProdutos();
             await carregarKpisEDashboard();
             await carregarHistoricoFaturamento();
+            
+            // ═══════════════════════════════════════════════════════
+            // NOVO: Verificar alertas de estoque pendentes
+            // ═══════════════════════════════════════════════════════
+            await verificarAlertasEstoque();
             
             if (currentUser.perfil === 'Administrador' || currentUser.perfil === 'Admin') navigateTo('admin_inicio');
             else navigateTo('inicio');
@@ -429,117 +441,65 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         }
 
      async function carregarKpisEDashboard() {
-            if (!AppState.usuarioLogado) return;
-            // NOVO CÓDIGO LEVE E ESCALÁVEL
-            const isAdmin = AppState.usuarioLogado.perfil === 'Administrador' || AppState.usuarioLogado.perfil === 'Admin';
-            try {
-                // Se for Gerente com mais de uma loja, manda a lista para a RPC agregar o resumo das 3.
-                // Terminal e Gerente de loja única continuam usando p_id_loja (comportamento antigo, intocado).
-                const lojasPermitidasRPC = getLojasPermitidas();
-                const isGerenteMultilojaRPC = AppState.usuarioLogado.perfil === 'Gerente' && lojasPermitidasRPC && lojasPermitidasRPC.length > 1;
+        // ═══════════════════════════════════════════════════════
+        // NOVO: Usar Views para KPIs
+        // ═══════════════════════════════════════════════════════
+        
+        const mesAtual = new Date().getMonth() + 1;
+        const anoAtual = new Date().getFullYear();
+        
+        // 1. Vendas do mês (View já calcula)
+        const { data: vendasMes } = await db
+            .from('vw_vendas_mensais')
+            .select('*')
+            .eq('ano', anoAtual)
+            .eq('mes', mesAtual)
+            .single();
+        
+        // 2. Performance do vendedor (View já calcula)
+        const { data: performance } = await db
+            .from('vw_performance_vendedores')
+            .select('*')
+            .eq('id_usuario', currentUser.id_usuario)
+            .eq('ano', anoAtual)
+            .eq('mes', mesAtual)
+            .single();
+        
+        // 3. Orçamentos em risco (View já calcula)
+        const { data: emRisco } = await db
+            .from('vw_orcamentos_em_risco')
+            .select('*')
+            .eq('vendedor', currentUser.nome);
+        
+        // Atualizar DOM com dados já calculados
+        atualizarKPIsDashboard(vendasMes, performance, emRisco);
+    }
 
-                // Chama a função direto no banco, passando apenas os filtros
-                const { data: kpisData, error: rpcError } = await db.rpc('calcular_kpis_dashboard', {
-                    p_mes: currentMonth,
-                    p_ano: currentYear,
-                    p_id_usuario: AppState.usuarioLogado.id_usuario,
-                    p_perfil: (AppState.usuarioLogado.perfil || '').toLowerCase() === 'terminal' ? 'Gerente' : AppState.usuarioLogado.perfil,
-                    p_id_loja: AppState.usuarioLogado.id_loja,
-                    p_ids_loja: isGerenteMultilojaRPC ? lojasPermitidasRPC : null
-                });
-                if (rpcError) throw rpcError;
-                // Salvamos o resultado mastigado no objeto global
-                AppState.kpisMensaisResumo = kpisData;
-
-        // --- NOVA BUSCA DETALHADA PARA GRÁFICOS E NOTIFICAÇÕES ---
-                let queryDetalhes = db.from('orcamentos')
-                    .select('id_orcamento, id_usuario, valor_orcado, modelo_colchao, data_criacao, data_fechamento, data_contato, hora_contato, ligacao_confirmada, clientes(nome_cliente), status_orcamento(nome)');
-
-                // Período (mês ou dia) selecionado
-                let startPeriodo, endPeriodo;
-                if (currentDay) {
-                    startPeriodo = new Date(currentYear, currentMonth - 1, currentDay);
-                    endPeriodo = new Date(currentYear, currentMonth - 1, currentDay + 1);
-                } else {
-                    startPeriodo = new Date(currentYear, currentMonth - 1, 1);
-                    endPeriodo = new Date(currentYear, currentMonth, 1);
-                }
-                const startPeriodoISO = startPeriodo.toISOString();
-                const endPeriodoISO = endPeriodo.toISOString();
-
-                // Em aberto (Contato Inicial, Negociação, Em Fechamento) => conta pela data em que foi ABERTO (data_criacao).
-                // Finalizado (Fechado, Perdido) => conta pela data em que foi CONCLUÍDO (data_fechamento), e não pela abertura.
-                const statusAbertosIdsDash = mapStatusUUID
-                    .filter(s => [STATUS.CONTATO_INICIAL, STATUS.NEGOCIACAO, STATUS.EM_FECHAMENTO].includes(s.nome))
-                    .map(s => s.id_status);
-                const statusFinalizadosIdsDash = mapStatusUUID
-                    .filter(s => [STATUS.FECHADO, STATUS.PERDIDO].includes(s.nome))
-                    .map(s => s.id_status);
-
-                const orPartsDash = [];
-                if (statusAbertosIdsDash.length) {
-                    orPartsDash.push(`and(id_status.in.(${statusAbertosIdsDash.join(',')}),data_criacao.gte.${startPeriodoISO},data_criacao.lt.${endPeriodoISO})`);
-                }
-                if (statusFinalizadosIdsDash.length) {
-                    orPartsDash.push(`and(id_status.in.(${statusFinalizadosIdsDash.join(',')}),data_fechamento.gte.${startPeriodoISO},data_fechamento.lt.${endPeriodoISO})`);
-                }
-                if (orPartsDash.length) queryDetalhes = queryDetalhes.or(orPartsDash.join(','));
-
-                if (AppState.usuarioLogado.perfil === 'Gerente' || (AppState.usuarioLogado.perfil || '').toLowerCase() === 'terminal') {
-                    const lojasPermitidasDash = getLojasPermitidas();
-                    const ids = lojasPermitidasDash
-                        ? todosVendedores.filter(v => lojasPermitidasDash.includes(v.id_loja)).map(v => v.id_usuario)
-                        : todosVendedores.map(v => v.id_usuario);
-                    if (ids.length > 0) queryDetalhes = queryDetalhes.in('id_usuario', ids);
-                    if (selectedVendedor !== 'todos') queryDetalhes = queryDetalhes.eq('id_usuario', selectedVendedor);
-                } else if (AppState.usuarioLogado.perfil === 'Vendedor') {
-                    queryDetalhes = queryDetalhes.eq('id_usuario', AppState.usuarioLogado.id_usuario);
-                } else {
-                    if (selectedVendedor !== 'todos') {
-                        queryDetalhes = queryDetalhes.eq('id_usuario', selectedVendedor);
-                    } else if (selectedLoja !== 'todas') {
-                        const ids = todosVendedores.filter(v => v.id_loja === selectedLoja).map(v => v.id_usuario);
-                        if (ids.length > 0) queryDetalhes = queryDetalhes.in('id_usuario', ids);
-                    }
-                }
-
-                const { data: detalhesData } = await queryDetalhes;
-                kpisMensais = (detalhesData || []).map(o => ({
-                    ...o,
-                    status: o.status_orcamento ? o.status_orcamento.nome : 'Contato Inicial'
-                }));
-
-                // --------------------------------------------------------
-
-                // ---- INÍCIO DA BUSCA DE ALERTAS NO BANCO ----
-                const { data: notifs, error: errNotif } = await db
-                    .from('notificacoes')
-                    .select('*')
-                    .eq('id_usuario', AppState.usuarioLogado.id_usuario)
-                    .eq('lida', false);
-                
-                if (!errNotif) {
-                    notificacoesBanco = notifs || [];
-                }
-                // ---- FIM DA BUSCA DE ALERTAS NO BANCO ----
-
-            } catch(e) { 
-                kpisMensais = []; 
-                notificacoesBanco = []; 
-            }
-
-            // KPIs diários do vendedor (Vendas Hoje, Ticket Médio, Novos Clientes, Produtos Vendidos)
-            // com comparação hoje x ontem — só se aplica a quem loga como Vendedor.
-            if (AppState.usuarioLogado.perfil === 'Vendedor') {
-                await carregarKpisDiariosVendedor();
-            } else if (AppState.usuarioLogado.perfil === 'Gerente' || (AppState.usuarioLogado.perfil || '').toLowerCase() === 'terminal') {
-                await carregarKpisDiariosGerente();
-            }
-
-            atualizarBadge();
-            const notificacoes = buildNotifications();
-            renderNotificationBadge(notificacoes.length);
+    // ═══════════════════════════════════════════════════════
+    // NOVA FUNÇÃO: Atualizar DOM com dados das Views
+    // ═══════════════════════════════════════════════════════
+    function atualizarKPIsDashboard(vendasMes, performance, emRisco) {
+        const fmt = v => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        
+        // Faturamento do mês
+        const elFaturamento = document.getElementById('kpiFaturamento');
+        if (elFaturamento) elFaturamento.textContent = fmt(vendasMes?.faturamento_total);
+        
+        // Ticket médio
+        const elTicket = document.getElementById('kpiTicketMedio');
+        if (elTicket) elTicket.textContent = fmt(vendasMes?.ticket_medio);
+        
+        // Progresso da meta
+        const elProgresso = document.getElementById('kpiMetaProgresso');
+        if (elProgresso) {
+            const progresso = performance?.progresso_meta || 0;
+            elProgresso.textContent = `${progresso}%`;
         }
+        
+        // Orçamentos em risco
+        const elRisco = document.getElementById('kpiEmRisco');
+        if (elRisco) elRisco.textContent = emRisco?.length || 0;
+    }
 
         // Regra de variação percentual combinada com o pedido: se o período anterior foi 0 e o
         // atual > 0, a variação é +100%. Se os dois forem 0, não há variação (0%). Caso
@@ -3635,25 +3595,53 @@ function selectFilter(filter) {
     if (!id) { showToast('Erro: Orçamento não encontrado.', 'error'); return; }
     try {
         showLoader();
-        const { data, error } = await db.from('orcamentos')
-            .select('*, clientes(nome_cliente, whatsapp, cpf), usuarios(nome), status_orcamento(nome), niveis_interesse(nome)')
-            .eq('id_orcamento', id).single();
-            
-        if (error || !data) throw new Error('Orçamento não encontrado.');
         
-        data.status = data.status_orcamento ? data.status_orcamento.nome : STATUS.CONTATO_INICIAL;
-        data.interesse = data.niveis_interesse ? data.niveis_interesse.nome : null;
+        // ═══════════════════════════════════════════════════════
+        // NOVO: Buscar orçamento com filtro de soft delete
+        // ═══════════════════════════════════════════════════════
+        const { data: orcamento, error } = await db
+            .from('orcamentos')
+            .select('*, clientes(nome_cliente, whatsapp, cpf), usuarios(nome), status_orcamento(nome), niveis_interesse(nome)')
+            .eq('id_orcamento', id)
+            .is('deleted_at', null)  // ← ADICIONAR
+            .single();
+            
+        if (error || !orcamento) throw new Error('Orçamento não encontrado.');
+        
+        orcamento.status = orcamento.status_orcamento ? orcamento.status_orcamento.nome : STATUS.CONTATO_INICIAL;
+        orcamento.interesse = orcamento.niveis_interesse ? orcamento.niveis_interesse.nome : null;
+        
+        // ═══════════════════════════════════════════════════════
+        // NOVO: Buscar itens do orçamento
+        // ═══════════════════════════════════════════════════════
+        const { data: itens } = await db
+            .from('itens_orcamento')
+            .select('*, produtos(nome_produto, modelo)')
+            .eq('id_orcamento', id);
+        
+        // ═══════════════════════════════════════════════════════
+        // NOVO: Buscar histórico de movimentações de estoque
+        // ═══════════════════════════════════════════════════════
+        const { data: movimentacoes } = await db
+            .from('vw_movimentacoes_recentes')
+            .select('*')
+            .eq('orcamento', orcamento.protocolo)
+            .order('created_at', { ascending: false })
+            .limit(10);
         
         const { data: comentarios, error: erroComent } = await db.from('comentarios').select('*').eq('id_orcamento', id).order('data_criacao', { ascending: true });
         if (erroComent) throw erroComent;
         
-        // Anexamos os comentários direto no objeto 'data'
-        data.comentarios = comentarios || [];
+        // Anexamos os comentários direto no objeto 'orcamento'
+        orcamento.comentarios = comentarios || [];
         
         // Guardamos o pacote completo dentro do Cofre!
-        setClienteAtual(data);
+        setClienteAtual(orcamento);
         
-        previousView = currentView; currentView = 'detalhes_cliente'; setUltimaVisita(id); renderDetalhesClientePage();
+        // Renderiza com itens e movimentações
+        renderDetalhesClientePage(orcamento, itens, movimentacoes);
+        
+        previousView = currentView; currentView = 'detalhes_cliente'; setUltimaVisita(id);
     } catch (e) { 
         showToast('Erro ao carregar cliente.', 'error'); 
     } finally { 
@@ -4678,36 +4666,52 @@ function selectFilter(filter) {
             [STATUS.EM_FECHAMENTO]: 0.80
         };
 
-        function atualizarMetricasCarteira(data) {
+        async function atualizarMetricasCarteira() {
             const elPipeline = document.getElementById('carteiraTotalPipeline');
-            if (!elPipeline) return; // cards não estão na tela (ex: outra view foi aberta enquanto carregava)
+            if (!elPipeline) return;
 
-            const etapasAbertas = [STATUS.CONTATO_INICIAL, STATUS.NEGOCIACAO, STATUS.EM_FECHAMENTO];
-            const abertos = data.filter(o => etapasAbertas.includes(o.status_orcamento?.nome));
-
-            // Total no Pipeline: soma dos negócios ainda em aberto
-            const totalPipeline = abertos.reduce((s, o) => s + parseFloat(o.valor_orcado || 0), 0);
-
-            // Vendas já fechadas no mês (precisa vir antes da previsão, pois ela entra na conta)
-            const vendasFechadasValor = data
-                .filter(o => [STATUS.FECHADO, 'Vendido'].includes(o.status_orcamento?.nome))
-                .reduce((s, o) => s + parseFloat(o.valor_orcado || 0), 0);
-
-            // Previsão de Faturamento = o que já foi vendido + a parte ponderada do que ainda está em aberto.
-            // (Nunca pode ficar menor que o já vendido — senão não seria uma previsão do mês, e sim só do pipeline.)
-            const previsaoPipeline = abertos.reduce((s, o) => {
-                const peso = PROBABILIDADE_POR_ETAPA[o.status_orcamento?.nome] || 0;
-                return s + (parseFloat(o.valor_orcado || 0) * peso);
+            // ═══════════════════════════════════════════════════════
+            // NOVO: Buscar dados já calculados nas Views
+            // ═══════════════════════════════════════════════════════
+            
+            // 1. Funil de vendas (já vem calculado)
+            const { data: funil } = await db
+                .from('vw_funil_vendas')
+                .select('*');
+            
+            // 2. Vendas do mês (já vem calculado)
+            const mesAtual = new Date().getMonth() + 1;
+            const anoAtual = new Date().getFullYear();
+            
+            const { data: vendasMes } = await db
+                .from('vw_vendas_mensais')
+                .select('*')
+                .eq('ano', anoAtual)
+                .eq('mes', mesAtual)
+                .single();
+            
+            // 3. Calcular métricas a partir das Views
+            const etapasAbertas = funil?.filter(f => 
+                !['fechado', 'perdido', 'vendido', 'declinado'].includes(f.etapa.toLowerCase())
+            ) || [];
+            
+            const totalPipeline = etapasAbertas.reduce((s, f) => s + parseFloat(f.valor_total || 0), 0);
+            const ticketMedio = etapasAbertas.reduce((s, f) => s + parseFloat(f.valor_medio || 0), 0) / (etapasAbertas.length || 1);
+            
+            const vendasFechadasValor = vendasMes?.faturamento_total || 0;
+            
+            // 4. Previsão (usando probabilidades)
+            const previsaoPipeline = etapasAbertas.reduce((s, f) => {
+                const peso = PROBABILIDADE_POR_ETAPA[f.etapa] || 0;
+                return s + (parseFloat(f.valor_total || 0) * peso);
             }, 0);
             const previsao = vendasFechadasValor + previsaoPipeline;
-
-            // Ticket Médio: valor médio dos negócios em aberto
-            const ticketMedio = abertos.length > 0 ? totalPipeline / abertos.length : 0;
-
-            // Meta do Mês: meta somada dos vendedores visíveis vs. vendas já fechadas no período (ambas já filtradas por loja)
+            
+            // 5. Meta do Mês
             const metaTotal = calcularMetaTotal();
             const metaPercentual = metaTotal > 0 ? Math.min(100, Math.round((vendasFechadasValor / metaTotal) * 100)) : 0;
 
+            // Atualizar DOM
             const fmt = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             elPipeline.textContent = fmt(totalPipeline);
             document.getElementById('carteiraPrevisao').textContent = fmt(previsao);
