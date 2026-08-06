@@ -4728,7 +4728,8 @@ function selectFilter(filter) {
                 // Busca orçamentos do período selecionado (sem paginação — kanban precisa do total)
                 let query = db.from('orcamentos')
                     .select('id_orcamento, protocolo, data_criacao, data_fechamento, valor_orcado, modelo_colchao, data_contato, hora_contato, usuarios!inner(nome, id_loja), clientes(nome_cliente), status_orcamento(nome)')
-                    .not('id_status', 'is', null);
+                    .not('id_status', 'is', null)
+                    .is('deleted_at', null);  // Ignorar deletados
 
                 if (currentUser.perfil === 'Gerente') {
                     const lojasPermitidasKanban = getLojasPermitidas();
