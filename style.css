@@ -2039,85 +2039,165 @@
         /* ────────────────────────────────────────────────────────
            MÓDULO MEU RADAR
         ──────────────────────────────────────────────────────── */
+
+        /* Cabeçalho da página */
+        .radar-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 24px; gap: 16px; flex-wrap: wrap;
+        }
+        .radar-header .page-title {
+            font-size: var(--font-xl); font-weight: 800; letter-spacing: -0.03em;
+            display: flex; align-items: center; gap: 10px; color: var(--text-primary);
+        }
+        .radar-icon-badge {
+            width: 36px; height: 36px; border-radius: var(--radius-sm);
+            background: var(--brand-blue-subtle); color: var(--brand-blue);
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        body.dark .radar-icon-badge { background: rgba(45, 212, 191, 0.14); color: #5eead4; }
+        .radar-header .header-actions { display: flex; align-items: center; gap: 12px; }
+        .radar-header .seller-select {
+            padding: 9px 14px; border: 1.5px solid var(--border-light);
+            border-radius: var(--radius-sm); background: var(--card-bg);
+            color: var(--text-primary); font-size: var(--font-sm);
+            font-family: 'Inter', sans-serif; cursor: pointer; transition: var(--transition);
+        }
+        .radar-header .seller-select:focus {
+            outline: none; border-color: var(--brand-blue);
+            box-shadow: 0 0 0 3px var(--brand-blue-glow);
+        }
+
+        /* Cards de resumo */
+        .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 28px; }
+        .summary-card {
+            background: var(--card-bg); border: 1px solid var(--border-light);
+            border-radius: var(--radius-md); padding: 18px 20px;
+            display: flex; align-items: center; gap: 16px;
+            transition: var(--transition);
+        }
+        .summary-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); border-color: var(--border-medium); }
+        .summary-icon {
+            width: 44px; height: 44px; border-radius: var(--radius-sm);
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .summary-icon.alerts { background: var(--danger-light-bg); color: var(--danger-text); }
+        .summary-icon.tips { background: var(--brand-blue-subtle); color: var(--brand-blue); }
+        .summary-icon.suggestions { background: var(--accent-green-subtle); color: var(--accent-green-dark); }
+        body.dark .summary-icon.tips { color: #5eead4; }
+        .summary-info h4 {
+            font-size: var(--font-xs); font-weight: 600; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 3px;
+        }
+        .summary-info span {
+            font-size: var(--font-xl); font-weight: 800; color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Lista de sinais */
         .signal-list {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 10px;
+            margin-bottom: 24px;
         }
         .radar-task {
             background: var(--card-bg);
             border: 1px solid var(--border-light);
-            border-radius: var(--radius-sm);
-            padding: 10px 12px;
+            border-radius: var(--radius-md);
+            padding: 16px 18px;
             display: flex;
             align-items: flex-start;
-            gap: 10px;
+            gap: 14px;
+            position: relative;
+            overflow: hidden;
             transition: box-shadow var(--transition), border-color var(--transition), opacity 0.3s ease, transform 0.3s ease;
         }
+        .radar-task::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
         .radar-task:hover {
-            box-shadow: var(--shadow-sm);
+            box-shadow: var(--shadow-md);
             border-color: var(--border-medium);
+            transform: translateX(2px);
         }
-        .radar-task[data-tipo="alert"] { border-left: 3px solid #dc2626; }
-        .radar-task[data-tipo="tip"] { border-left: 3px solid var(--brand-blue); }
-        .radar-task[data-tipo="suggestion"] { border-left: 3px solid #16a34a; }
+        .radar-task[data-tipo="alert"]::before { background: var(--danger-text); }
+        .radar-task[data-tipo="tip"]::before { background: var(--brand-blue); }
+        .radar-task[data-tipo="suggestion"]::before { background: var(--accent-green); }
         /* Prioridade alta ganha um fundo levemente tingido, pra se destacar das demais tarefas */
-        .radar-task[data-prioridade="high"] { background: rgba(220, 38, 38, 0.035); }
-        body.dark .radar-task[data-prioridade="high"] { background: rgba(248, 113, 113, 0.06); }
+        .radar-task[data-prioridade="high"],
+        .radar-task[data-prioridade="critical"] { background: var(--danger-light-bg); }
 
-        /* Ícone por tipo de sinal (mesma linguagem visual dos badges dos cards de KPI) */
+        /* Ordem visual: ícone → conteúdo → check → ignorar (o DOM continua na ordem original) */
+        .radar-task-icon { order: 1; }
+        .radar-task-body { order: 2; }
+        .radar-check-btn { order: 3; }
+        .radar-ignore-btn { order: 4; }
+
+        /* Ícone por tipo de sinal */
         .radar-task-icon {
-            flex-shrink: 0; width: 26px; height: 26px; border-radius: var(--radius-sm);
-            display: flex; align-items: center; justify-content: center; margin-top: 1px;
+            flex-shrink: 0; width: 36px; height: 36px; border-radius: var(--radius-sm);
+            display: flex; align-items: center; justify-content: center; margin-top: 2px;
         }
+        .radar-task[data-tipo="alert"] .radar-task-icon { background: var(--danger-light-bg); color: var(--danger-text); }
+        .radar-task[data-tipo="tip"] .radar-task-icon { background: var(--brand-blue-subtle); color: var(--brand-blue); }
+        .radar-task[data-tipo="suggestion"] .radar-task-icon { background: var(--accent-green-subtle); color: var(--accent-green-dark); }
+        body.dark .radar-task[data-tipo="tip"] .radar-task-icon { color: #5eead4; }
 
         /* Botão circular de check — clique confirma a conclusão da tarefa */
         .radar-check-btn {
-            flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
-            border: 1.5px solid var(--border-medium); background: var(--card-bg);
+            flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
+            border: 2px solid var(--border-medium); background: transparent;
             display: flex; align-items: center; justify-content: center;
-            color: transparent; cursor: pointer; margin-top: 1px;
+            color: transparent; cursor: pointer; margin-top: 2px;
             transition: all 0.15s ease;
         }
-        .radar-check-btn:hover { border-color: var(--accent-green); color: var(--accent-green); background: rgba(16,185,129,0.08); transform: scale(1.08); }
+        .radar-check-btn:hover { border-color: var(--accent-green); color: var(--accent-green); background: var(--accent-green-subtle); transform: scale(1.1); }
         .radar-task-checked { opacity: 0; transform: scale(0.97); }
         .radar-task-checked .radar-check-btn { border-color: var(--accent-green); background: var(--accent-green); color: #fff; }
 
         .radar-task-body { flex: 1; min-width: 0; cursor: pointer; }
-        .radar-task-top { display: flex; align-items: baseline; gap: 8px; flex-wrap: nowrap; }
+        .radar-task-top { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
         .radar-task-message {
             font-size: var(--font-sm);
-            font-weight: 600;
+            font-weight: 700;
             color: var(--text-primary);
             letter-spacing: -0.01em;
+            line-height: 1.4;
             margin: 0;
-            flex: 1; min-width: 0;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            flex: 1;
+            min-width: 160px;
         }
-        .radar-task-time { font-size: var(--font-2xs); color: var(--text-muted); flex-shrink: 0; }
+        .radar-task-time {
+            font-size: var(--font-2xs); color: var(--text-muted); flex-shrink: 0;
+            font-family: 'JetBrains Mono', monospace; white-space: nowrap;
+        }
         .radar-task-meta {
             font-size: var(--font-2xs);
-            color: var(--text-muted);
-            display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
-            margin-top: 2px;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+            margin-top: 8px;
         }
-        .radar-task-meta strong { color: var(--text-secondary); font-weight: 600; }
-        .radar-dot-sep { color: var(--border-medium); }
+        .radar-task-meta span:not(.radar-dot-sep) {
+            font-weight: 600; padding: 3px 9px; border-radius: var(--radius-full);
+            text-transform: uppercase; letter-spacing: 0.03em;
+            background: var(--surface-2); color: var(--text-secondary);
+        }
+        .radar-task-meta span:first-child { background: var(--brand-blue-subtle); color: var(--brand-blue-dark); }
+        body.dark .radar-task-meta span:first-child { color: #5eead4; }
+        .radar-task-meta strong { font-weight: inherit; color: inherit; }
+        .radar-dot-sep { display: none; }
 
         .radar-ignore-btn {
-            flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
-            border: none; background: transparent; color: var(--text-muted);
+            flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%;
+            border: 1px solid var(--border-light); background: transparent; color: var(--text-muted);
             display: flex; align-items: center; justify-content: center;
-            cursor: pointer; margin-top: 1px; transition: all 0.15s ease;
+            cursor: pointer; margin-top: 2px; transition: all 0.15s ease;
+            opacity: 0.55;
         }
-        .radar-ignore-btn:hover { background: var(--surface-2); color: var(--danger-text); }
+        .radar-ignore-btn:hover { opacity: 1; background: var(--danger-light-bg); color: var(--danger-text); border-color: var(--danger-border); }
 
         .badge {
             display: inline-flex;
             align-items: center;
             gap: 5px;
-            padding: 1px 7px;
+            padding: 2px 8px;
             border-radius: var(--radius-full);
             font-size: 9px;
             font-weight: 700;
@@ -2125,39 +2205,37 @@
             letter-spacing: 0.06em;
             flex-shrink: 0;
         }
-        .badge-alert      { background: #fee2e2; color: #b91c1c; }
+        .badge-alert      { background: var(--danger-light-bg); color: var(--danger-text); }
         .badge-tip        { background: var(--brand-blue-subtle); color: var(--brand-blue-dark); }
-        .badge-suggestion { background: #dcfce7; color: #15803d; }
+        .badge-suggestion { background: var(--accent-green-subtle); color: var(--accent-green-dark); }
+        body.dark .badge-tip { color: #5eead4; }
 
-        /* Card "Meu Radar" embutido na tela inicial: mesma linguagem de identidade dos cards
-           de KPI (faixa colorida no topo), pra reforçar que é uma seção com peso próprio. */
-        .radar-embed-card {
-            position: relative; overflow: hidden;
+        /* Título de seção (grupo de sinais, se usado no futuro) */
+        .signal-section-title {
+            font-size: var(--font-xs); font-weight: 700; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px;
+            display: flex; align-items: center; gap: 8px;
         }
-        .radar-embed-card::before {
-            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-            background: linear-gradient(90deg, var(--brand-blue), #16a34a);
-        }
-        .radar-header-badge {
-            width: 26px; height: 26px; border-radius: var(--radius-sm);
-            background: var(--brand-blue-subtle); color: var(--brand-blue-dark);
-            display: inline-flex; align-items: center; justify-content: center;
-            flex-shrink: 0;
-        }
-        body.dark .radar-header-badge { background: rgba(45, 212, 191, 0.16); color: #5eead4; }
+        .signal-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border-light); }
 
-        /* Empty state renovado: mais acolhedor, com selo de check ao invés de ícone solto */
+        /* Empty state */
         .empty-state {
-            text-align: center; padding: 40px 24px 32px; color: var(--text-muted);
+            text-align: center; padding: 56px 24px 40px; color: var(--text-muted);
         }
         .empty-state-icon {
-            width: 52px; height: 52px; border-radius: 50%; margin: 0 auto 16px;
-            background: linear-gradient(135deg, var(--accent-green), #16a34a);
+            width: 60px; height: 60px; border-radius: 50%; margin: 0 auto 18px;
+            background: linear-gradient(135deg, var(--accent-green), var(--accent-green-dark));
             display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.25);
+            box-shadow: 0 8px 24px var(--accent-green-subtle);
         }
         .empty-state h3 { font-weight: 700; margin-bottom: 6px; font-size: var(--font-md); color: var(--text-primary); }
-        .empty-state p { font-size: var(--font-sm); max-width: 320px; margin: 0 auto; line-height: 1.5; }
+        .empty-state p { font-size: var(--font-sm); max-width: 340px; margin: 0 auto; line-height: 1.6; }
+
+        @media (max-width: 768px) {
+            .summary-grid { grid-template-columns: 1fr; }
+            .radar-header { flex-direction: column; align-items: flex-start; }
+            .radar-task { flex-wrap: wrap; }
+        }
 
         /* ────────────────────────────────────────────────────────
            MODAL CHAT IA
@@ -2276,8 +2354,6 @@
             border-radius: var(--radius-xs);
         }
 
-        .radar-header { display: none; }
-        .summary-grid, .summary-card, .summary-icon { display: none; }
         .modal-chat-card { padding: 0 !important; max-width: 600px; width: 95%; height: 80vh; display: flex; flex-direction: column; overflow: hidden; }
         .chat-messages-area { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; background: var(--bg-body); }
         .message-assistant { display: flex; gap: 12px; margin-bottom: 16px; }
