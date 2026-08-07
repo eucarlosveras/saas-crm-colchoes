@@ -2073,8 +2073,12 @@
             background: var(--card-bg); border: 1px solid var(--border-light);
             border-radius: var(--radius-md); padding: 18px 20px;
             display: flex; align-items: center; gap: 16px;
-            transition: var(--transition);
+            transition: var(--transition); position: relative; overflow: hidden;
         }
+        .summary-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+        .summary-card:has(.summary-icon.alerts)::before { background: linear-gradient(90deg, var(--danger-text), #dc2626); }
+        .summary-card:has(.summary-icon.tips)::before { background: linear-gradient(90deg, var(--brand-blue), #14b8a6); }
+        .summary-card:has(.summary-icon.suggestions)::before { background: linear-gradient(90deg, var(--accent-green), var(--accent-green-dark)); }
         .summary-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); border-color: var(--border-medium); }
         .summary-icon {
             width: 44px; height: 44px; border-radius: var(--radius-sm);
@@ -2093,13 +2097,17 @@
             font-family: 'JetBrains Mono', monospace;
         }
 
-        /* Lista de sinais */
-        .signal-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-bottom: 24px;
+        /* Título de cada seção (Ação Imediata / Dicas / Oportunidades) */
+        .signal-section-title {
+            font-size: var(--font-xs); font-weight: 700; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px;
+            display: flex; align-items: center; gap: 8px;
         }
+        .signal-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border-light); }
+
+        /* Lista de sinais */
+        .signal-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+
         .radar-task {
             background: var(--card-bg);
             border: 1px solid var(--border-light);
@@ -2121,15 +2129,9 @@
         .radar-task[data-tipo="alert"]::before { background: var(--danger-text); }
         .radar-task[data-tipo="tip"]::before { background: var(--brand-blue); }
         .radar-task[data-tipo="suggestion"]::before { background: var(--accent-green); }
-        /* Prioridade alta ganha um fundo levemente tingido, pra se destacar das demais tarefas */
-        .radar-task[data-prioridade="high"],
-        .radar-task[data-prioridade="critical"] { background: var(--danger-light-bg); }
-
-        /* Ordem visual: ícone → conteúdo → check → ignorar (o DOM continua na ordem original) */
-        .radar-task-icon { order: 1; }
-        .radar-task-body { order: 2; }
-        .radar-check-btn { order: 3; }
-        .radar-ignore-btn { order: 4; }
+        /* Prioridade crítica/alta ganha um fundo levemente tingido, pra se destacar das demais tarefas */
+        .radar-task[data-prioridade="critical"],
+        .radar-task[data-prioridade="high"] { background: var(--danger-light-bg); }
 
         /* Ícone por tipo de sinal */
         .radar-task-icon {
@@ -2141,82 +2143,44 @@
         .radar-task[data-tipo="suggestion"] .radar-task-icon { background: var(--accent-green-subtle); color: var(--accent-green-dark); }
         body.dark .radar-task[data-tipo="tip"] .radar-task-icon { color: #5eead4; }
 
+        .radar-task-body { flex: 1; min-width: 0; }
+        .radar-task-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+        .radar-task-message { font-size: var(--font-sm); font-weight: 700; letter-spacing: -0.01em; line-height: 1.4; color: var(--text-primary); }
+        .radar-task-time { font-size: var(--font-2xs); color: var(--text-muted); white-space: nowrap; flex-shrink: 0; font-family: 'JetBrains Mono', monospace; }
+        .radar-task-desc { font-size: var(--font-xs); color: var(--text-secondary); line-height: 1.5; margin-bottom: 10px; }
+        .radar-task-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .meta-tag {
+            font-size: var(--font-2xs); font-weight: 600; padding: 3px 9px;
+            border-radius: var(--radius-full); text-transform: uppercase; letter-spacing: 0.04em;
+            cursor: default;
+        }
+        .meta-tag.client { background: var(--brand-blue-subtle); color: var(--brand-blue-dark); }
+        body.dark .meta-tag.client { color: #5eead4; }
+        .meta-tag.store { background: var(--surface-2); color: var(--text-secondary); }
+
+        .radar-task-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+        .btn-action {
+            padding: 7px 14px; border-radius: var(--radius-xs);
+            font-size: var(--font-xs); font-weight: 600; font-family: 'Inter', sans-serif;
+            cursor: pointer; transition: var(--transition); border: none;
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        .btn-action.primary { background: var(--brand-blue); color: white; }
+        .btn-action.primary:hover { background: var(--brand-blue-dark); box-shadow: 0 2px 8px var(--brand-blue-glow); }
+        .btn-action.ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border-light); }
+        .btn-action.ghost:hover { background: var(--surface-2); color: var(--text-secondary); }
+
         /* Botão circular de check — clique confirma a conclusão da tarefa */
         .radar-check-btn {
-            flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
+            width: 28px; height: 28px; border-radius: 50%;
             border: 2px solid var(--border-medium); background: transparent;
             display: flex; align-items: center; justify-content: center;
-            color: transparent; cursor: pointer; margin-top: 2px;
-            transition: all 0.15s ease;
+            color: transparent; cursor: pointer; flex-shrink: 0;
+            transition: all 0.15s ease; margin-top: 4px;
         }
         .radar-check-btn:hover { border-color: var(--accent-green); color: var(--accent-green); background: var(--accent-green-subtle); transform: scale(1.1); }
         .radar-task-checked { opacity: 0; transform: scale(0.97); }
         .radar-task-checked .radar-check-btn { border-color: var(--accent-green); background: var(--accent-green); color: #fff; }
-
-        .radar-task-body { flex: 1; min-width: 0; cursor: pointer; }
-        .radar-task-top { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
-        .radar-task-message {
-            font-size: var(--font-sm);
-            font-weight: 700;
-            color: var(--text-primary);
-            letter-spacing: -0.01em;
-            line-height: 1.4;
-            margin: 0;
-            flex: 1;
-            min-width: 160px;
-        }
-        .radar-task-time {
-            font-size: var(--font-2xs); color: var(--text-muted); flex-shrink: 0;
-            font-family: 'JetBrains Mono', monospace; white-space: nowrap;
-        }
-        .radar-task-meta {
-            font-size: var(--font-2xs);
-            display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
-            margin-top: 8px;
-        }
-        .radar-task-meta span:not(.radar-dot-sep) {
-            font-weight: 600; padding: 3px 9px; border-radius: var(--radius-full);
-            text-transform: uppercase; letter-spacing: 0.03em;
-            background: var(--surface-2); color: var(--text-secondary);
-        }
-        .radar-task-meta span:first-child { background: var(--brand-blue-subtle); color: var(--brand-blue-dark); }
-        body.dark .radar-task-meta span:first-child { color: #5eead4; }
-        .radar-task-meta strong { font-weight: inherit; color: inherit; }
-        .radar-dot-sep { display: none; }
-
-        .radar-ignore-btn {
-            flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%;
-            border: 1px solid var(--border-light); background: transparent; color: var(--text-muted);
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; margin-top: 2px; transition: all 0.15s ease;
-            opacity: 0.55;
-        }
-        .radar-ignore-btn:hover { opacity: 1; background: var(--danger-light-bg); color: var(--danger-text); border-color: var(--danger-border); }
-
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 2px 8px;
-            border-radius: var(--radius-full);
-            font-size: 9px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            flex-shrink: 0;
-        }
-        .badge-alert      { background: var(--danger-light-bg); color: var(--danger-text); }
-        .badge-tip        { background: var(--brand-blue-subtle); color: var(--brand-blue-dark); }
-        .badge-suggestion { background: var(--accent-green-subtle); color: var(--accent-green-dark); }
-        body.dark .badge-tip { color: #5eead4; }
-
-        /* Título de seção (grupo de sinais, se usado no futuro) */
-        .signal-section-title {
-            font-size: var(--font-xs); font-weight: 700; color: var(--text-muted);
-            text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px;
-            display: flex; align-items: center; gap: 8px;
-        }
-        .signal-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border-light); }
 
         /* Empty state */
         .empty-state {
@@ -2234,7 +2198,8 @@
         @media (max-width: 768px) {
             .summary-grid { grid-template-columns: 1fr; }
             .radar-header { flex-direction: column; align-items: flex-start; }
-            .radar-task { flex-wrap: wrap; }
+            .radar-task { flex-direction: column; }
+            .radar-task-actions { flex-wrap: wrap; }
         }
 
         /* ────────────────────────────────────────────────────────
