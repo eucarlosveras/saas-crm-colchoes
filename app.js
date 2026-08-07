@@ -4,6 +4,7 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
         
         const META_PADRAO = 50000;
         const ITEMS_PER_PAGE = 7;
+        const LIMITE_ESTOQUE_BAIXO = 3; // Qtd disponível igual ou abaixo disso dispara alerta
         const STATUS = {
 	CONTATO_INICIAL: 'Contato Inicial',
   	NEGOCIACAO: 'Negociação',
@@ -397,6 +398,44 @@ const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
             document.getElementById('sidebarNome').textContent = currentUser.nome || 'Usuário';
             document.getElementById('sidebarAvatar').textContent = currentUser.nome ? currentUser.nome.charAt(0).toUpperCase() : 'U';
             document.getElementById('sidebarPerfil').textContent = currentUser.perfil;
+        }
+
+        // Verifica produtos com estoque baixo (qtd_disponivel <= LIMITE_ESTOQUE_BAIXO,
+        // ignorando itens marcados como avaria) e avisa Admin/Gerente via toast.
+        // Isolada em try/catch: uma falha aqui nunca pode travar o carregamento da tela inicial.
+        async function verificarAlertasEstoque() {
+            try {
+                const isAdminOuGerente = currentUser && (
+                    currentUser.perfil === 'Administrador' ||
+                    currentUser.perfil === 'Admin' ||
+                    currentUser.perfil === 'Gerente'
+                );
+                if (!isAdminOuGerente) return;
+
+                let query = db
+                    .from('estoque')
+                    .select('id_estoque, qtd_disponivel, qualidade, id_loja, produtos(nome_produto)')
+                    .lte('qtd_disponivel', LIMITE_ESTOQUE_BAIXO);
+
+                const isAdmin = currentUser.perfil === 'Administrador' || currentUser.perfil === 'Admin';
+                if (!isAdmin) {
+                    const lojasPermitidas = getLojasPermitidas();
+                    query = query.in('id_loja', (lojasPermitidas && lojasPermitidas.length > 0) ? lojasPermitidas : ['00000000-0000-0000-0000-000000000000']);
+                }
+
+                const { data, error } = await query;
+                if (error) {
+                    console.error('Erro ao verificar alertas de estoque:', error);
+                    return;
+                }
+
+                const itensBaixos = (data || []).filter(item => (item.qualidade || '').toLowerCase().trim() !== 'avaria');
+                if (itensBaixos.length > 0 && typeof showToast === 'function') {
+                    showToast(`⚠️ ${itensBaixos.length} produto(s) com estoque baixo.`, 'warning');
+                }
+            } catch (e) {
+                console.error('Falha ao verificar alertas de estoque:', e);
+            }
         }
 
         async function carregarDadosIniciais() {
