@@ -5736,39 +5736,49 @@ function renderizarTabelaEstoque(data) {
 function renderMeuRadar() {
     const main = document.getElementById('mainContent');
     main.innerHTML = `
-        <header class="dashboard-header">
-            <div style="display:flex; align-items:center; gap:16px;">
-                <h1>Meu Radar</h1>
+        <div class="radar-header">
+            <h1 class="page-title">
+                <span class="radar-icon-badge">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/></svg>
+                </span>
+                Meu Radar
+            </h1>
+            <div class="header-actions">
+                <select class="seller-select" id="sellerFilter">
+                    <option value="Todos">Todos os vendedores</option>
+                </select>
             </div>
-            <div class="header-controls">
-                <div class="filter-wrapper">
-                    <select class="vendedor-select" id="sellerFilter" style="border-radius:20px; padding:8px 16px;">
-                        <option value="Todos">Todos os vendedores</option>
-                    </select>
+        </div>
+
+        <div class="summary-grid">
+            <div class="summary-card">
+                <div class="summary-icon alerts">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
                 </div>
+                <div class="summary-info"><h4>Alertas urgentes</h4><span id="count-alerts">0</span></div>
             </div>
-        </header>
-        <div class="kpi-row" style="grid-template-columns: repeat(3, 1fr);">
-            <div class="kpi-card">
-                <div class="kpi-label-row"><span class="kpi-dot red"></span><span class="kpi-label">Alertas urgentes</span></div>
-                <div class="kpi-value" id="count-alerts">0</div>
+            <div class="summary-card">
+                <div class="summary-icon tips">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                </div>
+                <div class="summary-info"><h4>Dicas de abordagem</h4><span id="count-tips">0</span></div>
             </div>
-            <div class="kpi-card">
-                <div class="kpi-label-row"><span class="kpi-dot blue"></span><span class="kpi-label">Dicas de abordagem</span></div>
-                <div class="kpi-value" id="count-tips">0</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Sugestões de ação</span></div>
-                <div class="kpi-value" id="count-suggestions">0</div>
+            <div class="summary-card">
+                <div class="summary-icon suggestions">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 00-4 12.75c.44.37.7.86.7 1.42V17h6.6v-.83c0-.56.26-1.05.7-1.42A7 7 0 0012 2z"/></svg>
+                </div>
+                <div class="summary-info"><h4>Sugestões de ação</h4><span id="count-suggestions">0</span></div>
             </div>
         </div>
 
         <div id="signalContainer" class="signal-list"></div>
 
-        <div class="empty-state" id="emptyState" style="display: none; text-align: center; padding: 64px 24px; color: var(--text-muted); background: var(--card-bg); border: 1px solid var(--border-light); border-radius: var(--radius-md);">
-            <svg viewBox="0 0 24 24" width="48" height="48" stroke="var(--brand-blue)" fill="none" stroke-width="2" style="opacity: 0.5; margin-bottom: 16px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            <h3 style="font-weight: 600; margin-bottom: 8px; font-size: 18px; color: var(--text-primary);">Nenhum sinal no momento.</h3>
-            <p style="font-size: 14px;">Seu radar está limpo. Vá fechar negócios.</p>
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <div class="empty-state-icon">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <h3>Tudo em ordem por aqui! 🎉</h3>
+            <p>Nenhum sinal pendente. Continue acompanhando seus clientes e o radar te avisará quando algo precisar de atenção.</p>
         </div>
     `;
     initMeuRadar();
