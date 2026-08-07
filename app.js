@@ -5771,7 +5771,7 @@ function renderMeuRadar() {
             </div>
         </div>
 
-        <div id="signalContainer" class="signal-list"></div>
+        <div id="signalContainer"></div>
 
         <div class="empty-state" id="emptyState" style="display: none;">
             <div class="empty-state-icon">
@@ -6005,14 +6005,14 @@ function renderRadarSignals(sellerFilter) {
     const emptyState = document.getElementById('emptyState');
     if(!container) return;
 
-    const ordemPrioridade = { high: 0, medium: 1, low: 2 };
+    const ordemPrioridade = { critical: 0, high: 1, medium: 2, low: 3 };
     const filtered = radarSignalsData
         .filter(s => {
             if (s.ignored) return false;
             if (sellerFilter === 'Todos') return true;
             return s.seller === sellerFilter;
         })
-        .sort((a, b) => (ordemPrioridade[a.priority] ?? 3) - (ordemPrioridade[b.priority] ?? 3));
+        .sort((a, b) => (ordemPrioridade[a.priority] ?? 4) - (ordemPrioridade[b.priority] ?? 4));
 
     // Atualiza contadores
     const elAlerts = document.getElementById('count-alerts');
@@ -6025,17 +6025,32 @@ function renderRadarSignals(sellerFilter) {
     if (filtered.length === 0) {
         container.innerHTML = '';
         if(emptyState) emptyState.style.display = 'block';
-    } else {
-        if(emptyState) emptyState.style.display = 'none';
-        container.innerHTML = '';
-        
-        const configMap = {
-            alert:      { label: 'Alerta',    icone: '<path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>' },
-            tip:        { label: 'Dica',       icone: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>' },
-            suggestion: { label: 'Sugestão',   icone: '<path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 00-4 12.75c.44.37.7.86.7 1.42V17h6.6v-.83c0-.56.26-1.05.7-1.42A7 7 0 0012 2z"/>' }
-        };
+        return;
+    }
 
-        filtered.forEach(signal => {
+    if(emptyState) emptyState.style.display = 'none';
+
+    const configMap = {
+        alert:      { icone: '<path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>' },
+        tip:        { icone: '<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/>' },
+        suggestion: { icone: '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>' }
+    };
+
+    // Agrupa por tipo, na ordem: alertas → dicas → sugestões
+    const grupos = [
+        { tipo: 'alert', titulo: '🔴 Ação Imediata' },
+        { tipo: 'tip', titulo: '💡 Dicas para Hoje' },
+        { tipo: 'suggestion', titulo: '⚡ Oportunidades' }
+    ];
+
+    let html = '';
+    grupos.forEach(grupo => {
+        const itens = filtered.filter(s => s.type === grupo.tipo);
+        if (itens.length === 0) return;
+
+        html += `<div class="signal-section-title">${grupo.titulo}</div><div class="signal-list">`;
+
+        itens.forEach(signal => {
             const conf = configMap[signal.type];
 
             // Extrai UUID correto removendo sufixo pelo final (UUIDs contêm hífens)
@@ -6043,36 +6058,42 @@ function renderRadarSignals(sellerFilter) {
             let orcId = signal.id;
             for (const s of sufixos) { if (signal.id.endsWith(s)) { orcId = signal.id.slice(0, -s.length); break; } }
 
-            const leadLink = signal.id.startsWith('est-')
-                ? `<strong>${signal.leadName}</strong>`
-                : `<strong style="color:var(--brand-blue);cursor:pointer;" onclick="abrirDetalhesCliente('${orcId}')">${signal.leadName}</strong>`;
+            const isEstoque = signal.id.startsWith('est-');
+            const leadTag = isEstoque
+                ? `<span class="meta-tag client">${escapeHtml(signal.leadName || '')}</span>`
+                : `<span class="meta-tag client" style="cursor:pointer;" onclick="abrirDetalhesCliente('${orcId}')">${escapeHtml(signal.leadName || '')}</span>`;
 
-            const cardHtml = `
+            html += `
                 <div class="radar-task" id="radar-card-${signal.id}" data-tipo="${signal.type}" data-prioridade="${signal.priority || 'low'}">
-                    <button class="radar-check-btn" onclick="handleRadarCheck('${signal.id}')" title="Marcar tarefa como concluída" aria-label="Marcar tarefa como concluída">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                    </button>
-                    <div class="radar-task-icon badge-${signal.type}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${conf.icone}</svg></div>
-                    <div class="radar-task-body" onclick="handleRadarAction('${signal.id}')" title="${signal.justification ? signal.justification.replace(/"/g, '&quot;') : signal.actionText}">
+                    <div class="radar-task-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${conf.icone}</svg>
+                    </div>
+                    <div class="radar-task-body">
                         <div class="radar-task-top">
-                            <span class="badge badge-${signal.type}">${conf.label}</span>
-                            <p class="radar-task-message">${signal.message}</p>
-                            <span class="radar-task-time">${signal.time}</span>
+                            <span class="radar-task-message">${escapeHtml(signal.message || '')}</span>
+                            <span class="radar-task-time">${escapeHtml(signal.time || '')}</span>
                         </div>
+                        ${signal.justification ? `<div class="radar-task-desc">${escapeHtml(signal.justification)}</div>` : ''}
                         <div class="radar-task-meta">
-                            <span>Lead: ${leadLink}</span>
-                            <span class="radar-dot-sep">•</span>
-                            <span>Vendedor: ${signal.seller}</span>
+                            ${leadTag}
+                            <span class="meta-tag store">${escapeHtml(signal.seller || '')}</span>
+                        </div>
+                        <div class="radar-task-actions">
+                            <button class="btn-action primary" onclick="handleRadarAction('${signal.id}')">${escapeHtml(signal.actionText || 'Ver Detalhes')}</button>
+                            <button class="btn-action ghost" onclick="handleRadarIgnore('${signal.id}')">Ignorar</button>
                         </div>
                     </div>
-                    <button onclick="handleRadarIgnore('${signal.id}')" class="radar-ignore-btn" title="Ignorar" aria-label="Ignorar">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    <button class="radar-check-btn" onclick="handleRadarCheck('${signal.id}')" title="Marcar como resolvido" aria-label="Marcar tarefa como concluída">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                     </button>
                 </div>
             `;
-            container.insertAdjacentHTML('beforeend', cardHtml);
         });
-    } // Fecha o bloco else
+
+        html += `</div>`;
+    });
+
+    container.innerHTML = html;
 } // Fecha a função renderRadarSignals
 
 window.handleRadarAction = function(id) {
