@@ -4356,37 +4356,22 @@ function selectFilter(filter) {
                 }
                 
                 const { existe, cliente, avisoTelefone } = await verificarClientePorCpf(cpf, whats);
-                let idCliente = null;
-                
+                let idClienteExistente = null;
+
                 if (existe) {
-                    idCliente = cliente.id_cliente;
+                    idClienteExistente = cliente.id_cliente;
                     showToast(`Cliente já existe: ${cliente.nome_cliente}. Orçamento será vinculado.`, 'info');
-                } else {
-                    if (avisoTelefone) {
-                        const continuar = confirm(avisoTelefone + '\nDeseja continuar com o novo cadastro?');
-                        if (!continuar) {
-                            salvandoOrcamento = false;
-                            btn.classList.remove('saving');
-                            btn.disabled = false;
-                            return;
-                        }
+                } else if (avisoTelefone) {
+                    const continuar = confirm(avisoTelefone + '\nDeseja continuar com o novo cadastro?');
+                    if (!continuar) {
+                        salvandoOrcamento = false;
+                        btn.classList.remove('saving');
+                        btn.disabled = false;
+                        return;
                     }
-                    // Generate sequential client code CLI-XXXXXX
-                    const { data: lastCli } = await db.from('clientes').select('id_cliente_codigo').order('id_cliente_codigo', {ascending:false, nullsFirst:false}).limit(1);
-                    let nextCodigo = 'CLI-000001';
-                    if (lastCli && lastCli[0] && lastCli[0].id_cliente_codigo) {
-                        const lastNum = parseInt((lastCli[0].id_cliente_codigo || '').replace(/\D/g,'')) || 0;
-                        nextCodigo = 'CLI-' + String(lastNum + 1).padStart(6, '0');
-                    }
-                    const emailOrc = document.getElementById('modEmail') ? document.getElementById('modEmail').value.trim() : '';
-                    const pkIns = await detectClientePK();
-                    const { data: newCliente, error: errClient } = await db.from('clientes')
-                    .insert([{ nome_cliente: nome, whatsapp: whats, cpf: cpf || null, email: emailOrc || null, id_cliente_codigo: nextCodigo, id_usuario_cadastro: currentUser.id_usuario }])                        .select(pkIns)
-                        .single();
-                    if (errClient) throw new Error('Erro ao criar cliente: ' + errClient.message);
-                    idCliente = newCliente[pkIns];
                 }
-                
+                const emailOrc = document.getElementById('modEmail') ? document.getElementById('modEmail').value.trim() : '';
+
                 const produtosList = [];
                 let valorTotal = 0;
                 produtoRows.forEach(row => {
@@ -4411,28 +4396,31 @@ function selectFilter(filter) {
                 } else {
                     dataCriacaoFinal = `${dataOrcamento}T12:00:00.000Z`;
                 }
-                // 1. Montamos o payload SEM o protocolo ainda
-				const payload = {
-				    id_cliente: idCliente, // <--- NÃO ESQUEÇA DESTA LINHA!
-				    id_usuario: currentUser.id_usuario,
-				    id_status: idStatus,
-				    id_nivel_interesse: idInteresse,
-				    valor_orcado: valorTotal,
-				    modelo_colchao: produtosList.map(p => p.nome).join(', '),
-				    data_criacao: dataCriacaoFinal,
-				    data_contato: dataContato || null,
-				    hora_contato: horaContato || null,
-				    observacao_agendamento: motivoContato || null,
-				    observacoes: observacoes,
-				    origem: origem
-				};
-                // 2. INSERT simples — o banco gera o protocolo via nextval()
-                const { data: newOrc, error: errOrc } = await db.from('orcamentos')
-                    .insert(payload)
-                    .select('id_orcamento, protocolo')
-                    .single();
-                if (errOrc) throw errOrc;
-                
+                // Cliente (se necessário) + orçamento são criados em uma única transação
+                // atômica via RPC (função Postgres) — ver
+                // supabase/migrations/*_rpc_operacoes_atomicas.sql
+                const { data: resultadoSalvar, error: errRpc } = await db.rpc('rpc_salvar_orcamento', {
+                    p_id_cliente: idClienteExistente,
+                    p_nome_cliente: nome,
+                    p_cpf: cpf || null,
+                    p_whatsapp: whats,
+                    p_email: emailOrc || null,
+                    p_id_usuario_cadastro: currentUser.id_usuario,
+                    p_id_usuario: currentUser.id_usuario,
+                    p_id_status: idStatus,
+                    p_id_nivel_interesse: idInteresse,
+                    p_valor_orcado: valorTotal,
+                    p_modelo_colchao: produtosList.map(p => p.nome).join(', '),
+                    p_data_criacao: dataCriacaoFinal,
+                    p_data_contato: dataContato || null,
+                    p_hora_contato: horaContato || null,
+                    p_observacao_agendamento: motivoContato || null,
+                    p_observacoes: observacoes,
+                    p_origem: origem
+                });
+                if (errRpc) throw errRpc;
+                const newOrc = Array.isArray(resultadoSalvar) ? resultadoSalvar[0] : resultadoSalvar;
+
                 showToast(`Orçamento ${newOrc.protocolo} salvo com sucesso!`, 'success');
                 navigateTo(previousView);
             } catch (error) {
@@ -4465,10 +4453,15 @@ function selectFilter(filter) {
                 }
                 const statusPerdido = mapStatusUUID.find(s => s.nome === STATUS.PERDIDO);
                 if (!statusPerdido) throw new Error('Status "Perdido" não encontrado');
-                const { error } = await db.from('orcamentos').update({ id_status: statusPerdido.id_status, data_fechamento: getAgoraBrasiliaISO() }).eq('id_orcamento', idOrcamentoParaPerder);
+                // Update do status + comentário em uma única transação atômica via RPC.
+                const { error } = await db.rpc('rpc_confirmar_perda_orcamento', {
+                    p_id_orcamento: idOrcamentoParaPerder,
+                    p_id_status_perdido: statusPerdido.id_status,
+                    p_motivo: motivo,
+                    p_motivo_detalhes: motivoDetalhes || null,
+                    p_autor: currentUser.nome
+                });
                 if (error) throw error;
-                const comentario = `Venda perdida. Motivo: ${motivo}${motivoDetalhes ? ' - Detalhes: ' + motivoDetalhes : ''}`;
-                await db.from('comentarios').insert([{ id_orcamento: idOrcamentoParaPerder, texto: comentario, tipo: 'Perda', autor: currentUser.nome }]);
                 showToast('Venda registrada como perdida.', 'success');
                 closeModal('modalMotivoPerda');
                 if (currentView === 'detalhes_cliente') await abrirDetalhesCliente(idOrcamentoParaPerder);
@@ -4561,31 +4554,18 @@ function selectFilter(filter) {
                 const statusFechado = mapStatusUUID.find(s => s.nome === STATUS.FECHADO);
                 if (!statusFechado) throw new Error('Status "Fechado" não encontrado');
 
-                const updatePayload = { id_status: statusFechado.id_status, data_fechamento: getAgoraBrasiliaISO() };
-                if (dataEntrega) updatePayload.data_entrega = dataEntrega;
-
-                const { error } = await db.from('orcamentos').update(updatePayload).eq('id_orcamento', id);
+                // Fechamento + (se entrega) agendamento de confirmação de recebimento + comentário:
+                // tudo em uma única transação atômica via RPC. Ver
+                // supabase/migrations/*_rpc_operacoes_atomicas.sql
+                const { error } = await db.rpc('rpc_confirmar_fechamento_orcamento', {
+                    p_id_orcamento: id,
+                    p_id_status_fechado: statusFechado.id_status,
+                    p_data_entrega: modoFechamentoSelecionado === 'entrega' ? dataEntrega : null,
+                    p_autor: currentUser.nome
+                });
                 if (error) throw error;
 
                 if (modoFechamentoSelecionado === 'entrega') {
-                    const dataEntregaObj = new Date(dataEntrega + 'T00:00:00');
-                    const dataEntregaFormatada = dataEntregaObj.toLocaleDateString('pt-BR');
-
-                    // Criar agendamento automático de confirmação de recebimento
-                    await db.from('orcamentos').update({
-                        data_contato: dataEntrega,
-                        hora_contato: '09:00',
-                        observacao_agendamento: `Confirmação de recebimento - ${dataEntregaFormatada}`
-                    }).eq('id_orcamento', id);
-
-                    // Única mensagem automática mantida no Histórico de Contatos: o agendamento da entrega.
-                    await db.from('comentarios').insert([{
-                        id_orcamento: id,
-                        texto: `Agendamento automático criado: Confirmação de recebimento para ${dataEntregaFormatada} às 09:00.`,
-                        tipo: 'Sistema',
-                        autor: currentUser.nome
-                    }]);
-
                     closeModal('modalConfirmaFechamento');
                     showToast('🎉 Venda fechada! Agendamento de confirmação criado automaticamente.', 'success');
                     navigateTo('inicio'); 
