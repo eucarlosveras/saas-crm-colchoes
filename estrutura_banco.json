@@ -1,0 +1,502 @@
+[
+  {
+    "table_name": "alertas",
+    "column_name": "id_orcamento",
+    "data_type": "uuid"
+  },
+  {
+    "table_name": "alertas",
+    "column_name": "texto",
+    "data_type": "text"
+  },
+  {
+    "table_name": "alertas",
+    "column_name": "tipo",
+    "data_type": "text"
+  },
+  {
+    "table_name": "alertas",
+    "column_name": "lido",
+    "data_type": "boolean"
+  },
+  {
+    "table_name": "alertas",
+    "column_name": "id_usuario_destino",
+    "data_type": "uuid"
+  },
+  {
+    "table_name": "alertas",
+    "column_name": "id",
+    "data_type": "uuid"
+  },
+  {
+    "table_name": "alertas",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_name": "categorias",
+    "column_name": "id",
+    "data_type": "integer"
+  },
+  {
+    "table_name": "categorias",
+    "column_name": "nome",
+    "data_type": "character varying"
+  },
+  {
+    "table_name": "clientes",
+    "column_name": "id_cliente",
+    "data_type": "uuid"
+  },
+  {
+    "table_name": "clientes",
+    "column_name": "nome_cliente",
+    "data_type": "text"
+  },
+  {
+    "table_name": "clientes",
+    "column_name": "cpf",
+    "data_type": "text"
+  },
+  {
+    "table_name": "clientes",
+    "column_name": "id_loja",
+    "data_type": "uuid"
+  },
+  {
+    "table_name": "clientes",
+    "column_name": "id_cliente_codigo",
+    "data_type": "text"
+  },
+  {
+    "table_name": "clientes",
+    "column_name": "id_usuario_cadastro",
+    "data_type": "uuid"
+  },
+  {
+    "table_name": "clientes",
+    "column_name": "email",
+    "data_type": "text"
+  },
+  {
+    "table_name": "clientes",
+    "column_name": "data_criacao",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_name": "clientes",
+    "column_name": "id_usuario",
+    "data_type": "text"
+  },
+  {
+    "table_name": "clientes",
+    "column_name": "whatsapp",
+    "data_type": "text"
+  },
+  {
+    "table_name": "clientes",
+    "column_name": "criado_em",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_name": "clientes",
+    "column_name": "deleted_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_name": "clientes",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_name": "comentarios",
+    "column_name": "texto",
+    "data_type": "text"
+  },
+  {
+    "table_name": "comentarios",
+    "column_name": "data_criacao",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_name": "comentarios",
+    "column_name": "deleted_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_name": "comentarios",
+    "column_name": "autor",
+    "data_type": "text"
+  },
+  {
+    "table_name": "comentarios",
+    "column_name": "id_comentario",
+    "data_type": "integer"
+  },
+  {
+    "table_name": "comentarios",
+    "column_name": "tipo",
+    "data_type": "text"
+  },
+  {
+    "table_name": "comentarios",
+    "column_name": "id_orcamento",
+    "data_type": "uuid"
+  },
+  {
+    "table_name": "estoque",
+    "column_name": "nome_produto",
+    "data_type": "character varying"
+  },
+  {
+    "table_name": "estoque",
+    "column_name": "status",
+    "data_type": "character varying"
+  },
+  {
+    "table_name": "estoque",
+    "column_name": "qualidade",
+    "data_type": "character varying"
+  },
+  {
+    "table_name": "estoque",
+    "column_name": "categoria_id",
+    "data_type": "integer"
+  },
+  {
+    "table_name": "estoque",
+    "column_name": "qtd_disponivel",
+    "data_type": "integer"
+  },
+  {
+    "table_name": "estoque",
+    "column_name": "id_loja",
+    "data_type": "uuid"
+  },
+  {
+    "table_name": "estoque",
+    "column_name": "id_produto",
+    "data_type": "uuid"
+  },
+  {
+    "table_name": "estoque",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_name": "estoque",
+    "column_name": "codigo_produto",
+    "data_type": "character varying"
+  },
+  {
+    "table_name": "estoque",
+    "column_name": "id",
+    "data_type": "uuid"
+  },
+  {
+    "table_name": "estoque",
+    "column_name": "qtd_reservada",
+    "data_type": "integer"
+  },
+  {
+    "table_name": "estoque",
+    "column_name": "deleted_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_name": "estoque",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_name": "itens_orcamento",
+    "column_name": "preco_praticado",
+    "data_type": "numeric"
+  },
+  {
+    "table_name": "itens_orcamento",
+    "column_name": "quantidade",
+    "data_type": "integer"
+  },
+  {
+    "table_name": "itens_orcamento",
+    "column_name": "id_produto",
+    "data_type": "uuid"
+  },
+  {
+    "table_name": "itens_orcamento",
+    "column_name": "id_item",
+    "data_type": "uuid"
+  },
+  {
+    "table_name": "itens_orcamento",
+    "column_name": "id_orcamento",
+    "data_type": "uuid"
+  },
+  {
+    "table_name": "lojas",
+    "column_name": "meta_mensal",
+    "data_type": "numeric"
+  },
+  {
+    "table_name": "lojas",
+    "column_name": "id_loja",
+    "data_type": "uuid"
+  },
+  {
+    "table_name": "lojas",
+    "column_name": "nome_loja",
+    "data_type": "text"
+  },
+  {
+    "table_name": "movimentacoes_estoque",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_name": "movimentacoes_estoque",
+    "column_name": "qtd_nova_reservada",
+    "data_type": "integer"
+  },
+  {
+    "table_name": "movimentacoes_estoque",
+    "column_name": "qtd_anterior_reservada",
+    "data_type": "integer"
+  },
+  {
+    "table_name": "movimentacoes_estoque",
+    "column_name": "qtd_nova_disponivel",
+    "data_type": "integer"
+  },
+  {
+    "table_name": "movimentacoes_estoque",
+    "column_name": "qtd_anterior_disponivel",
+    "data_type": "integer"
+  },
+  {
+    "table_name": "movimentacoes_estoque",
+    "column_name": "quantidade",
+    "data_type": "integer"
+  },
+  {
+    "table_name": "movimentacoes_estoque",
+    "column_name": "id_usuario",
+    "data_type": "uuid"
+  },
+  {
+    "table_name": "movimentacoes_estoque",
+    "column_name": "tipo_movimentacao",
+    "data_type": "character varying"
+  },
+  {
+    "table_name": "movimentacoes_estoque",
+    "column_name": "id_orcamento",
+    "data_type": "uuid"
+  },
+  {
+    "table_name": "movimentacoes_estoque",
+    "column_name": "id_estoque",
+    "data_type": "uuid"
+  },
+  {
+    "table_name": "movimentacoes_estoque",
+    "column_name": "id_movimentacao",
+    "data_type": "uuid"
+  },
+  {
+    "table_name": "movimentacoes_estoque",
+    "column_name": "observacao",
+    "data_type": "text"
+  },
+  {
+    "table_name": "niveis_interesse",
+    "column_name": "nome",
+    "data_type": "text"
+  },
+  {
+    "table_name": "niveis_interesse",
+    "column_name": "id_interesse",
+    "data_type": "uuid"
+  },
+  {
+    "table_name": "notificacoes",
+    "column_name": "tipo",
+    "data_type": "text"
+  },
+  {
+    "table_name": "notificacoes",
+    "column_name": "texto",
+    "data_type": "text"
+  },
+  {
+    "table_name": "notificacoes",
+    "column_name": "id_referencia",
+    "data_type": "uuid"
+  },
+  {
+    "table_name": "notificacoes",
+    "column_name": "id_usuario",
+    "data_type": "uuid"
+  },
+  {
+    "table_name": "notificacoes",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_name": "notificacoes",
+    "column_name": "lida",
+    "data_type": "boolean"
+  },
+  {
+    "table_name": "notificacoes",
+    "column_name": "id",
+    "data_type": "uuid"
+  },
+  {
+    "table_name": "notificacoes",
+    "column_name": "id_cliente",
+    "data_type": "uuid"
+  },
+  {
+    "table_name": "orcamentos",
+    "column_name": "tipo_entrega",
+    "data_type": "text"
+  },
+  {
+    "table_name": "orcamentos",
+    "column_name": "motivo_contato",
+    "data_type": "text"
+  },
+  {
+    "table_name": "orcamentos",
+    "column_name": "motivo_perda",
+    "data_type": "text"
+  },
+  {
+    "table_name": "orcamentos",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_name": "orcamentos",
+    "column_name": "forma_pagamento",
+    "data_type": "text"
+  },
+  {
+    "table_name": "orcamentos",
+    "column_name": "id_orcamento",
+    "data_type": "uuid"
+  },
+  {
+    "table_name": "orcamentos",
+    "column_name": "valor_orcado",
+    "data_type": "numeric"
+  },
+  {
+    "table_name": "orcamentos",
+    "column_name": "data_entrega",
+    "data_type": "date"
+  },
+  {
+    "table_name": "orcamentos",
+    "column_name": "id_nivel_interesse",
+    "data_type": "uuid"
+  },
+  {
+    "table_name": "orcamentos",
+    "column_name": "ligacao_confirmada",
+    "data_type": "boolean"
+  },
+  {
+    "table_name": "orcamentos",
+    "column_name": "id_status",
+    "data_type": "uuid"
+  },
+  {
+    "table_name": "orcamentos",
+    "column_name": "data_fechamento",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_name": "orcamentos",
+    "column_name": "protocolo",
+    "data_type": "text"
+  },
+  {
+    "table_name": "orcamentos",
+    "column_name": "modelo_colchao",
+    "data_type": "text"
+  },
+  {
+    "table_name": "orcamentos",
+    "column_name": "observacoes",
+    "data_type": "text"
+  },
+  {
+    "table_name": "orcamentos",
+    "column_name": "id_cliente",
+    "data_type": "uuid"
+  },
+  {
+    "table_name": "orcamentos",
+    "column_name": "id_usuario",
+    "data_type": "uuid"
+  },
+  {
+    "table_name": "orcamentos",
+    "column_name": "data_contato",
+    "data_type": "date"
+  },
+  {
+    "table_name": "orcamentos",
+    "column_name": "origem",
+    "data_type": "text"
+  },
+  {
+    "table_name": "orcamentos",
+    "column_name": "data_criacao",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_name": "orcamentos",
+    "column_name": "deleted_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_name": "orcamentos",
+    "column_name": "observacao_agendamento",
+    "data_type": "text"
+  },
+  {
+    "table_name": "orcamentos",
+    "column_name": "hora_contato",
+    "data_type": "time without time zone"
+  },
+  {
+    "table_name": "produtos",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_name": "produtos",
+    "column_name": "deleted_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "table_name": "produtos",
+    "column_name": "preco_padrao",
+    "data_type": "numeric"
+  },
+  {
+    "table_name": "produtos",
+    "column_name": "id_produto",
+    "data_type": "uuid"
+  },
+  {
+    "table_name": "produtos",
+    "column_name": "nome_produto",
+    "data_type": "text"
+  }
+]

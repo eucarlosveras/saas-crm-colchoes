@@ -1,5 +1,10 @@
-const SUPABASE_URL = 'https://blumqkxwasdbyozdvrsp.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_kvVacObZ3ERPqc9MjOIoWw_aRZeYeIn';
+// Credenciais carregadas de config.js (gerado a partir do .env por gerar-config.js).
+// Não hardcodear URL/chave aqui — ver README/instruções do projeto.
+if (!window.APP_CONFIG) {
+    throw new Error('config.js não encontrado ou não carregado antes de app.js. Rode "node gerar-config.js".');
+}
+const SUPABASE_URL = window.APP_CONFIG.SUPABASE_URL;
+        const SUPABASE_ANON_KEY = window.APP_CONFIG.SUPABASE_ANON_KEY;
         const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
         const META_PADRAO = 50000;

@@ -1,0 +1,14 @@
+{
+  "name": "saas-crm-colchoes-scripts",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "listar-lojas": "node listar-lojas.js",
+    "gerar-config": "node gerar-config.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "dotenv": "^16.4.5"
+  }
+}
