@@ -871,7 +871,10 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
                     <button class="btn-voltar" onclick="navigateTo(store.previousView)">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Voltar
                     </button>
-                    <h1 style="font-size: 20px; font-weight: 800; color:var(--text-primary);">Novo Orçamento</h1>
+                    <h1 style="font-size: 20px; font-weight: 800; color:var(--text-primary); flex:1;">Novo Orçamento</h1>
+                    <button type="button" class="btn-agendar-icon" data-tooltip="Agendar contato" onclick="abrirModalAgendarNovoOrcamento()">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    </button>
                 </header>
 
                 <div class="novo-orcamento-wrapper">
@@ -881,15 +884,15 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
                             <svg class="section-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                             <h2 class="section-title">Dados do Cliente</h2>
                         </div>
-                        
+
                         <div class="form-group"><label for="modNome">Nome ou Razão Social *</label><input type="text" id="modNome" class="form-input" placeholder="Ex: João da Silva" onblur="validateField('modNome','errNome')"><div class="field-error" id="errNome" style="color:#ef4444; font-size:12px; margin-top:4px;"></div></div>
-                        
+
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                             <div class="form-group"><label for="modCpf">CPF / CNPJ</label><input type="text" id="modCpf" class="form-input font-data" placeholder="Opcional" onblur="validarCPF()"><div class="field-error" id="errCpf" style="color:#ef4444; font-size:12px; margin-top:4px;"></div></div>                            <div class="form-group"><label for="modWhats">WhatsApp *</label><input type="tel" id="modWhats" class="form-input font-data" placeholder="(00) 00000-0000" onblur="validateField('modWhats','errWhats')"><div class="field-error" id="errWhats" style="color:#ef4444; font-size:12px; margin-top:4px;"></div></div>
                         </div>
 
                         <div class="form-group"><label for="modEmail">E-mail</label><input type="email" id="modEmail" class="form-input" placeholder="cliente@email.com"></div>
-                        
+
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                             <div class="form-group"><label for="modOrigem">Canal de Origem</label><select id="modOrigem" class="form-input"><option value="">Selecionar...</option><option value="Instagram">Instagram / Redes Sociais</option><option value="WhatsApp">WhatsApp (Orgânico)</option><option value="Indicação">Indicação</option><option value="Passou na Loja">Passou na Loja Física</option><option value="Panfleto">Ação Externa</option><option value="Outros">Outros</option></select></div>
                             <div class="form-group"><label for="modInteresse">Interesse</label><select id="modInteresse" class="form-input"><option value="">Selecionar...</option><option value="Alto">Alto</option><option value="Médio">Médio</option><option value="Baixo">Baixo</option></select></div>
@@ -904,55 +907,65 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
                             <svg class="section-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
                             <h2 class="section-title">Itens</h2>
                         </div>
-                        
+
                         <div class="produtos-wrapper" id="produtosContainer"></div>
-                        
+
                         <button type="button" class="btn-add-item-premium" onclick="adicionarProdutoRow()">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Adicionar linha de produto
                         </button>
                         <div class="field-error" id="errItens" style="text-align: center; color:#ef4444; font-size:12px; margin-top:8px;"></div>
-                        
+
                         <div class="total-modal-box">
                             <span>Total</span>
                             <span class="valor-total" id="displayTotalModal">R$ 0,00</span>
                         </div>
                     </section>
+                </div>
 
-                    <!-- COLUNA 3: DATAS E FOLLOW-UP -->
-                    <section class="novo-orcamento-section">
-                        <div class="section-header">
-                            <svg class="section-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                            <h2 class="section-title">Agendar Contato</h2>
-                        </div>
-                        
+                <div class="footer-actions" style="max-width:420px; margin:24px auto 0;">
+                    <button id="btnSalvarOrcamento" style="background:var(--brand-blue); color:#fff; border:none; padding:14px; border-radius:8px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:0.2s;" onclick="salvarOrcamento()">
+                        <span class="btn-spinner" style="display:none; width:16px; height:16px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin 1s linear infinite;"></span>
+                        <span class="btn-text" style="display:flex; align-items:center; gap:8px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                            Confirmar e Salvar
+                        </span>
+                    </button>
+                    <button style="background:var(--card-bg); color:var(--text-secondary); border:1.5px solid var(--border-light); padding:14px; border-radius:8px; font-weight:600; cursor:pointer; transition:0.2s;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background='var(--card-bg)'" onclick="navigateTo(store.previousView)">Cancelar Alterações</button>
+                    <p class="msg" id="modalMsg" style="text-align: center; font-size: 12px;"></p>
+                </div>
+
+                <!-- Agendamento de contato: acessível pelo ícone no cabeçalho, não mais um card fixo na página -->
+                <div class="modal-overlay" id="modalAgendarNovoOrcamento" onclick="if(event.target===this)closeModal('modalAgendarNovoOrcamento')">
+                    <div class="modal-card" style="max-width:460px; width:96%;">
+                        <h3 style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                            Agendar Contato
+                        </h3>
+
                         <div class="form-group"><label for="modDataOrcamento">Data do Orçamento</label><input type="date" id="modDataOrcamento" class="form-input font-data" value="${hoje}" onblur="validateField('modDataOrcamento','errDataOrc')"><div class="field-error" id="errDataOrc" style="color:#ef4444; font-size:12px; margin-top:4px;"></div></div>
-                        
+
                         <div class="form-group"><label for="modMotivoContato">Tipo de Contato</label><select id="modMotivoContato" class="form-input"><option value="">Selecionar...</option><optgroup label="Vendas"><option value="Apresentação de Campanha/Promoção">Apresentação de Campanha/Promoção</option><option value="Reativação de Contato Antigo">Reativação de Contato Antigo</option><option value="Acompanhamento de Orçamento">Acompanhamento de Orçamento</option><option value="Virada de Tabela">Virada de Tabela</option><option value="Quebra de Objeção">Quebra de Objeção</option><option value="Cross-sell (Venda Cruzada)">Cross-sell (Venda Cruzada)</option></optgroup><optgroup label="Pós-Venda"><option value="Alinhamento Logístico">Alinhamento Logístico</option><option value="Acompanhamento de Adaptação (Pós-Entrega)">Acompanhamento de Adaptação (Pós-Entrega)</option><option value="Assistência Técnica">Assistência Técnica</option></optgroup></select></div>
-                        
+
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                             <div class="form-group"><label for="modDataContato">Data</label><input type="date" id="modDataContato" class="form-input font-data" onblur="validateField('modDataContato','errDataContato')"><div class="field-error" id="errDataContato" style="color:#ef4444; font-size:12px; margin-top:4px;"></div></div>
                             <div class="form-group"><label for="modHoraContato">Horário *</label><input type="time" id="modHoraContato" class="form-input font-data" onblur="validateField('modHoraContato','errHoraContato')"><div class="field-error" id="errHoraContato" style="color:#ef4444; font-size:12px; margin-top:4px;"></div></div>
                         </div>
 
-                        <div class="footer-actions">
-                            <button id="btnSalvarOrcamento" style="background:var(--brand-blue); color:#fff; border:none; padding:14px; border-radius:8px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:0.2s;" onclick="salvarOrcamento()">
-                                <span class="btn-spinner" style="display:none; width:16px; height:16px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin 1s linear infinite;"></span>
-                                <span class="btn-text" style="display:flex; align-items:center; gap:8px;">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                                    Confirmar e Salvar
-                                </span>
-                            </button>
-                            <button style="background:var(--card-bg); color:var(--text-secondary); border:1.5px solid var(--border-light); padding:14px; border-radius:8px; font-weight:600; cursor:pointer; transition:0.2s;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background='var(--card-bg)'" onclick="navigateTo(store.previousView)">Cancelar Alterações</button>
-                            <p class="msg" id="modalMsg" style="text-align: center; font-size: 12px;"></p>
+                        <div class="modal-btns">
+                            <button class="btn-cancelar-modal" onclick="closeModal('modalAgendarNovoOrcamento')">Fechar</button>
                         </div>
-                    </section>
+                    </div>
                 </div>
             `;
-            
+
             adicionarProdutoRow();
             calcTotalModal();
             setTimeout(() => { const modNome = document.getElementById('modNome'); if(modNome) modNome.focus(); }, 100);
 
+        }
+
+        function abrirModalAgendarNovoOrcamento() {
+            openModal('modalAgendarNovoOrcamento');
         }
 
         async function salvarOrcamento() {
@@ -1299,4 +1312,4 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
             if (form) { form.classList.add('open'); const ta = document.getElementById('novoComentario'); if (ta) ta.focus(); }
         }
 
-export { _ajusteAtualizarLixeiras, _ajusteBuildSelectOpts, abrirAjusteProposta, abrirConfirmaFechamento, abrirDetalhesCliente, abrirModalAgendamento, abrirModalGerarOrcamento, abrirMotivoPerda, abrirNovoOrcamento, adicionarProdutoRow, agendarContato, ajusteAdicionarLinha, ajusteRecalcularLinha, ajusteRecalcularTotal, ajusteValidarDesconto, atualizarBotoesLixeira, atualizarTextoOrcamentoComDesconto, buildProdutoSelectOptions, buildProdutosOptionsDatalist, calcTotalModal, carregarProdutos, confirmarFechamento, confirmarPerda, copiarTextoOrcamento, expandirComentario, fecharProdutoSugestoes, filtrarProdutoSugestoes, marcarTextoOrcamentoEditadoManualmente, montarTextoOrcamento, prodNomeKeydown, recalcularLinhaNovoOrcamento, removerProdutoRow, renderDetalhesClientePage, renderNovoOrcamentoPage, salvarAjusteProposta, salvarOrcamento, selecionarModoFechamento, selecionarProdutoSugestao, setQuickDate, validarCPF, validarProdutoSelecionado, verificarClientePorCpf, voltarDetalhes };
+export { _ajusteAtualizarLixeiras, _ajusteBuildSelectOpts, abrirAjusteProposta, abrirConfirmaFechamento, abrirDetalhesCliente, abrirModalAgendamento, abrirModalAgendarNovoOrcamento, abrirModalGerarOrcamento, abrirMotivoPerda, abrirNovoOrcamento, adicionarProdutoRow, agendarContato, ajusteAdicionarLinha, ajusteRecalcularLinha, ajusteRecalcularTotal, ajusteValidarDesconto, atualizarBotoesLixeira, atualizarTextoOrcamentoComDesconto, buildProdutoSelectOptions, buildProdutosOptionsDatalist, calcTotalModal, carregarProdutos, confirmarFechamento, confirmarPerda, copiarTextoOrcamento, expandirComentario, fecharProdutoSugestoes, filtrarProdutoSugestoes, marcarTextoOrcamentoEditadoManualmente, montarTextoOrcamento, prodNomeKeydown, recalcularLinhaNovoOrcamento, removerProdutoRow, renderDetalhesClientePage, renderNovoOrcamentoPage, salvarAjusteProposta, salvarOrcamento, selecionarModoFechamento, selecionarProdutoSugestao, setQuickDate, validarCPF, validarProdutoSelecionado, verificarClientePorCpf, voltarDetalhes };

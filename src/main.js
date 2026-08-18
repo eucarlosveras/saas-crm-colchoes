@@ -14,7 +14,7 @@ import { fecharModalNovoProduto, filtrarEstoque, salvarNovoProdutoEstoque } from
 import { changeDay, changeMonth, filtrarPorLoja, filtrarPorVendedor } from './filtros.js';
 import { abrirModalMeta, salvarMetaLoja, salvarNovaMeta } from './metas.js';
 import { marcarNotificacaoBancoLida, marcarNotificacaoLida, toggleNotifications } from './notificacoes.js';
-import { _ajusteAtualizarLixeiras, abrirAjusteProposta, abrirConfirmaFechamento, abrirDetalhesCliente, abrirModalAgendamento, abrirModalGerarOrcamento, abrirMotivoPerda, abrirNovoOrcamento, adicionarProdutoRow, agendarContato, ajusteAdicionarLinha, ajusteRecalcularLinha, ajusteRecalcularTotal, ajusteValidarDesconto, atualizarTextoOrcamentoComDesconto, confirmarPerda, copiarTextoOrcamento, expandirComentario, fecharProdutoSugestoes, filtrarProdutoSugestoes, marcarTextoOrcamentoEditadoManualmente, prodNomeKeydown, recalcularLinhaNovoOrcamento, removerProdutoRow, salvarAjusteProposta, salvarOrcamento, selecionarModoFechamento, setQuickDate, validarCPF, voltarDetalhes } from './orcamentos.js';
+import { _ajusteAtualizarLixeiras, abrirAjusteProposta, abrirConfirmaFechamento, abrirDetalhesCliente, abrirModalAgendamento, abrirModalAgendarNovoOrcamento, abrirModalGerarOrcamento, abrirMotivoPerda, abrirNovoOrcamento, adicionarProdutoRow, agendarContato, ajusteAdicionarLinha, ajusteRecalcularLinha, ajusteRecalcularTotal, ajusteValidarDesconto, atualizarTextoOrcamentoComDesconto, confirmarPerda, copiarTextoOrcamento, expandirComentario, fecharProdutoSugestoes, filtrarProdutoSugestoes, marcarTextoOrcamentoEditadoManualmente, prodNomeKeydown, recalcularLinhaNovoOrcamento, removerProdutoRow, salvarAjusteProposta, salvarOrcamento, selecionarModoFechamento, setQuickDate, validarCPF, voltarDetalhes } from './orcamentos.js';
 import { analisarClienteComIA, enviarMensagemChatIA, fecharModalChatIA } from './radar.js';
 import { navigateTo } from './router.js';
 import { store } from './state.js';
@@ -28,6 +28,7 @@ window.abrirAjusteProposta = abrirAjusteProposta;
 window.abrirConfirmaFechamento = abrirConfirmaFechamento;
 window.abrirDetalhesCliente = abrirDetalhesCliente;
 window.abrirModalAgendamento = abrirModalAgendamento;
+window.abrirModalAgendarNovoOrcamento = abrirModalAgendarNovoOrcamento;
 window.abrirModalEditarCliente = abrirModalEditarCliente;
 window.abrirModalExcluirCliente = abrirModalExcluirCliente;
 window.abrirModalExcluirUsuarioAdmin = abrirModalExcluirUsuarioAdmin;
