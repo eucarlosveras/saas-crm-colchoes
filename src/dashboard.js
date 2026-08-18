@@ -1,0 +1,656 @@
+// ═══════════════════════════════════════════════════════════════
+// Módulo: dashboard.js — extraído automaticamente do antigo app.js monolítico
+// ═══════════════════════════════════════════════════════════════
+import { atualizarTabelaPaginadaServer, clearSearch, getNegociacoesGridTemplate, handleSearchUnificado, selectFilter } from './carteira.js';
+import { STATUS } from './constants.js';
+import { renderFiltrosData } from './filtros.js';
+import { calcularMetaTotal, getGamifiedColors } from './metas.js';
+import { buildNotifications, renderNotificationBadge, toggleNotifications } from './notificacoes.js';
+import { AppState, getLojasPermitidas, store } from './state.js';
+import { db } from './supabaseClient.js';
+import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getHojeBrasilia, getInicioSemanaBrasilia, getPrimeiroDiaMes } from './utils.js';
+import { Chart } from 'chart.js/auto';
+
+     async function carregarKpisEDashboard() {
+        // ═══════════════════════════════════════════════════════
+        // NOVO: Usar Views para KPIs
+        // ═══════════════════════════════════════════════════════
+        
+        const mesAtual = new Date().getMonth() + 1;
+        const anoAtual = new Date().getFullYear();
+        
+        // 1. Vendas do mês (View já calcula)
+        const { data: vendasMes } = await db
+            .from('vw_vendas_mensais')
+            .select('*')
+            .eq('ano', anoAtual)
+            .eq('mes', mesAtual)
+            .single();
+        
+        // 2. Performance do vendedor (View já calcula)
+        const { data: performance } = await db
+            .from('vw_performance_vendedores')
+            .select('*')
+            .eq('id_usuario', store.currentUser.id_usuario)
+            .eq('ano', anoAtual)
+            .eq('mes', mesAtual)
+            .single();
+        
+        // 3. Orçamentos em risco (View já calcula)
+        const { data: emRisco } = await db
+            .from('vw_orcamentos_em_risco')
+            .select('*')
+            .eq('vendedor', store.currentUser.nome);
+        
+        // Atualizar DOM com dados já calculados
+        atualizarKPIsDashboard(vendasMes, performance, emRisco);
+    }
+
+    function atualizarKPIsDashboard(vendasMes, performance, emRisco) {
+        const fmt = v => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        
+        // Faturamento do mês
+        const elFaturamento = document.getElementById('kpiFaturamento');
+        if (elFaturamento) elFaturamento.textContent = fmt(vendasMes?.faturamento_total);
+        
+        // Ticket médio
+        const elTicket = document.getElementById('kpiTicketMedio');
+        if (elTicket) elTicket.textContent = fmt(vendasMes?.ticket_medio);
+        
+        // Progresso da meta
+        const elProgresso = document.getElementById('kpiMetaProgresso');
+        if (elProgresso) {
+            const progresso = performance?.progresso_meta || 0;
+            elProgresso.textContent = `${progresso}%`;
+        }
+        
+        // Orçamentos em risco
+        const elRisco = document.getElementById('kpiEmRisco');
+        if (elRisco) elRisco.textContent = emRisco?.length || 0;
+    }
+
+        function calcularVariacaoPercentual(atual, anterior) {
+            if (anterior === 0) return atual > 0 ? 100 : 0;
+            return ((atual - anterior) / anterior) * 100;
+        }
+
+        const KPI_ICONES = {
+            vendas: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>',
+            ticket: '<path d="M21 12V7H5a2 2 0 010-4h14v4"/><path d="M3 5v14a2 2 0 002 2h16v-5"/><path d="M18 12a2 2 0 000 4h4v-4z"/>',
+            clientes: '<path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>',
+            produtos: '<path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" y1="22" x2="12" y2="12"/>'
+        };
+
+        function buildKpiCard({ icone, cor, label, valor, variacao, comparacaoLabel, destaque = false }) {
+            const temVariacao = variacao !== undefined && variacao !== null;
+            const positivo = temVariacao && variacao >= 0;
+            const rodape = temVariacao
+                ? `<div class="kpi-footer"><span class="kpi-variacao ${positivo ? 'kpi-var-up' : 'kpi-var-down'}">${positivo ? '▲' : '▼'} ${Math.abs(Math.round(variacao))}%</span>${comparacaoLabel ? `<span class="kpi-comparacao-label">${comparacaoLabel}</span>` : ''}</div>`
+                : '';
+            return `<div class="kpi-card${destaque ? ' vendido-highlight' : ''}">
+                <div class="kpi-icon-badge kpi-badge-${cor}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icone}</svg></div>
+                <div class="kpi-label-row"><span class="kpi-dot ${cor}"></span><span class="kpi-label">${label}</span></div>
+                <div class="kpi-value">${valor}</div>
+                ${rodape}
+            </div>`;
+        }
+
+        function getIntervalosPeriodoKpi(periodo) {
+            const hojeStr = getHojeBrasilia();
+            const amanhaStr = addDiasBrasilia(1);
+
+            if (periodo === 'semana') {
+                const inicioAtual = getInicioSemanaBrasilia(0);
+                return {
+                    inicioAtual, fimAtualExclusivo: amanhaStr,
+                    inicioAnterior: addDiasADataStr(inicioAtual, -7),
+                    fimAnteriorExclusivo: addDiasADataStr(amanhaStr, -7),
+                    labelComparacao: 'vs. semana passada'
+                };
+            }
+            if (periodo === 'mes') {
+                const inicioAtual = getPrimeiroDiaMes(hojeStr);
+                const diaEquivalenteMesPassado = deslocarDataEmMeses(hojeStr, -1);
+                return {
+                    inicioAtual, fimAtualExclusivo: amanhaStr,
+                    inicioAnterior: getPrimeiroDiaMes(diaEquivalenteMesPassado),
+                    fimAnteriorExclusivo: addDiasADataStr(diaEquivalenteMesPassado, 1),
+                    labelComparacao: 'vs. mês passado'
+                };
+            }
+            // 'hoje' (padrão)
+            return {
+                inicioAtual: hojeStr, fimAtualExclusivo: amanhaStr,
+                inicioAnterior: addDiasBrasilia(-1), fimAnteriorExclusivo: hojeStr,
+                labelComparacao: 'vs. ontem'
+            };
+        }
+
+        async function carregarKpisDiariosVendedor(periodo = store.kpiPeriodoVendedor) {
+            const idVendedor = AppState.usuarioLogado.id_usuario;
+            const { inicioAtual, fimAtualExclusivo, inicioAnterior, fimAnteriorExclusivo, labelComparacao } = getIntervalosPeriodoKpi(periodo);
+
+            const idsFechado = store.mapStatusUUID.filter(s => s.nome === STATUS.FECHADO).map(s => s.id_status);
+            const idsFechadoSafe = idsFechado.length ? idsFechado : ['00000000-0000-0000-0000-000000000000'];
+
+            const buscarVendasDoPeriodo = async (inicioStr, fimStr) => {
+                const { data, error } = await db.from('orcamentos')
+                    .select('valor_orcado, modelo_colchao')
+                    .eq('id_usuario', idVendedor)
+                    .in('id_status', idsFechadoSafe)
+                    .gte('data_fechamento', `${inicioStr}T00:00:00`)
+                    .lt('data_fechamento', `${fimStr}T00:00:00`);
+                if (error) { console.error('Erro ao buscar vendas do período (KPI vendedor):', error); return []; }
+                return data || [];
+            };
+
+            // "Novo cliente" = o vendedor criou um orçamento no período para um cliente que
+            // NUNCA teve nenhum orçamento antes do início desse período (em todo o sistema,
+            // não só com esse vendedor). Não depende de nenhuma coluna extra em 'clientes' —
+            // usa só o histórico da própria tabela 'orcamentos'.
+            const buscarClientesCadastradosNoPeriodo = async (inicioStr, fimStr) => {
+                // 1. Clientes para quem o vendedor criou orçamento dentro do período (qualquer status).
+                const { data: orcsPeriodo, error: errPeriodo } = await db.from('orcamentos')
+                    .select('id_cliente')
+                    .eq('id_usuario', idVendedor)
+                    .gte('data_criacao', `${inicioStr}T00:00:00`)
+                    .lt('data_criacao', `${fimStr}T00:00:00`);
+                if (errPeriodo) { console.error('Erro ao buscar orçamentos do período (KPI novos clientes):', errPeriodo); return 0; }
+                const candidatos = [...new Set((orcsPeriodo || []).map(o => o.id_cliente).filter(Boolean))];
+                if (candidatos.length === 0) return 0;
+
+                // 2. Desses, quais já tinham QUALQUER orçamento (de qualquer vendedor) antes do
+                // início do período? Esses não são "novos" — já existiam antes.
+                const { data: orcsAnteriores, error: errAnteriores } = await db.from('orcamentos')
+                    .select('id_cliente')
+                    .in('id_cliente', candidatos)
+                    .lt('data_criacao', `${inicioStr}T00:00:00`);
+                if (errAnteriores) { console.error('Erro ao checar histórico de clientes (KPI novos clientes):', errAnteriores); return 0; }
+                const clientesComHistorico = new Set((orcsAnteriores || []).map(o => o.id_cliente));
+
+                return candidatos.filter(id => !clientesComHistorico.has(id)).length;
+            };
+
+            const [vendasAtual, vendasAnterior, clientesAtual, clientesAnterior] = await Promise.all([
+                buscarVendasDoPeriodo(inicioAtual, fimAtualExclusivo),
+                buscarVendasDoPeriodo(inicioAnterior, fimAnteriorExclusivo),
+                buscarClientesCadastradosNoPeriodo(inicioAtual, fimAtualExclusivo),
+                buscarClientesCadastradosNoPeriodo(inicioAnterior, fimAnteriorExclusivo)
+            ]);
+
+            const somarValor = arr => arr.reduce((acc, o) => acc + parseFloat(o.valor_orcado || 0), 0);
+            const contarProdutos = arr => arr.reduce((acc, o) => acc + (o.modelo_colchao ? o.modelo_colchao.split(',').map(p => p.trim()).filter(Boolean).length : 0), 0);
+
+            const valorAtual = somarValor(vendasAtual);
+            const valorAnterior = somarValor(vendasAnterior);
+
+            AppState.kpisDiariosVendedor = {
+                labelComparacao,
+                vendas: { hoje: valorAtual, ontem: valorAnterior },
+                ticket: {
+                    hoje: vendasAtual.length ? valorAtual / vendasAtual.length : 0,
+                    ontem: vendasAnterior.length ? valorAnterior / vendasAnterior.length : 0
+                },
+                clientes: { hoje: clientesAtual, ontem: clientesAnterior },
+                produtos: { hoje: contarProdutos(vendasAtual), ontem: contarProdutos(vendasAnterior) }
+            };
+        }
+
+        async function selecionarPeriodoKpiVendedor(periodo) {
+            if (periodo === store.kpiPeriodoVendedor) return;
+            store.kpiPeriodoVendedor = periodo;
+            if (AppState.usuarioLogado.perfil === 'Vendedor') {
+                await carregarKpisDiariosVendedor(periodo);
+            } else if (AppState.usuarioLogado.perfil === 'Gerente' || (AppState.usuarioLogado.perfil || '').toLowerCase() === 'terminal') {
+                await carregarKpisDiariosGerente(periodo);
+            }
+            if (store.currentView === 'inicio') renderInicio();
+        }
+
+        async function carregarKpisDiariosGerente(periodo = store.kpiPeriodoVendedor) {
+            const { inicioAtual, fimAtualExclusivo, inicioAnterior, fimAnteriorExclusivo, labelComparacao } = getIntervalosPeriodoKpi(periodo);
+
+            // Determina quais vendedores entram na agregação
+            const lojasPermitidas = getLojasPermitidas();
+            let vendedoresFiltrados = store.todosVendedores;
+
+            if (store.selectedLoja !== 'todas') {
+                // Uma loja específica selecionada no filtro
+                vendedoresFiltrados = store.todosVendedores.filter(v => v.id_loja === store.selectedLoja);
+            } else if (lojasPermitidas && lojasPermitidas.length > 0) {
+                // "Todas" = todas as lojas permitidas para este gerente
+                vendedoresFiltrados = store.todosVendedores.filter(v => lojasPermitidas.includes(v.id_loja));
+            }
+
+            const idsVendedores = vendedoresFiltrados.map(v => v.id_usuario);
+            const idsFechado = store.mapStatusUUID.filter(s => s.nome === STATUS.FECHADO).map(s => s.id_status);
+            const idsFechadoSafe = idsFechado.length ? idsFechado : ['00000000-0000-0000-0000-000000000000'];
+
+            const buscarVendasDoPeriodo = async (inicioStr, fimStr) => {
+                let query = db.from('orcamentos')
+                    .select('valor_orcado, modelo_colchao, id_usuario')
+                    .in('id_status', idsFechadoSafe)
+                    .gte('data_fechamento', `${inicioStr}T00:00:00`)
+                    .lt('data_fechamento', `${fimStr}T00:00:00`);
+
+                if (idsVendedores.length > 0) {
+                    query = query.in('id_usuario', idsVendedores);
+                } else {
+                    query = query.eq('id_usuario', '00000000-0000-0000-0000-000000000000');
+                }
+
+                const { data, error } = await query;
+                if (error) { console.error('Erro ao buscar vendas do período (KPI gerente):', error); return []; }
+                return data || [];
+            };
+
+            const buscarClientesCadastradosNoPeriodo = async (inicioStr, fimStr) => {
+                let queryPeriodo = db.from('orcamentos')
+                    .select('id_cliente')
+                    .gte('data_criacao', `${inicioStr}T00:00:00`)
+                    .lt('data_criacao', `${fimStr}T00:00:00`);
+
+                if (idsVendedores.length > 0) {
+                    queryPeriodo = queryPeriodo.in('id_usuario', idsVendedores);
+                } else {
+                    queryPeriodo = queryPeriodo.eq('id_usuario', '00000000-0000-0000-0000-000000000000');
+                }
+
+                const { data: orcsPeriodo, error: errPeriodo } = await queryPeriodo;
+                if (errPeriodo) { console.error('Erro ao buscar orçamentos do período (KPI novos clientes gerente):', errPeriodo); return 0; }
+
+                const candidatos = [...new Set((orcsPeriodo || []).map(o => o.id_cliente).filter(Boolean))];
+                if (candidatos.length === 0) return 0;
+
+                const { data: orcsAnteriores, error: errAnteriores } = await db.from('orcamentos')
+                    .select('id_cliente')
+                    .in('id_cliente', candidatos)
+                    .lt('data_criacao', `${inicioStr}T00:00:00`);
+
+                if (errAnteriores) { console.error('Erro ao checar histórico de clientes (KPI novos clientes gerente):', errAnteriores); return 0; }
+                const clientesComHistorico = new Set((orcsAnteriores || []).map(o => o.id_cliente));
+
+                return candidatos.filter(id => !clientesComHistorico.has(id)).length;
+            };
+
+            const [vendasAtual, vendasAnterior, clientesAtual, clientesAnterior] = await Promise.all([
+                buscarVendasDoPeriodo(inicioAtual, fimAtualExclusivo),
+                buscarVendasDoPeriodo(inicioAnterior, fimAnteriorExclusivo),
+                buscarClientesCadastradosNoPeriodo(inicioAtual, fimAtualExclusivo),
+                buscarClientesCadastradosNoPeriodo(inicioAnterior, fimAnteriorExclusivo)
+            ]);
+
+            const somarValor = arr => arr.reduce((acc, o) => acc + parseFloat(o.valor_orcado || 0), 0);
+            const contarProdutos = arr => arr.reduce((acc, o) => acc + (o.modelo_colchao ? o.modelo_colchao.split(',').map(p => p.trim()).filter(Boolean).length : 0), 0);
+
+            const valorAtual = somarValor(vendasAtual);
+            const valorAnterior = somarValor(vendasAnterior);
+
+            AppState.kpisDiariosGerente = {
+                labelComparacao,
+                vendas: { hoje: valorAtual, ontem: valorAnterior },
+                ticket: {
+                    hoje: vendasAtual.length ? valorAtual / vendasAtual.length : 0,
+                    ontem: vendasAnterior.length ? valorAnterior / vendasAnterior.length : 0
+                },
+                clientes: { hoje: clientesAtual, ontem: clientesAnterior },
+                produtos: { hoje: contarProdutos(vendasAtual), ontem: contarProdutos(vendasAnterior) }
+            };
+        }
+
+        async function carregarHistoricoFaturamento() {
+            if (!store.currentUser || (store.currentUser.perfil !== 'Vendedor' && (store.currentUser.perfil || '').toLowerCase() !== 'terminal')) { store.historicoFaturamento = []; return; }
+            const hoje = new Date(); store.historicoFaturamento = [];
+            try {
+                const uuidsFechados = store.mapStatusUUID.filter(s => [STATUS.FECHADO, STATUS.VENDIDO].includes(s.nome)).map(s => s.id_status);
+
+                for (let i = 5; i >= 0; i--) {
+                    const mes = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1); 
+                    const ano = mes.getFullYear(); 
+                    const mesNum = mes.getMonth() + 1;
+                    const startDate = new Date(ano, mesNum - 1, 1).toISOString(); 
+                    const endDate = new Date(ano, mesNum, 0, 23, 59, 59).toISOString();
+                    
+                    let query = db.from('orcamentos')
+                        .select('valor_orcado')
+                        .eq('id_usuario', store.currentUser.id_usuario)
+                        .gte('data_fechamento', startDate)
+                        .lte('data_fechamento', endDate);
+                    
+                    if(uuidsFechados.length > 0) {
+                        query = query.in('id_status', uuidsFechados);
+                    }
+
+                    const { data } = await query;
+                    const total = (data || []).reduce((s, o) => s + parseFloat(o.valor_orcado || 0), 0);
+                    const nomeMes = mes.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', ''); 
+                    const anoAbrev = ano.toString().slice(-2);
+                    store.historicoFaturamento.push({ mes: nomeMes + '/' + anoAbrev, valor: total });
+                }
+            } catch(e) { }
+        }
+
+        function renderizarGraficos(total, fechados) {
+            const ctxDonut = document.getElementById('donutCanvas');
+            if (!ctxDonut) return false;
+            
+            const orcadosCount = total - fechados;
+            
+            if(store.donutChartInstance) { store.donutChartInstance.destroy(); }
+            store.donutChartInstance = new Chart(ctxDonut, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Orçados', 'Fechados'],
+                    datasets: [{
+                        data: [orcadosCount, fechados],
+                        backgroundColor: [
+                            getComputedStyle(document.body).getPropertyValue('--chart-blue').trim() || '#3b82f6',
+                            getComputedStyle(document.body).getPropertyValue('--chart-green').trim() || '#10b981'
+                        ],
+                        borderColor: '#fff',
+                        borderWidth: 3,
+                        borderRadius: 6,
+                        hoverBorderWidth: 4
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: true, cutout: '65%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: getComputedStyle(document.body).getPropertyValue('--tooltip-bg').trim() || '#1e293b',
+                            titleColor: getComputedStyle(document.body).getPropertyValue('--tooltip-text').trim() || '#f1f5f9',
+                            bodyColor: getComputedStyle(document.body).getPropertyValue('--tooltip-body').trim() || '#cbd5e1',
+                            padding: 12, cornerRadius: 8,
+                            callbacks: {
+                                label: function(ctx) {
+                                    const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                                    const pct = total ? Math.round((ctx.raw / total) * 100) : 0;
+                                    return ctx.label + ': ' + ctx.raw + ' (' + pct + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const ctxBar = document.getElementById('barChartCanvas');
+            if (ctxBar && store.historicoFaturamento.length > 0) {
+                if(store.barChartInstance) { store.barChartInstance.destroy(); }
+                store.barChartInstance = new Chart(ctxBar, {
+                    type: 'bar',
+                    data: {
+                        labels: store.historicoFaturamento.map(h => h.mes),
+                        datasets: [{
+                            label: 'Vendido',
+                            data: store.historicoFaturamento.map(h => h.valor),
+                            backgroundColor: getComputedStyle(document.body).getPropertyValue('--chart-green').trim() || '#10b981',
+                            borderRadius: 6, borderSkipped: false, maxBarThickness: 40
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: getComputedStyle(document.body).getPropertyValue('--tooltip-bg').trim() || '#1e293b',
+                                titleColor: getComputedStyle(document.body).getPropertyValue('--tooltip-text').trim() || '#f1f5f9',
+                                bodyColor: getComputedStyle(document.body).getPropertyValue('--tooltip-body').trim() || '#cbd5e1',
+                                padding: 10, cornerRadius: 6,
+                                callbacks: {
+                                    label: function(ctx) { return 'R$ ' + ctx.raw.toLocaleString('pt-BR', { minimumFractionDigits: 2 }); }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) { return value >= 1000 ? 'R$ ' + (value / 1000).toFixed(0) + 'k' : 'R$ ' + value; },
+                                    font: { size: 10, family: 'Inter' }, maxTicksLimit: 5
+                                },
+                                grid: { color: '#e2e8f0' }
+                            },
+                            x: { grid: { display: false }, ticks: { font: { size: 10, family: 'Inter' }, maxRotation: 45, minRotation: 0 } }
+                        }
+                    }
+                });
+            }
+            return true;
+        }
+
+        function tentarRenderizarGraficos(total, fechados, tentativas = 0) {
+            if (tentativas > 5) return;
+            const donutCanvas = document.getElementById('donutCanvas');
+            if (!donutCanvas) { setTimeout(() => tentarRenderizarGraficos(total, fechados, tentativas + 1), 300); return; }
+            renderizarGraficos(total, fechados);
+        }
+
+        function renderInicio() {
+    const main = document.getElementById('mainContent');
+    const isGerente = store.currentUser.perfil === 'Gerente' || store.currentUser.perfil === 'Administrador' || store.currentUser.perfil === 'Admin';
+
+    // 1. store.kpisMensais já vem filtrado corretamente do banco:
+    //    abertos (Contato Inicial/Negociação/Em Fechamento) pela data de ABERTURA (data_criacao),
+    //    finalizados (Fechado/Perdido) pela data de CONCLUSÃO (data_fechamento).
+    const dados = store.kpisMensais;
+
+    // 2. CÁLCULOS — pega os dados já calculados do nosso estado
+    const resumo = AppState.kpisMensaisResumo || {};
+    const total = resumo.total_oportunidades || 0;
+    const fechados = resumo.vendas_fechadas_qtd || 0;
+    const negociacao = resumo.em_tratativa || 0;
+    const valorVendido = resumo.vendas_fechadas_valor || 0;
+    const fechadosArr = dados.filter(o => o.status === STATUS.FECHADO || o.status === 'Vendido');
+    const conversao = total ? Math.round((fechados / total) * 100) : 0;
+    const metaAtual = calcularMetaTotal();
+    const percMetaExato = metaAtual ? Math.round((valorVendido / metaAtual) * 100) : 0;
+    const gamified = getGamifiedColors(percMetaExato);
+
+    // 3. UI/UX: RÓTULO DE PERÍODO CLARO PARA O USUÁRIO
+    const nomeMesSelecionado = new Date(store.currentYear, store.currentMonth - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    const labelPeriodo = store.currentDay ? `Resultados de ${store.currentDay} de ${nomeMesSelecionado}` : `Resultados de ${nomeMesSelecionado}`;
+
+    // 4. HEADER HTML BEM FECHADO E ISOLADO
+    const headerHtml = `
+    <header class="dashboard-header">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+            <h1 style="margin: 0;">${isGerente ? 'Dashboard Vendas' : 'Dashboard do Vendedor'}</h1>
+            <span style="font-size: 13px; color: var(--text-muted); font-weight: 500; text-transform: capitalize;">${labelPeriodo}</span>
+        </div>
+        <div class="header-controls">
+            ${renderFiltrosData(isGerente)}
+            <div class="header-notification-area">
+                <button class="btn-notification" id="btnNotification" onclick="event.stopPropagation(); toggleNotifications();" aria-label="Notificações">
+                    <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+                    <span class="notification-badge" id="notificationBadgeCount"></span>
+                </button>
+            </div>
+        </div>
+    </header>`;
+
+    // 5. CARDS E GRÁFICOS
+    const progressHtml = `<div class="gamified-progress-card"><div class="progress-icon" style="background:${gamified.iconBg}; box-shadow:${gamified.shadow};">${gamified.iconSvg}</div><div class="progress-info"><h3>Atingimento de Meta</h3><p class="progress-subtitle">R$ ${valorVendido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} / R$ ${metaAtual.toLocaleString('pt-BR')}</p></div><div class="progress-bar-wrap"><div class="progress-bar-outer"><div class="progress-bar-inner-gamified" style="width:${Math.min(100, percMetaExato)}%; background:${gamified.bg}; box-shadow:${gamified.shadow};"></div></div><span class="progress-percent" style="color:${gamified.motiveColor};">${percMetaExato > 100 ? '100+' : percMetaExato}%</span></div><div class="progress-motive-text" style="color:${gamified.motiveColor};">${gamified.motive}</div></div>`;
+    
+    let kpiHtml;
+    let kpiToggleHtml = '';
+
+    // Verifica se deve mostrar KPIs diários (Vendedor individual ou Gerente agregado)
+    const mostrarKpisDiarios = store.currentUser.perfil === 'Vendedor' || store.currentUser.perfil === 'Gerente' || (store.currentUser.perfil || '').toLowerCase() === 'terminal';
+
+    if (mostrarKpisDiarios) {
+        // Vendedor usa kpisDiariosVendedor, Gerente usa kpisDiariosGerente
+        const isPerfGerente = store.currentUser.perfil === 'Gerente' || (store.currentUser.perfil || '').toLowerCase() === 'terminal';
+        const k = isPerfGerente 
+            ? (AppState.kpisDiariosGerente || { labelComparacao: 'vs. ontem', vendas: { hoje: 0, ontem: 0 }, ticket: { hoje: 0, ontem: 0 }, clientes: { hoje: 0, ontem: 0 }, produtos: { hoje: 0, ontem: 0 } })
+            : (AppState.kpisDiariosVendedor || { labelComparacao: 'vs. ontem', vendas: { hoje: 0, ontem: 0 }, ticket: { hoje: 0, ontem: 0 }, clientes: { hoje: 0, ontem: 0 }, produtos: { hoje: 0, ontem: 0 } });
+
+        // Sufixo do nome do card muda junto com o período selecionado
+        const sufixoPeriodo = { hoje: 'Hoje', semana: 'Semana', mes: 'Mês' }[store.kpiPeriodoVendedor];
+        const fmtMoeda = n => n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const periodos = [['hoje', 'Hoje'], ['semana', 'Semana'], ['mes', 'Mês']];
+
+        // Título muda conforme o perfil
+        const tituloKpi = isPerfGerente ? 'Desempenho da Loja' : 'Meu Desempenho';
+
+        kpiToggleHtml = `<div class="kpi-section-header">
+            <h3 class="kpi-section-title">${tituloKpi}</h3>
+            <div class="kpi-periodo-toggle">${periodos.map(([valor, rotulo]) =>
+                `<button type="button" class="kpi-periodo-btn ${store.kpiPeriodoVendedor === valor ? 'active' : ''}" onclick="selecionarPeriodoKpiVendedor('${valor}')">${rotulo}</button>`
+            ).join('')}</div>
+        </div>`;
+        kpiHtml = [
+            buildKpiCard({ icone: KPI_ICONES.vendas, cor: 'green', label: `Vendas ${sufixoPeriodo}`, valor: `R$ ${fmtMoeda(k.vendas.hoje)}`, variacao: calcularVariacaoPercentual(k.vendas.hoje, k.vendas.ontem), comparacaoLabel: k.labelComparacao }),
+            buildKpiCard({ icone: KPI_ICONES.ticket, cor: 'blue', label: `Ticket Médio ${sufixoPeriodo}`, valor: `R$ ${fmtMoeda(k.ticket.hoje)}`, variacao: calcularVariacaoPercentual(k.ticket.hoje, k.ticket.ontem), comparacaoLabel: k.labelComparacao }),
+            buildKpiCard({ icone: KPI_ICONES.clientes, cor: 'orange', label: `Novos Clientes ${sufixoPeriodo}`, valor: k.clientes.hoje, variacao: calcularVariacaoPercentual(k.clientes.hoje, k.clientes.ontem), comparacaoLabel: k.labelComparacao }),
+            buildKpiCard({ icone: KPI_ICONES.produtos, cor: 'green', label: `Produtos Vendidos ${sufixoPeriodo}`, valor: k.produtos.hoje, variacao: calcularVariacaoPercentual(k.produtos.hoje, k.produtos.ontem), comparacaoLabel: k.labelComparacao, destaque: true })
+        ].join('');
+    } else {
+        kpiHtml = `<div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot blue"></span><span class="kpi-label">Oportunidades Geradas</span></div><div class="kpi-value">${total}</div></div><div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot orange"></span><span class="kpi-label">Em Tratativa</span></div><div class="kpi-value">${negociacao}</div></div><div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Taxa de Conversão</span></div><div class="kpi-value">${conversao}%</div></div><div class="kpi-card vendido-highlight"><div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Vendas Fechadas</span></div><div class="kpi-value">R$ ${valorVendido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div></div>`;
+    }
+    
+    
+    const donutHtml = `<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Aproveitamento</h3><div class="donut-wrapper"><canvas id="donutCanvas" width="200" height="200"></canvas></div><div class="donut-legend"><div style="display:flex; align-items:center; gap:8px;"><span class="legend-color orcados"></span> Orçados <strong>${total}</strong></div><div style="display:flex; align-items:center; gap:8px;"><span class="legend-color fechados"></span> Fechados <strong>${fechados}</strong></div></div></div>`;
+
+    let barChartHtml = '';
+
+    if (store.historicoFaturamento.length > 0) {
+        barChartHtml = `<div class="chart-card" style="display:flex; flex-direction:column;"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg> Evolução Mensal</h3><div class="bar-chart-wrapper"><canvas id="barChartCanvas"></canvas></div></div>`;
+    }
+    
+    let rankingHtml = '';
+                if (isGerente) {
+                    let vendedoresRanking = store.todosVendedores;
+                    if (store.currentUser.perfil === 'Gerente') {
+                        const lojasPermitidasRanking = getLojasPermitidas();
+                        vendedoresRanking = lojasPermitidasRanking
+                            ? store.todosVendedores.filter(v => lojasPermitidasRanking.includes(v.id_loja))
+                            : store.todosVendedores;
+                        if (store.selectedLoja !== 'todas') vendedoresRanking = vendedoresRanking.filter(v => v.id_loja === store.selectedLoja);
+                    } else if (store.selectedLoja !== 'todas') {
+                        vendedoresRanking = store.todosVendedores.filter(v => v.id_loja === store.selectedLoja);
+                    }
+                
+                    if (vendedoresRanking.length > 0) {
+                        const ranking = vendedoresRanking.map(v => {
+                            const vendido = dados.filter(o => o.id_usuario === v.id_usuario && (o.status === STATUS.FECHADO || o.status === STATUS.VENDIDO)).reduce((s, o) => s + parseFloat(o.valor_orcado || 0), 0);
+                            const meta = parseFloat(v.meta_mensal || 0);
+                            // pct = % da meta individual; se sem meta, usa ranking relativo (max=100)
+                            const pct = meta > 0 ? Math.min((vendido / meta) * 100, 100) : 0;
+                            return { nome: v.nome, vendido, meta, pct };
+                        }).sort((a, b) => b.vendido - a.vendido);
+
+                        // cores da barra por atingimento - usando variáveis CSS
+                        const barColor = pct => {
+                            if (pct >= 100) return 'linear-gradient(90deg, var(--accent-green-dark), var(--chart-green))';
+                            if (pct >= 70)  return 'linear-gradient(90deg, #2563eb, var(--brand-blue))';
+                            if (pct >= 40)  return 'linear-gradient(90deg, var(--accent-orange), #fbbf24)';
+                            return 'linear-gradient(90deg, var(--chart-red), #f87171)';
+                        };
+                        const posClass = i => i === 0 ? 'pos-1' : i === 1 ? 'pos-2' : i === 2 ? 'pos-3' : '';
+                        const posLabel = i => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}`;
+
+                        rankingHtml = `<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg> Top Vendedores</h3><ul class="ranking-list">${ranking.map((r, i) => `
+                            <li class="ranking-item">
+                                <div class="ranking-item-top">
+                                    <span class="ranking-pos ${posClass(i)}">${posLabel(i)}</span>
+                                    <span class="ranking-nome">${escapeHtml(r.nome)}</span>
+                                    <span class="ranking-valor">R$\u00a0${r.vendido.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}</span>
+                                    <span class="ranking-pct-label">${r.meta > 0 ? Math.round(r.pct) + '%' : '–'}</span>
+                                </div>
+                                <div class="ranking-bar-outer">
+                                    <div class="ranking-bar-inner" style="width:${r.pct}%; background:${barColor(r.pct)};"></div>
+                                </div>
+                            </li>`).join('')}</ul></div>`;
+                    } else {
+                        rankingHtml = `<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg> Top Vendedores</h3><div style="display:flex; align-items:center; justify-content:center; height:200px; color:var(--text-muted);">Nenhum vendedor encontrado para esta loja.</div></div>`;
+                    }
+                }
+
+            const top5 = {};
+            // Usa fechadosArr para contar apenas o que realmente foi vendido e fechado
+        fechadosArr.forEach(o => {
+            const modelosStr = (o.modelo_colchao || '').trim();
+            if (!modelosStr || modelosStr === 'Sem modelo') return;
+            
+            const nomesProdutosOrc = modelosStr.split(',').map(p => p.trim()).filter(Boolean);
+            nomesProdutosOrc.forEach(m => {
+                if (!top5[m]) top5[m] = { nome: m, count: 0 };
+                top5[m].count++;
+            });
+        });
+        
+        const top5Ordenado = Object.values(top5).sort((a, b) => b.count - a.count).slice(0, 5);
+        
+        // Trocado de 'orç.' para 'unid.' para fazer sentido com Vendas Fechadas
+        const top5Html = top5Ordenado.map((p, i) => {
+           
+        // Limpa códigos numéricos ou alfanuméricos (ex: 5014020 - ou TR00107 - )
+        const nomeLimpo = p.nome.replace(/^[a-zA-Z0-9]+\s*-\s*/, '').toLowerCase();
+            
+            return `
+            <li>
+                <span class="top5-rank">${i + 1}</span>
+                <span style="flex:1; font-size: 13px; font-weight: 500; text-transform: capitalize; padding-right: 8px; line-height: 1.4;" title="${escapeHtml(p.nome)}">
+                    ${escapeHtml(nomeLimpo)}
+                </span>
+                <span class="top5-count-badge">
+                    ${p.count} unid.
+                </span>
+            </li>
+        `}).join('') || '<li style="justify-content:center; color:var(--text-muted);">Nenhuma venda fechada</li>';
+        
+        const searchTagHtml = (store.searchTerm || store.searchProtocolo) ? `<span class="search-tag">🔍 "${escapeHtml(store.searchTerm || store.searchProtocolo)}" <span class="remove-search" onclick="clearSearch()" aria-label="Limpar busca">✕</span></span>` : '';
+        const gridTemplateInicio = getNegociacoesGridTemplate(isGerente);
+            const tabelaHtml = `
+            <div class="table-card">
+              <div class="table-card-header">
+                <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg> Carteira de Negociações</h3>
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                  <div id="searchTagContainer">${searchTagHtml}</div>
+                  <div class="search-unificado">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" placeholder="Buscar por cliente ou protocolo..." id="searchUnificado" onchange="handleSearchUnificado()" onkeyup="if(event.key === 'Enter') handleSearchUnificado()" value="${escapeHtml(store.searchTerm || store.searchProtocolo)}" aria-label="Buscar por cliente ou protocolo">
+                  </div>
+                  <select class="form-input" style="width:auto; padding:8px 16px; border-radius:20px; font-size:var(--font-sm);" id="listFilterSelect" onchange="selectFilter(this.value)" aria-label="Filtrar por status">
+                     <option value="todos" ${store.currentFilter === 'todos' ? 'selected' : ''}>Todos</option>
+                     <option value="Contato Inicial" ${store.currentFilter === STATUS.CONTATO_INICIAL ? 'selected' : ''}>Contato Inicial</option>
+                     <option value="Negociação" ${store.currentFilter === STATUS.NEGOCIACAO ? 'selected' : ''}>Negociação</option>
+                     <option value="Em Fechamento" ${store.currentFilter === STATUS.EM_FECHAMENTO ? 'selected' : ''}>Em Fechamento</option>
+                    <option value="Fechado" ${store.currentFilter === STATUS.FECHADO ? 'selected' : ''}>Fechado</option>
+                    <option value="Perdido" ${store.currentFilter === STATUS.PERDIDO ? 'selected' : ''}>Perdido</option>
+                </select> 
+                        
+                </div>
+              </div>
+              <div id="tabelaCarteiraWrapper">
+                <div class="negociacoes-col-head" style="grid-template-columns:${gridTemplateInicio};">
+                    <span></span><span>Cliente</span><span>Produto</span>${isGerente ? '<span>Vendedor</span>' : ''}<span>Status</span><span>Data</span><span style="text-align:right;">Valor</span><span></span>
+                </div>
+                <div id="tableBody" class="negociacoes-list"></div>
+                <div class="pagination-footer">
+                    <span class="footer-info" id="paginationInfo"></span>
+                    <div class="pagination-pills" id="paginationContainer"></div>
+                </div>
+              </div>
+            </div>`;
+
+            let chartsRowHtml = '';
+            let secaoInferiorHtml = tabelaHtml;
+            if (isGerente) {
+                chartsRowHtml = `<section class="charts-row">${donutHtml}${rankingHtml}<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg> Mais Vendidos</h3><ul class="top5-list">${top5Html}</ul></div></section>`;
+            } else {
+                const barrasOuVazio = barChartHtml || `<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg> Evolução Mensal</h3><div style="display:flex; align-items:center; justify-content:center; height:200px; color:var(--text-muted);">Dados insuficientes para o gráfico.</div></div>`;
+                chartsRowHtml = `<section class="charts-row-triplo">${donutHtml}${barrasOuVazio}<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg> Mais Vendidos</h3><ul class="top5-list">${top5Html}</ul></div></section>`;
+            }
+
+            main.innerHTML = `${headerHtml}${progressHtml}${kpiToggleHtml}<section class="kpi-row">${kpiHtml}</section>${chartsRowHtml}${secaoInferiorHtml}`;
+
+            requestAnimationFrame(() => { tentarRenderizarGraficos(total, fechados); });
+
+            atualizarTabelaPaginadaServer();
+            renderNotificationBadge(buildNotifications().length);
+
+        }
+
+export { KPI_ICONES, atualizarKPIsDashboard, buildKpiCard, calcularVariacaoPercentual, carregarHistoricoFaturamento, carregarKpisDiariosGerente, carregarKpisDiariosVendedor, carregarKpisEDashboard, getIntervalosPeriodoKpi, renderInicio, renderizarGraficos, selecionarPeriodoKpiVendedor, tentarRenderizarGraficos };

@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CV CRM · Gestão Comercial</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="config.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -72,7 +69,7 @@
 
     <main class="main-content" id="mainContent" style="display:none;">
         <!-- As telas (Início, Meu Radar, Clientes, Estoque, etc.) são renderizadas
-             dinamicamente aqui dentro pelo app.js via navigateTo(). -->
+             dinamicamente aqui dentro por src/router.js via navigateTo(). -->
     </main>
     <button class="fab" id="fabButton" style="display:none;" onclick="abrirNovoOrcamento()" aria-label="Novo orçamento" title="Novo orçamento">+</button>
 
@@ -469,6 +466,6 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <script type="module" src="/src/main.js"></script>
 </body>
 </html>

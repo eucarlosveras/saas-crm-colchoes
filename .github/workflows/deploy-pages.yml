@@ -1,8 +1,8 @@
 name: Deploy GitHub Pages
 
-# Gera config.js a partir dos Secrets do repositório (SUPABASE_URL, SUPABASE_ANON_KEY)
-# e publica o site no GitHub Pages. O config.js nunca fica versionado no repositório —
-# só existe dentro do artefato de deploy gerado por este workflow.
+# Builda o app com Vite (injetando VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY a partir
+# dos Secrets do repositório) e publica dist/ no GitHub Pages. As credenciais nunca
+# ficam versionadas — só existem dentro do artefato de deploy gerado por este workflow.
 
 on:
   push:
@@ -33,16 +33,11 @@ jobs:
       - name: Instalar dependências
         run: npm ci
 
-      - name: Gerar config.js a partir dos Secrets
+      - name: Build (Vite)
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-        run: node gerar-config.js
-
-      - name: Preparar pasta do site
-        run: |
-          mkdir -p site
-          cp index.html style.css app.js config.js site/
+          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: npm run build
 
       - name: Configurar Pages
         uses: actions/configure-pages@v5
@@ -50,7 +45,7 @@ jobs:
       - name: Empacotar artefato do Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: site
+          path: dist
 
   deploy:
     needs: build

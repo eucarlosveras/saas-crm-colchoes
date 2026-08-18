@@ -1,14 +1,20 @@
 {
-  "name": "saas-crm-colchoes-scripts",
-  "version": "1.0.0",
+  "name": "saas-crm-colchoes",
+  "version": "2.0.0",
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "listar-lojas": "node listar-lojas.js",
-    "gerar-config": "node gerar-config.js"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "listar-lojas": "node listar-lojas.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
-    "dotenv": "^16.4.5"
+    "chart.js": "^4.4.0"
+  },
+  "devDependencies": {
+    "dotenv": "^16.4.5",
+    "vite": "^5.4.0"
   }
 }
