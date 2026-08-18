@@ -922,7 +922,7 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
                     </section>
                 </div>
 
-                <div class="footer-actions" style="max-width:420px; margin:24px auto 0;">
+                <div class="footer-actions" style="max-width:320px; margin:24px auto 0;">
                     <button id="btnSalvarOrcamento" style="background:var(--brand-blue); color:#fff; border:none; padding:14px; border-radius:8px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:0.2s;" onclick="salvarOrcamento()">
                         <span class="btn-spinner" style="display:none; width:16px; height:16px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin 1s linear infinite;"></span>
                         <span class="btn-text" style="display:flex; align-items:center; gap:8px;">
@@ -930,7 +930,6 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
                             Confirmar e Salvar
                         </span>
                     </button>
-                    <button style="background:var(--card-bg); color:var(--text-secondary); border:1.5px solid var(--border-light); padding:14px; border-radius:8px; font-weight:600; cursor:pointer; transition:0.2s;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background='var(--card-bg)'" onclick="navigateTo(store.previousView)">Cancelar Alterações</button>
                     <p class="msg" id="modalMsg" style="text-align: center; font-size: 12px;"></p>
                 </div>
 
