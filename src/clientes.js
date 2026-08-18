@@ -302,6 +302,14 @@ import { classToFormatStatus, escapeHtml, formatarProdutos } from './utils.js';
                 if (error || !c) throw new Error('Cliente não encontrado');
                 c._pk = c[pk];
 
+                // CPF/WhatsApp vêm mascarados (criptografados em repouso) — a
+                // ficha do cliente mostra o valor completo via RPC.
+                const { data: pii } = await db.rpc('rpc_obter_cliente_pii', { p_id_cliente: c._pk });
+                if (pii && pii[0]) {
+                    c.cpf = pii[0].cpf || c.cpf;
+                    c.whatsapp = pii[0].whatsapp || c.whatsapp;
+                }
+
                 const { data: orcs } = await db.from('orcamentos')
                     .select('id_orcamento, protocolo, data_criacao, valor_orcado, modelo_colchao, status_orcamento(nome), usuarios(nome)')
                     .eq('id_cliente', c._pk)
@@ -433,8 +441,15 @@ import { classToFormatStatus, escapeHtml, formatarProdutos } from './utils.js';
             }
 
             // Load from DB
-            detectClientePK().then(pk => db.from('clientes').select('*').eq(pk, idCliente).single()).then(({data, error}) => {
+            detectClientePK().then(pk => db.from('clientes').select('*').eq(pk, idCliente).single()).then(async ({data, error}) => {
                 if (error || !data) { showToast('Erro ao carregar cliente.','error'); return; }
+                // CPF/WhatsApp vêm mascarados (criptografados em repouso) — o
+                // formulário de edição precisa do valor completo.
+                const { data: pii } = await db.rpc('rpc_obter_cliente_pii', { p_id_cliente: idCliente });
+                if (pii && pii[0]) {
+                    data.cpf = pii[0].cpf || data.cpf;
+                    data.whatsapp = pii[0].whatsapp || data.whatsapp;
+                }
                 const campoNome = document.getElementById('editClienteNome');
                 const campoCpf = document.getElementById('editClienteCpf');
                 campoNome.value = data.nome_cliente || '';
@@ -481,8 +496,9 @@ import { classToFormatStatus, escapeHtml, formatarProdutos } from './utils.js';
             let updatePayload = { whatsapp: tel, email };
 
             if (!isVendedor) {
-                // Verificar unicidade de CPF para perfis com permissão de editar
-                const { data: dup } = await db.from('clientes').select(pk).eq('cpf', cpfRaw).neq(pk, id).maybeSingle();
+                // Verificar unicidade de CPF (hash — o valor fica criptografado em repouso)
+                const { data: dupMatches } = await db.rpc('rpc_buscar_cliente_por_documento', { p_cpf: cpfRaw, p_excluir_id: id });
+                const dup = dupMatches && dupMatches.find(m => m.tipo_match === 'cpf');
                 if (dup) { document.getElementById('errEditCpf').textContent = 'CPF/CNPJ já pertence a outro cliente.'; return; }
                 updatePayload.nome_cliente = nome;
                 updatePayload.cpf = cpfRaw;

@@ -45,7 +45,7 @@ import { escapeHtml, getHojeBrasilia } from './utils.js';
             try {
                 // Query direta e independente — não depende mais de store.kpisMensais
                 let query = db.from('orcamentos')
-                    .select('id_orcamento, valor_orcado, id_usuario, data_contato, hora_contato, observacao_agendamento, modelo_colchao, ligacao_confirmada, clientes(nome_cliente, whatsapp), status_orcamento(nome), usuarios!inner(nome, id_loja)')
+                    .select('id_orcamento, id_cliente, valor_orcado, id_usuario, data_contato, hora_contato, observacao_agendamento, modelo_colchao, ligacao_confirmada, clientes(nome_cliente, whatsapp), status_orcamento(nome), usuarios!inner(nome, id_loja)')
                     .not('data_contato', 'is', null)
                     .not('id_status', 'is', null);
 
@@ -70,6 +70,15 @@ import { escapeHtml, getHojeBrasilia } from './utils.js';
                     ...o,
                     status: o.status_orcamento ? o.status_orcamento.nome : STATUS.CONTATO_INICIAL
                 }));
+
+                // WhatsApp vem mascarado (criptografado em repouso) — a Agenda
+                // precisa do valor completo pra contato. Busca em lote.
+                const idsClientes = [...new Set(todos.map(o => o.id_cliente).filter(Boolean))];
+                if (idsClientes.length > 0) {
+                    const { data: whatsapps } = await db.rpc('rpc_obter_whatsapp_lote', { p_ids_cliente: idsClientes });
+                    const mapaWhats = Object.fromEntries((whatsapps || []).map(w => [w.id_cliente, w.whatsapp]));
+                    todos.forEach(o => { if (o.clientes && mapaWhats[o.id_cliente]) o.clientes.whatsapp = mapaWhats[o.id_cliente]; });
+                }
 
                 const ordenarCronologicamente = (a, b) => {
                     if (a.data_contato !== b.data_contato) return a.data_contato.localeCompare(b.data_contato);

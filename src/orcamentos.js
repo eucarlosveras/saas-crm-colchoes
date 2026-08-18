@@ -270,9 +270,19 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
             .single();
             
         if (error || !orcamento) throw new Error('Orçamento não encontrado.');
-        
+
         orcamento.status = orcamento.status_orcamento ? orcamento.status_orcamento.nome : STATUS.CONTATO_INICIAL;
         orcamento.interesse = orcamento.niveis_interesse ? orcamento.niveis_interesse.nome : null;
+
+        // CPF/WhatsApp vêm mascarados de db.from('clientes') (criptografados em
+        // repouso) — busca o valor completo via RPC pra exibir na ficha.
+        if (orcamento.clientes) {
+            const { data: pii } = await db.rpc('rpc_obter_cliente_pii', { p_id_cliente: orcamento.id_cliente });
+            if (pii && pii[0]) {
+                orcamento.clientes.cpf = pii[0].cpf || orcamento.clientes.cpf;
+                orcamento.clientes.whatsapp = pii[0].whatsapp || orcamento.clientes.whatsapp;
+            }
+        }
         
         // ═══════════════════════════════════════════════════════
         // NOVO: Buscar itens do orçamento
@@ -707,18 +717,15 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
 
         async function verificarClientePorCpf(cpf, telefone) {
             if (!cpf) return { existe: false, cliente: null, avisoTelefone: null };
-            const { data: clientePorCpf } = await db.from('clientes')
-                .select('*')
-                .eq('cpf', cpf)
-                .maybeSingle();
-            if (clientePorCpf) { const pk2 = await detectClientePK(); clientePorCpf.id_cliente = clientePorCpf[pk2]; return { existe: true, cliente: clientePorCpf, avisoTelefone: null }; }
-            if (telefone) {
-                const { data: clientePorTel } = await db.from('clientes')
-                    .select('*')
-                    .eq('whatsapp', telefone)
-                    .not('cpf', 'eq', cpf || '')
-                    .maybeSingle();
-                if (clientePorTel) return { existe: false, cliente: null, avisoTelefone: `Atenção: o telefone ${telefone} pertence a ${clientePorTel.nome_cliente} (CPF diferente). Deseja continuar?` };
+            // CPF/whatsapp ficam criptografados em repouso — a busca de duplicado
+            // usa um hash determinístico (RPC), não mais .eq('cpf', ...) direto.
+            const { data: matches } = await db.rpc('rpc_buscar_cliente_por_documento', { p_cpf: cpf, p_whatsapp: telefone || null });
+            const match = matches && matches[0];
+            if (match && match.tipo_match === 'cpf') {
+                return { existe: true, cliente: { id_cliente: match.id_cliente, nome_cliente: match.nome_cliente }, avisoTelefone: null };
+            }
+            if (match && match.tipo_match === 'whatsapp') {
+                return { existe: false, cliente: null, avisoTelefone: `Atenção: o telefone ${telefone} pertence a ${match.nome_cliente} (CPF diferente). Deseja continuar?` };
             }
             return { existe: false, cliente: null, avisoTelefone: null };
         }
@@ -741,10 +748,8 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
             }
             
             errSpan.textContent = '';
-            const { data: existing } = await db.from('clientes')
-                .select('*')
-                .eq('cpf', cpf)
-                .maybeSingle();
+            const { data: matches } = await db.rpc('rpc_buscar_cliente_por_documento', { p_cpf: cpf });
+            const existing = matches && matches.find(m => m.tipo_match === 'cpf');
             if (existing) {
                 errSpan.textContent = `⚠️ Documento já pertence a ${existing.nome_cliente}. O orçamento será vinculado a este cliente.`;
                 return false;
