@@ -95,14 +95,21 @@
 
         function parseCurrency(value) { return parseFloat(value.replace(/[^\d,]/g, '').replace(',', '.')) || 0; }
 
+        // Remove o código interno do produto (ex: "5014077 - Colchão X" -> "Colchão X").
+        // Usado em toda exibição de produto já salvo num orçamento — o código só é
+        // útil durante a busca/seleção do produto (autocomplete), não depois.
+        function removerCodigoProduto(nome) {
+            return (nome || '').replace(/^\d+\s*-\s*/, '');
+        }
+
         function formatarProdutos(modelo_colchao) {
             if (!modelo_colchao) return '-';
-            
+
             // Separa os produtos
             const produtos = modelo_colchao.split(',').map(p => p.trim()).filter(Boolean);
             if (produtos.length === 0) return '-';
 
-            const primeiroProduto = escapeHtml(produtos[0]);
+            const primeiroProduto = escapeHtml(removerCodigoProduto(produtos[0]));
             
             // Se tem só 1 produto, mostra ele normalmente
             if (produtos.length === 1) {
@@ -126,4 +133,4 @@
             return /^[=+\-@\t\r]/.test(str) ? "'" + str : str;
         }
 
-export { AVATAR_COLORS, addDiasADataStr, addDiasBrasilia, classToFormatStatus, deslocarDataEmMeses, escapeHtml, formatCurrency, formatarProdutos, getAgoraBrasiliaISO, getAvatarColor, getDateLabel, getHojeBrasilia, getIniciais, getInicioSemanaBrasilia, getPrimeiroDiaMes, getUltimaVisita, isCommentNew, parseCurrency, sanitizeCsvField, setUltimaVisita, timeAgo, validateField };
+export { AVATAR_COLORS, addDiasADataStr, addDiasBrasilia, classToFormatStatus, deslocarDataEmMeses, escapeHtml, formatCurrency, formatarProdutos, getAgoraBrasiliaISO, getAvatarColor, getDateLabel, getHojeBrasilia, getIniciais, getInicioSemanaBrasilia, getPrimeiroDiaMes, getUltimaVisita, isCommentNew, parseCurrency, removerCodigoProduto, sanitizeCsvField, setUltimaVisita, timeAgo, validateField };

@@ -9,7 +9,7 @@ import { navigateTo } from './router.js';
 import { AppState, setClienteAtual, store } from './state.js';
 import { db } from './supabaseClient.js';
 import { closeModal, hideLoader, openModal, showLoader, showToast } from './ui.js';
-import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAgoraBrasiliaISO, getHojeBrasilia, parseCurrency, setUltimaVisita, validateField } from './utils.js';
+import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAgoraBrasiliaISO, getHojeBrasilia, parseCurrency, removerCodigoProduto, setUltimaVisita, validateField } from './utils.js';
 
         async function carregarProdutos() {
     try {
@@ -445,7 +445,7 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
                                 const listaHtml = prods.map((p, i) => `
                                     <li>
                                         <span class="produto-bullet">•</span>
-                                        <span class="produto-nome">${escapeHtml(p)}</span>
+                                        <span class="produto-nome">${escapeHtml(removerCodigoProduto(p))}</span>
                                         ${(i === 0 && prods.length === 1) ? `<span class="produto-valor">${valorFormatado}</span>` : ''}
                                     </li>`).join('');
                                 return `
@@ -560,11 +560,9 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
             const primeiroNome = nomeCliente.split(/\s+/)[0] || nomeCliente;
             const nomeVendedor = (orc.usuarios?.nome || store.currentUser.nome || '').trim();
 
-            // Mesma limpeza usada na Carteira: remove o código interno do produto
-            // (ex: "5014077 - Colchão X" -> "Colchão X") — o cliente não precisa ver isso.
             const produtos = (orc.modelo_colchao || '')
                 .split(',')
-                .map(p => p.trim().replace(/^\d+\s*-\s*/, ''))
+                .map(p => removerCodigoProduto(p.trim()))
                 .filter(Boolean);
 
             const fmt = (v) => 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

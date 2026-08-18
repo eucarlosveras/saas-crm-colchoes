@@ -9,7 +9,7 @@ import { abrirDetalhesCliente, abrirMotivoPerda } from './orcamentos.js';
 import { getLojasPermitidas, store } from './state.js';
 import { db } from './supabaseClient.js';
 import { showToast } from './ui.js';
-import { classToFormatStatus, escapeHtml, getAgoraBrasiliaISO, getAvatarColor, getIniciais, sanitizeCsvField, timeAgo } from './utils.js';
+import { classToFormatStatus, escapeHtml, getAgoraBrasiliaISO, getAvatarColor, getIniciais, removerCodigoProduto, sanitizeCsvField, timeAgo } from './utils.js';
 
         async function atualizarTabelaPaginadaServer() {
             const tbody = document.getElementById('tableBody');
@@ -93,7 +93,7 @@ import { classToFormatStatus, escapeHtml, getAgoraBrasiliaISO, getAvatarColor, g
                         const produtos = o.modelo_colchao ? o.modelo_colchao.split(',').map(p => p.trim()).filter(Boolean) : [];
                         // Exibição sem o código do produto (ex: "5014077 - Colchão X" -> "Colchão X").
                         // O código só aparece dentro do orçamento após a seleção do item, não nesta lista.
-                        const nomeProdutoSemCodigo = p => p.replace(/^\d+\s*-\s*/, '');
+                        const nomeProdutoSemCodigo = removerCodigoProduto;
                         const qtdExtra = produtos.length - 1;
                         const vendedorNome = o.usuarios?.nome || '-';
 
@@ -697,7 +697,7 @@ function selectFilter(filter) {
                             const vendedor = o.usuarios?.nome || '';
                             const inicial = vendedor ? vendedor.charAt(0).toUpperCase() : '?';
                             const idNumerico = o.protocolo && o.protocolo.includes('-') ? o.protocolo.split('-')[1] : (o.protocolo || '—');
-                            const produto = o.modelo_colchao ? o.modelo_colchao.split(',')[0].trim() : '—';
+                            const produto = o.modelo_colchao ? removerCodigoProduto(o.modelo_colchao.split(',')[0].trim()) : '—';
                             const valor = parseFloat(o.valor_orcado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
                             const dataCriacao = new Date(o.data_criacao);
