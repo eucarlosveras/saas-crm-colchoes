@@ -1,10 +1,12 @@
 name: CI
 
 # Builda o app em todo PR/push para pegar erro de build antes do deploy.
-# Os testes de integração (tests/) só rodam se o secret
-# SUPABASE_SERVICE_ROLE_KEY estiver configurado no repositório — sem ele,
-# o job é pulado (não falha o CI) para não travar o build por falta de uma
-# credencial administrativa que precisa ser adicionada manualmente.
+# Os testes de integração (tests/) só rodam de verdade se o secret
+# SUPABASE_SERVICE_ROLE_KEY estiver configurado no repositório — sem ele, o
+# step apenas avisa e sai com sucesso (não falha o CI por falta de uma
+# credencial administrativa que precisa ser adicionada manualmente).
+# Nota: a checagem de secret vazio precisa ser feita dentro do `run:` (shell)
+# porque o contexto `secrets` não está disponível em `if:` de job.
 
 on:
   pull_request:
@@ -36,7 +38,6 @@ jobs:
 
   integration-tests:
     runs-on: ubuntu-latest
-    if: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -54,4 +55,9 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: npm test
+        run: |
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "SUPABASE_SERVICE_ROLE_KEY não configurado como secret do repositório — pulando testes de integração."
+            exit 0
+          fi
+          npm test
