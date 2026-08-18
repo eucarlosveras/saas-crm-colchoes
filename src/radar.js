@@ -518,7 +518,7 @@ async function chamarIA(prompt, contexto = '') {
     if (!session) throw new Error('Usuário não autenticado.');
 
     const res = await fetch(
-        'https://blumqkxwasdbyozdvrsp.supabase.co/functions/v1/gemini-proxy ',
+        'https://blumqkxwasdbyozdvrsp.supabase.co/functions/v1/gemini-proxy',
         {
             method: 'POST',
             headers: {
