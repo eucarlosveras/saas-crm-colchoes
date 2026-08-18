@@ -43,9 +43,7 @@ O front-end é dividido em módulos ES6 dentro de `src/`, um por área de domín
 
 ## Banco de dados
 
-Migrations do Supabase em `supabase/migrations/`. Operações críticas com múltiplas escritas (salvar orçamento, fechar venda, marcar perda) usam funções Postgres (RPC) para garantir atomicidade — ver o SQL nas migrations mais recentes. Isolamento multi-tenant (por loja) reforçado via Row Level Security em todas as tabelas.
-
-Dicionário de dados completo (tabelas, colunas, relacionamentos, views, triggers, RLS): [docs/DATABASE.md](docs/DATABASE.md).
+Migrations do Supabase em `supabase/migrations/`. Operações críticas com múltiplas escritas (salvar orçamento, fechar venda, marcar perda) usam funções Postgres (RPC) para garantir atomicidade — ver o SQL nas migrations mais recentes.
 
 ## Deploy
 
