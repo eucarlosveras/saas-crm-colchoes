@@ -316,6 +316,16 @@
             </h3>
             <p style="font-size:var(--font-xs);color:var(--text-muted);margin-bottom:14px;">Revise ou ajuste o texto abaixo e copie para enviar pelo WhatsApp.</p>
 
+            <div class="form-group" style="margin-bottom:12px;">
+                <label style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;">
+                    Desconto aplicado <span style="font-weight:400;text-transform:none;">(opcional — atualiza o texto abaixo)</span>
+                </label>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:6px;">
+                    <input type="number" id="gerarOrcamentoDesconto" class="form-input" style="max-width:110px;height:38px;padding:0 12px;" min="0" max="95" step="0.5" placeholder="0" oninput="atualizarTextoOrcamentoComDesconto()">
+                    <span style="font-weight:600;color:var(--text-muted);">%</span>
+                </div>
+            </div>
+
             <textarea id="textoOrcamentoGerado" class="form-input" style="min-height:280px; font-size:13px; line-height:1.6; resize:vertical; font-family:inherit;"></textarea>
 
             <div class="modal-btns">

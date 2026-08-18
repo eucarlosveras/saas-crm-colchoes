@@ -551,11 +551,13 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
         }
 
         // Monta o texto do orçamento pronto para copiar e enviar ao cliente
-        // (WhatsApp). Só usa dado já carregado no contexto — não faz request nova.
-        function montarTextoOrcamento(orc) {
+        // (WhatsApp) — linguagem voltada a converter em venda, não um recibo frio.
+        // Só usa dado já carregado no contexto, não faz request nova.
+        // descontoPercentual (opcional): quando informado, mostra o valor "de/por"
+        // com o desconto em destaque (âncora de preço) em vez de só o valor final.
+        function montarTextoOrcamento(orc, descontoPercentual) {
             const nomeCliente = (orc.clientes?.nome_cliente || '').trim();
             const primeiroNome = nomeCliente.split(/\s+/)[0] || nomeCliente;
-            const nomeLoja = (store.listaLojas.find(l => l.id_loja === store.currentUser.id_loja) || {}).nome_loja || '';
             const nomeVendedor = (orc.usuarios?.nome || store.currentUser.nome || '').trim();
 
             // Mesma limpeza usada na Carteira: remove o código interno do produto
@@ -565,26 +567,34 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
                 .map(p => p.trim().replace(/^\d+\s*-\s*/, ''))
                 .filter(Boolean);
 
-            const valorFormatado = 'R$ ' + parseFloat(orc.valor_orcado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+            const fmt = (v) => 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const valorFinal = parseFloat(orc.valor_orcado || 0);
+            const desconto = Math.min(95, Math.max(0, parseFloat(descontoPercentual) || 0));
+            const valorTabela = desconto > 0 ? valorFinal / (1 - desconto / 100) : null;
 
             const linhas = [];
-            linhas.push(`Olá${primeiroNome ? ', ' + primeiroNome : ''}! 😊`);
-            linhas.push('');
-            linhas.push(`Segue o orçamento${nomeLoja ? ' da *' + nomeLoja + '*' : ''}:`);
+            linhas.push(`Oi${primeiroNome ? ', ' + primeiroNome : ''}! Tudo bem? Separei uma condição especial pra você 😊`);
             linhas.push('');
             if (produtos.length > 0) {
-                linhas.push('🛏️ *Produto(s):*');
+                linhas.push('🛏️ *Selecionei pra você:*');
                 produtos.forEach(p => linhas.push(`• ${p}`));
                 linhas.push('');
             }
-            linhas.push(`💰 *Valor total:* ${valorFormatado}`);
-            if (orc.forma_pagamento) linhas.push(`💳 *Forma de pagamento:* ${orc.forma_pagamento}`);
-            if (orc.data_entrega) linhas.push(`🚚 *Previsão de entrega:* ${new Date(orc.data_entrega + 'T00:00:00').toLocaleDateString('pt-BR')}`);
+            if (valorTabela) {
+                const descontoFmt = desconto.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+                linhas.push(`~De ${fmt(valorTabela)}~`);
+                linhas.push(`💰 *Por apenas ${fmt(valorFinal)}* (${descontoFmt}% de desconto! 🔥)`);
+            } else {
+                linhas.push(`💰 *Valor: ${fmt(valorFinal)}*`);
+            }
+            if (orc.forma_pagamento) linhas.push(`💳 ${orc.forma_pagamento}`);
+            if (orc.data_entrega) linhas.push(`🚚 Entrega prevista: ${new Date(orc.data_entrega + 'T00:00:00').toLocaleDateString('pt-BR')}`);
             linhas.push('');
-            linhas.push('Qualquer dúvida, estou à disposição! 🙂');
+            linhas.push('Essa condição eu separei pensando exatamente no que você procura — vale muito a pena garantir agora! 💪');
             linhas.push('');
-            linhas.push('Atenciosamente,');
-            linhas.push(nomeVendedor + (nomeLoja ? ' — ' + nomeLoja : ''));
+            linhas.push('Posso já confirmar esse pedido pra você? É só me responder por aqui! ✅');
+            linhas.push('');
+            linhas.push(nomeVendedor);
 
             return linhas.join('\n');
         }
@@ -592,9 +602,19 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
         function abrirModalGerarOrcamento() {
             const orc = AppState.contextoVenda.clienteAtual;
             if (!orc) { showToast('Orçamento não encontrado.', 'error'); return; }
+            const descontoInput = document.getElementById('gerarOrcamentoDesconto');
+            if (descontoInput) descontoInput.value = '';
             const textarea = document.getElementById('textoOrcamentoGerado');
-            if (textarea) textarea.value = montarTextoOrcamento(orc);
+            if (textarea) textarea.value = montarTextoOrcamento(orc, 0);
             openModal('modalGerarOrcamento');
+        }
+
+        function atualizarTextoOrcamentoComDesconto() {
+            const orc = AppState.contextoVenda.clienteAtual;
+            if (!orc) return;
+            const descontoInput = document.getElementById('gerarOrcamentoDesconto');
+            const textarea = document.getElementById('textoOrcamentoGerado');
+            if (textarea) textarea.value = montarTextoOrcamento(orc, descontoInput?.value);
         }
 
         async function copiarTextoOrcamento() {
@@ -1266,4 +1286,4 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
             if (form) { form.classList.add('open'); const ta = document.getElementById('novoComentario'); if (ta) ta.focus(); }
         }
 
-export { _ajusteAtualizarLixeiras, _ajusteBuildSelectOpts, abrirAjusteProposta, abrirConfirmaFechamento, abrirDetalhesCliente, abrirModalAgendamento, abrirModalGerarOrcamento, abrirMotivoPerda, abrirNovoOrcamento, adicionarProdutoRow, agendarContato, ajusteAdicionarLinha, ajusteRecalcularLinha, ajusteRecalcularTotal, ajusteValidarDesconto, atualizarBotoesLixeira, buildProdutoSelectOptions, buildProdutosOptionsDatalist, calcTotalModal, carregarProdutos, confirmarFechamento, confirmarPerda, copiarTextoOrcamento, expandirComentario, fecharProdutoSugestoes, filtrarProdutoSugestoes, montarTextoOrcamento, prodNomeKeydown, recalcularLinhaNovoOrcamento, removerProdutoRow, renderDetalhesClientePage, renderNovoOrcamentoPage, salvarAjusteProposta, salvarOrcamento, selecionarModoFechamento, selecionarProdutoSugestao, setQuickDate, validarCPF, validarProdutoSelecionado, verificarClientePorCpf, voltarDetalhes };
+export { _ajusteAtualizarLixeiras, _ajusteBuildSelectOpts, abrirAjusteProposta, abrirConfirmaFechamento, abrirDetalhesCliente, abrirModalAgendamento, abrirModalGerarOrcamento, abrirMotivoPerda, abrirNovoOrcamento, adicionarProdutoRow, agendarContato, ajusteAdicionarLinha, ajusteRecalcularLinha, ajusteRecalcularTotal, ajusteValidarDesconto, atualizarBotoesLixeira, atualizarTextoOrcamentoComDesconto, buildProdutoSelectOptions, buildProdutosOptionsDatalist, calcTotalModal, carregarProdutos, confirmarFechamento, confirmarPerda, copiarTextoOrcamento, expandirComentario, fecharProdutoSugestoes, filtrarProdutoSugestoes, montarTextoOrcamento, prodNomeKeydown, recalcularLinhaNovoOrcamento, removerProdutoRow, renderDetalhesClientePage, renderNovoOrcamentoPage, salvarAjusteProposta, salvarOrcamento, selecionarModoFechamento, selecionarProdutoSugestao, setQuickDate, validarCPF, validarProdutoSelecionado, verificarClientePorCpf, voltarDetalhes };
