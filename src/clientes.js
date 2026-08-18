@@ -13,7 +13,7 @@ import { classToFormatStatus, escapeHtml, formatarProdutos } from './utils.js';
 
         async function detectClientePK() {
             if (window._clientePK) return window._clientePK;
-            const { data, error } = await db.from('clientes').select('*').limit(1);
+            const { data, error } = await db.from('clientes').select('id_cliente, nome_cliente, whatsapp, criado_em, cpf, email, id_cliente_codigo, id_usuario, id_loja, id_usuario_cadastro, data_criacao, deleted_at, updated_at').limit(1);
             if (error || !data || data.length === 0) {
                 // Try common names
                 for (const candidate of ['id_cliente','id','uuid']) {
@@ -296,7 +296,7 @@ import { classToFormatStatus, escapeHtml, formatarProdutos } from './utils.js';
             try {
                 const pk = await detectClientePK();
                 const { data: c, error } = await db.from('clientes')
-                    .select('*')
+                    .select('id_cliente, nome_cliente, whatsapp, criado_em, cpf, email, id_cliente_codigo, id_usuario, id_loja, id_usuario_cadastro, data_criacao, deleted_at, updated_at')
                     .eq(pk, store.clienteSelecionadoParaAcao)
                     .single();
                 if (error || !c) throw new Error('Cliente não encontrado');
@@ -441,7 +441,7 @@ import { classToFormatStatus, escapeHtml, formatarProdutos } from './utils.js';
             }
 
             // Load from DB
-            detectClientePK().then(pk => db.from('clientes').select('*').eq(pk, idCliente).single()).then(async ({data, error}) => {
+            detectClientePK().then(pk => db.from('clientes').select('id_cliente, nome_cliente, whatsapp, criado_em, cpf, email, id_cliente_codigo, id_usuario, id_loja, id_usuario_cadastro, data_criacao, deleted_at, updated_at').eq(pk, idCliente).single()).then(async ({data, error}) => {
                 if (error || !data) { showToast('Erro ao carregar cliente.','error'); return; }
                 // CPF/WhatsApp vêm mascarados (criptografados em repouso) — o
                 // formulário de edição precisa do valor completo.
