@@ -457,6 +457,11 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
                                 </div>`;
                             })() : ''}
 
+                            <button class="btn-primary-action" style="width:100%;justify-content:center;margin-top:10px;" onclick="abrirModalGerarOrcamento()">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                Gerar Orçamento para o Cliente
+                            </button>
+
                             
                             ${orc.forma_pagamento || orc.data_entrega ? `
                             <div class="det-pill-row">
@@ -543,6 +548,72 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
             // Injeta o fragment da timeline após o main.innerHTML ser construído
             const listaContainer = document.getElementById('listaComentarios');
             if (listaContainer) listaContainer.appendChild(comentariosFrag);
+        }
+
+        // Monta o texto do orçamento pronto para copiar e enviar ao cliente
+        // (WhatsApp). Só usa dado já carregado no contexto — não faz request nova.
+        function montarTextoOrcamento(orc) {
+            const nomeCliente = (orc.clientes?.nome_cliente || '').trim();
+            const primeiroNome = nomeCliente.split(/\s+/)[0] || nomeCliente;
+            const nomeLoja = (store.listaLojas.find(l => l.id_loja === store.currentUser.id_loja) || {}).nome_loja || '';
+            const nomeVendedor = (orc.usuarios?.nome || store.currentUser.nome || '').trim();
+
+            // Mesma limpeza usada na Carteira: remove o código interno do produto
+            // (ex: "5014077 - Colchão X" -> "Colchão X") — o cliente não precisa ver isso.
+            const produtos = (orc.modelo_colchao || '')
+                .split(',')
+                .map(p => p.trim().replace(/^\d+\s*-\s*/, ''))
+                .filter(Boolean);
+
+            const valorFormatado = 'R$ ' + parseFloat(orc.valor_orcado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+
+            const linhas = [];
+            linhas.push(`Olá${primeiroNome ? ', ' + primeiroNome : ''}! 😊`);
+            linhas.push('');
+            linhas.push(`Segue o orçamento${nomeLoja ? ' da *' + nomeLoja + '*' : ''}:`);
+            linhas.push('');
+            if (produtos.length > 0) {
+                linhas.push('🛏️ *Produto(s):*');
+                produtos.forEach(p => linhas.push(`• ${p}`));
+                linhas.push('');
+            }
+            linhas.push(`💰 *Valor total:* ${valorFormatado}`);
+            if (orc.forma_pagamento) linhas.push(`💳 *Forma de pagamento:* ${orc.forma_pagamento}`);
+            if (orc.data_entrega) linhas.push(`🚚 *Previsão de entrega:* ${new Date(orc.data_entrega + 'T00:00:00').toLocaleDateString('pt-BR')}`);
+            linhas.push('');
+            linhas.push('Qualquer dúvida, estou à disposição! 🙂');
+            linhas.push('');
+            linhas.push('Atenciosamente,');
+            linhas.push(nomeVendedor + (nomeLoja ? ' — ' + nomeLoja : ''));
+
+            return linhas.join('\n');
+        }
+
+        function abrirModalGerarOrcamento() {
+            const orc = AppState.contextoVenda.clienteAtual;
+            if (!orc) { showToast('Orçamento não encontrado.', 'error'); return; }
+            const textarea = document.getElementById('textoOrcamentoGerado');
+            if (textarea) textarea.value = montarTextoOrcamento(orc);
+            openModal('modalGerarOrcamento');
+        }
+
+        async function copiarTextoOrcamento() {
+            const textarea = document.getElementById('textoOrcamentoGerado');
+            if (!textarea) return;
+            try {
+                await navigator.clipboard.writeText(textarea.value);
+                showToast('Texto copiado! Já pode colar no WhatsApp.', 'success');
+            } catch (e) {
+                // Fallback para navegadores/contextos sem permissão da Clipboard API.
+                textarea.focus();
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    showToast('Texto copiado! Já pode colar no WhatsApp.', 'success');
+                } catch (e2) {
+                    showToast('Não foi possível copiar automaticamente. Selecione o texto e copie manualmente.', 'error');
+                }
+            }
         }
 
         function buildProdutoSelectOptions() {
@@ -1195,4 +1266,4 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
             if (form) { form.classList.add('open'); const ta = document.getElementById('novoComentario'); if (ta) ta.focus(); }
         }
 
-export { _ajusteAtualizarLixeiras, _ajusteBuildSelectOpts, abrirAjusteProposta, abrirConfirmaFechamento, abrirDetalhesCliente, abrirModalAgendamento, abrirMotivoPerda, abrirNovoOrcamento, adicionarProdutoRow, agendarContato, ajusteAdicionarLinha, ajusteRecalcularLinha, ajusteRecalcularTotal, ajusteValidarDesconto, atualizarBotoesLixeira, buildProdutoSelectOptions, buildProdutosOptionsDatalist, calcTotalModal, carregarProdutos, confirmarFechamento, confirmarPerda, expandirComentario, fecharProdutoSugestoes, filtrarProdutoSugestoes, prodNomeKeydown, recalcularLinhaNovoOrcamento, removerProdutoRow, renderDetalhesClientePage, renderNovoOrcamentoPage, salvarAjusteProposta, salvarOrcamento, selecionarModoFechamento, selecionarProdutoSugestao, setQuickDate, validarCPF, validarProdutoSelecionado, verificarClientePorCpf, voltarDetalhes };
+export { _ajusteAtualizarLixeiras, _ajusteBuildSelectOpts, abrirAjusteProposta, abrirConfirmaFechamento, abrirDetalhesCliente, abrirModalAgendamento, abrirModalGerarOrcamento, abrirMotivoPerda, abrirNovoOrcamento, adicionarProdutoRow, agendarContato, ajusteAdicionarLinha, ajusteRecalcularLinha, ajusteRecalcularTotal, ajusteValidarDesconto, atualizarBotoesLixeira, buildProdutoSelectOptions, buildProdutosOptionsDatalist, calcTotalModal, carregarProdutos, confirmarFechamento, confirmarPerda, copiarTextoOrcamento, expandirComentario, fecharProdutoSugestoes, filtrarProdutoSugestoes, montarTextoOrcamento, prodNomeKeydown, recalcularLinhaNovoOrcamento, removerProdutoRow, renderDetalhesClientePage, renderNovoOrcamentoPage, salvarAjusteProposta, salvarOrcamento, selecionarModoFechamento, selecionarProdutoSugestao, setQuickDate, validarCPF, validarProdutoSelecionado, verificarClientePorCpf, voltarDetalhes };

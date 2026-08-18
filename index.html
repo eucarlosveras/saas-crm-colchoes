@@ -306,6 +306,31 @@
     </div>
     <!-- ── FIM MODAL AJUSTAR PROPOSTA ──────────────────────────────────────── -->
 
+    <!-- ── MODAL GERAR ORÇAMENTO (TEXTO PARA ENVIAR AO CLIENTE) ────────────── -->
+    <div class="modal-overlay" id="modalGerarOrcamento" onclick="if(event.target===this)closeModal('modalGerarOrcamento')">
+        <div class="modal-card" style="max-width:520px; width:96%;">
+
+            <h3 style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                Orçamento para o cliente
+            </h3>
+            <p style="font-size:var(--font-xs);color:var(--text-muted);margin-bottom:14px;">Revise ou ajuste o texto abaixo e copie para enviar pelo WhatsApp.</p>
+
+            <textarea id="textoOrcamentoGerado" class="form-input" style="min-height:280px; font-size:13px; line-height:1.6; resize:vertical; font-family:inherit;"></textarea>
+
+            <div class="modal-btns">
+                <button class="btn-cancelar-modal" onclick="closeModal('modalGerarOrcamento')">Fechar</button>
+                <button class="btn-salvar-modal" id="btnCopiarOrcamento" onclick="copiarTextoOrcamento()" style="margin-top:0;">
+                    <span class="btn-text" style="display:flex; align-items:center; gap:6px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                        Copiar texto
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- ── FIM MODAL GERAR ORÇAMENTO ───────────────────────────────────────── -->
+
     <div class="notification-dropdown" id="notificationDropdown"></div>
 
     <!-- Modal: Editar Cliente -->
