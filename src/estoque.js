@@ -18,7 +18,7 @@ import { escapeHtml } from './utils.js';
 
                 let query = db
                     .from('estoque')
-                    .select('id_estoque, qtd_disponivel, qualidade, id_loja, produtos(nome_produto)')
+                    .select('id, qtd_disponivel, qualidade, id_loja')
                     .lte('qtd_disponivel', LIMITE_ESTOQUE_BAIXO);
 
                 const isAdmin = store.currentUser.perfil === 'Administrador' || store.currentUser.perfil === 'Admin';

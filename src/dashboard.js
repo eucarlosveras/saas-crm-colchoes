@@ -9,7 +9,9 @@ import { buildNotifications, renderNotificationBadge, toggleNotifications } from
 import { AppState, getLojasPermitidas, store } from './state.js';
 import { db } from './supabaseClient.js';
 import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getHojeBrasilia, getInicioSemanaBrasilia, getPrimeiroDiaMes } from './utils.js';
-import { Chart } from 'chart.js/auto';
+// Chart.js (~200KB) é importado sob demanda dentro de renderizarGraficos() em vez
+// de estaticamente aqui — ele só é necessário na tela de Início, então carregá-lo
+// como chunk separado evita inflar o bundle principal que toda página paga.
 
      async function carregarKpisEDashboard() {
         // ═══════════════════════════════════════════════════════
@@ -20,13 +22,15 @@ import { Chart } from 'chart.js/auto';
         const anoAtual = new Date().getFullYear();
         
         // 1. Vendas do mês (View já calcula)
+        // maybeSingle (não single): num mês sem nenhuma venda ainda a view não tem
+        // linha nenhuma para retornar — 0 linhas é um resultado válido, não um erro.
         const { data: vendasMes } = await db
             .from('vw_vendas_mensais')
             .select('*')
             .eq('ano', anoAtual)
             .eq('mes', mesAtual)
-            .single();
-        
+            .maybeSingle();
+
         // 2. Performance do vendedor (View já calcula)
         const { data: performance } = await db
             .from('vw_performance_vendedores')
@@ -34,7 +38,7 @@ import { Chart } from 'chart.js/auto';
             .eq('id_usuario', store.currentUser.id_usuario)
             .eq('ano', anoAtual)
             .eq('mes', mesAtual)
-            .single();
+            .maybeSingle();
         
         // 3. Orçamentos em risco (View já calcula)
         const { data: emRisco } = await db
@@ -330,10 +334,15 @@ import { Chart } from 'chart.js/auto';
             } catch(e) { }
         }
 
-        function renderizarGraficos(total, fechados) {
+        async function renderizarGraficos(total, fechados) {
             const ctxDonut = document.getElementById('donutCanvas');
             if (!ctxDonut) return false;
-            
+
+            const { Chart } = await import('chart.js/auto');
+
+            // A tela pode ter mudado enquanto o chunk do Chart.js carregava.
+            if (!document.getElementById('donutCanvas')) return false;
+
             const orcadosCount = total - fechados;
             
             if(store.donutChartInstance) { store.donutChartInstance.destroy(); }
