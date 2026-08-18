@@ -118,4 +118,12 @@
 
         function validateField(idInput, idErro) { const el = document.getElementById(idInput); const err = document.getElementById(idErro); if (!el || !err) return; const val = el.value.trim(); if (!val) { err.textContent = 'Obrigatório'; el.style.borderColor = '#ef4444'; return false; } else { err.textContent = ''; el.style.borderColor = 'var(--border-light)'; return true; } }
 
-export { AVATAR_COLORS, addDiasADataStr, addDiasBrasilia, classToFormatStatus, deslocarDataEmMeses, escapeHtml, formatCurrency, formatarProdutos, getAgoraBrasiliaISO, getAvatarColor, getDateLabel, getHojeBrasilia, getIniciais, getInicioSemanaBrasilia, getPrimeiroDiaMes, getUltimaVisita, isCommentNew, parseCurrency, setUltimaVisita, timeAgo, validateField };
+        // Neutraliza CSV/formula injection: se o campo começa com = + - @ (ou tab/CR,
+        // menos comuns), o Excel/Sheets pode interpretar como fórmula ao abrir o
+        // arquivo. Prefixar com apóstrofo faz o programa tratar como texto puro.
+        function sanitizeCsvField(value) {
+            const str = String(value ?? '');
+            return /^[=+\-@\t\r]/.test(str) ? "'" + str : str;
+        }
+
+export { AVATAR_COLORS, addDiasADataStr, addDiasBrasilia, classToFormatStatus, deslocarDataEmMeses, escapeHtml, formatCurrency, formatarProdutos, getAgoraBrasiliaISO, getAvatarColor, getDateLabel, getHojeBrasilia, getIniciais, getInicioSemanaBrasilia, getPrimeiroDiaMes, getUltimaVisita, isCommentNew, parseCurrency, sanitizeCsvField, setUltimaVisita, timeAgo, validateField };

@@ -9,7 +9,7 @@ import { abrirDetalhesCliente, abrirMotivoPerda } from './orcamentos.js';
 import { getLojasPermitidas, store } from './state.js';
 import { db } from './supabaseClient.js';
 import { showToast } from './ui.js';
-import { classToFormatStatus, escapeHtml, getAgoraBrasiliaISO, getAvatarColor, getIniciais, timeAgo } from './utils.js';
+import { classToFormatStatus, escapeHtml, getAgoraBrasiliaISO, getAvatarColor, getIniciais, sanitizeCsvField, timeAgo } from './utils.js';
 
         async function atualizarTabelaPaginadaServer() {
             const tbody = document.getElementById('tableBody');
@@ -239,12 +239,12 @@ import { classToFormatStatus, escapeHtml, getAgoraBrasiliaISO, getAvatarColor, g
                 let csv = 'Data,Cliente,WhatsApp,Produto,Valor,Status,Vendedor\n';
                 data.forEach(row => {
                     const dataFormatada = new Date(row.data_criacao).toLocaleDateString('pt-BR');
-                    const nome = `"${(row.clientes?.nome_cliente || '').replace(/"/g, '""')}"`;
-                    const whats = `"${row.clientes?.whatsapp || ''}"`;
-                    const prod = `"${(row.modelo_colchao || '').replace(/"/g, '""')}"`;
+                    const nome = `"${sanitizeCsvField(row.clientes?.nome_cliente || '').replace(/"/g, '""')}"`;
+                    const whats = `"${sanitizeCsvField(row.clientes?.whatsapp || '')}"`;
+                    const prod = `"${sanitizeCsvField(row.modelo_colchao || '').replace(/"/g, '""')}"`;
                     const valor = row.valor_orcado || 0;
-                    const status = row.status_orcamento ? row.status_orcamento.nome : '';
-                    const vendedor = `"${(row.usuarios?.nome || '').replace(/"/g, '""')}"`;
+                    const status = sanitizeCsvField(row.status_orcamento ? row.status_orcamento.nome : '');
+                    const vendedor = `"${sanitizeCsvField(row.usuarios?.nome || '').replace(/"/g, '""')}"`;
                     csv += `${dataFormatada},${nome},${whats},${prod},${valor},${status},${vendedor}\n`;
                 });
 
