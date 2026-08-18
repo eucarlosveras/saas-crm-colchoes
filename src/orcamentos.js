@@ -317,7 +317,6 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
             const orc = AppState.contextoVenda.clienteAtual; 
             const id = orc.id_orcamento;
             const isGerente = store.currentUser.perfil === 'Gerente' || store.currentUser.perfil === 'Administrador' || store.currentUser.perfil === 'Admin';
-            const isTerminal = (store.currentUser.perfil || '').toLowerCase() === 'terminal';
             const main = document.getElementById('mainContent');
             const isOpenStatus = [STATUS.CONTATO_INICIAL, STATUS.NEGOCIACAO, STATUS.EM_FECHAMENTO].includes(orc.status);
             
@@ -411,7 +410,7 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
                                     <span class="det-pill-value">${ultimoContato}</span>
                                 </div>
                             </div>
-                            ${(isGerente || (store.currentUser.perfil || '').toLowerCase() === 'terminal') && orc.usuarios?.nome ? `
+                            ${isGerente && orc.usuarios?.nome ? `
                             <div class="det-pill-row" style="grid-template-columns:1fr;">
                                 <div class="det-pill">
                                     <span class="det-pill-label">Vendedor Responsável</span>
@@ -704,7 +703,7 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
     return total; 
 }
 
-        function abrirNovoOrcamento() { const p = (store.currentUser?.perfil || '').toLowerCase(); if (p !== 'vendedor' && p !== 'terminal') return; navigateTo('novo_orcamento'); }
+        function abrirNovoOrcamento() { if ((store.currentUser?.perfil || '').toLowerCase() !== 'vendedor') return; navigateTo('novo_orcamento'); }
 
         async function verificarClientePorCpf(cpf, telefone) {
             if (!cpf) return { existe: false, cliente: null, avisoTelefone: null };
@@ -1173,7 +1172,7 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
 
         function voltarDetalhes() {
             const fab = document.getElementById('fabButton');
-            if (fab && (store.currentUser?.perfil === 'Vendedor' || (store.currentUser.perfil || '').toLowerCase() === 'terminal')) fab.style.display = 'flex';
+            if (fab && store.currentUser?.perfil === 'Vendedor') fab.style.display = 'flex';
             store.currentView = store.previousView;
             navigateTo(store.currentView);
         }

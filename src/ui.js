@@ -11,7 +11,7 @@ import { renderAdminInicio, renderAdminUsuarios } from './usuarios.js';
         function atualizarFab(view) {
     const fab = document.getElementById('fabButton');
     if (!fab) return;
-    const isVendedor = store.currentUser?.perfil === 'Vendedor' || (store.currentUser?.perfil || '').toLowerCase() === 'terminal';
+    const isVendedor = store.currentUser?.perfil === 'Vendedor';
     if (view === 'inicio' && isVendedor) {
         fab.style.display = 'flex';
         fab.title = 'Novo orçamento';

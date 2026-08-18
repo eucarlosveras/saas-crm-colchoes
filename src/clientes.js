@@ -49,7 +49,7 @@ import { classToFormatStatus, escapeHtml, formatarProdutos } from './utils.js';
             try {
                 const pk = _clientes.pk || (await detectClientePK());
                 _clientes.pk = pk;
-                const isVendedor = store.currentUser.perfil === 'Vendedor' || (store.currentUser.perfil || '').toLowerCase() === 'terminal';
+                const isVendedor = store.currentUser.perfil === 'Vendedor';
                 const isGerente = store.currentUser.perfil === 'Gerente' || store.currentUser.perfil === 'Administrador' || store.currentUser.perfil === 'Admin';
                 _clientes.isVendedor = isVendedor;
                 _clientes.isGerente = isGerente;
@@ -387,7 +387,7 @@ import { classToFormatStatus, escapeHtml, formatarProdutos } from './utils.js';
             const avisoAnterior = document.getElementById('avisoEdicaoCliente');
             if (avisoAnterior) avisoAnterior.remove();
 
-            const isVendedor = store.currentUser.perfil === 'Vendedor' || (store.currentUser.perfil || '').toLowerCase() === 'terminal';
+            const isVendedor = store.currentUser.perfil === 'Vendedor';
             const isGerenteOuAdmin = store.currentUser.perfil === 'Gerente' || store.currentUser.perfil === 'Administrador' || store.currentUser.perfil === 'Admin';
 
             // Configura visibilidade do campo de transferência
@@ -460,7 +460,7 @@ import { classToFormatStatus, escapeHtml, formatarProdutos } from './utils.js';
 
         async function salvarEdicaoCliente() {
             const id = document.getElementById('editClienteId').value;
-            const isVendedor = store.currentUser.perfil === 'Vendedor' || (store.currentUser.perfil || '').toLowerCase() === 'terminal';
+            const isVendedor = store.currentUser.perfil === 'Vendedor';
             const isGerenteOuAdmin = store.currentUser.perfil === 'Gerente' || store.currentUser.perfil === 'Administrador' || store.currentUser.perfil === 'Admin';
             const nome = document.getElementById('editClienteNome').value.trim();
             const cpfRaw = document.getElementById('editClienteCpf').value.replace(/\D/g,'');
@@ -524,7 +524,7 @@ import { classToFormatStatus, escapeHtml, formatarProdutos } from './utils.js';
         }
 
         async function confirmarExcluirCliente() {
-            if (store.currentUser.perfil === 'Vendedor' || (store.currentUser.perfil || '').toLowerCase() === 'terminal') {
+            if (store.currentUser.perfil === 'Vendedor') {
                 showToast('Você não tem permissão para excluir clientes.', 'error');
                 closeModal('modalExcluirCliente');
                 return;

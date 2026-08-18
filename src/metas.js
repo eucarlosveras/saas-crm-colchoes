@@ -15,8 +15,7 @@ import { escapeHtml, formatCurrency, parseCurrency } from './utils.js';
 
        function calcularMetaTotal() {
             if (store.currentUser.perfil === 'Vendedor') return getMetaVendedor(store.currentUser.id_usuario);
-            if ((store.currentUser.perfil || '').toLowerCase() === 'terminal') return store.todosVendedores.filter(v => v.id_loja === store.currentUser.id_loja).reduce((s, v) => s + getMetaVendedor(v.id_usuario), 0);
-            
+
             let filtrados = store.todosVendedores;
             if (store.currentUser.perfil === 'Gerente') {
                 const lojasPermitidasMeta = getLojasPermitidas();

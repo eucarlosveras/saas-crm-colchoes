@@ -201,7 +201,7 @@ import { Chart } from 'chart.js/auto';
             store.kpiPeriodoVendedor = periodo;
             if (AppState.usuarioLogado.perfil === 'Vendedor') {
                 await carregarKpisDiariosVendedor(periodo);
-            } else if (AppState.usuarioLogado.perfil === 'Gerente' || (AppState.usuarioLogado.perfil || '').toLowerCase() === 'terminal') {
+            } else if (AppState.usuarioLogado.perfil === 'Gerente') {
                 await carregarKpisDiariosGerente(periodo);
             }
             if (store.currentView === 'inicio') renderInicio();
@@ -299,7 +299,7 @@ import { Chart } from 'chart.js/auto';
         }
 
         async function carregarHistoricoFaturamento() {
-            if (!store.currentUser || (store.currentUser.perfil !== 'Vendedor' && (store.currentUser.perfil || '').toLowerCase() !== 'terminal')) { store.historicoFaturamento = []; return; }
+            if (!store.currentUser || store.currentUser.perfil !== 'Vendedor') { store.historicoFaturamento = []; return; }
             const hoje = new Date(); store.historicoFaturamento = [];
             try {
                 const uuidsFechados = store.mapStatusUUID.filter(s => [STATUS.FECHADO, STATUS.VENDIDO].includes(s.nome)).map(s => s.id_status);
@@ -476,11 +476,11 @@ import { Chart } from 'chart.js/auto';
     let kpiToggleHtml = '';
 
     // Verifica se deve mostrar KPIs diários (Vendedor individual ou Gerente agregado)
-    const mostrarKpisDiarios = store.currentUser.perfil === 'Vendedor' || store.currentUser.perfil === 'Gerente' || (store.currentUser.perfil || '').toLowerCase() === 'terminal';
+    const mostrarKpisDiarios = store.currentUser.perfil === 'Vendedor' || store.currentUser.perfil === 'Gerente';
 
     if (mostrarKpisDiarios) {
         // Vendedor usa kpisDiariosVendedor, Gerente usa kpisDiariosGerente
-        const isPerfGerente = store.currentUser.perfil === 'Gerente' || (store.currentUser.perfil || '').toLowerCase() === 'terminal';
+        const isPerfGerente = store.currentUser.perfil === 'Gerente';
         const k = isPerfGerente 
             ? (AppState.kpisDiariosGerente || { labelComparacao: 'vs. ontem', vendas: { hoje: 0, ontem: 0 }, ticket: { hoje: 0, ontem: 0 }, clientes: { hoje: 0, ontem: 0 }, produtos: { hoje: 0, ontem: 0 } })
             : (AppState.kpisDiariosVendedor || { labelComparacao: 'vs. ontem', vendas: { hoje: 0, ontem: 0 }, ticket: { hoje: 0, ontem: 0 }, clientes: { hoje: 0, ontem: 0 }, produtos: { hoje: 0, ontem: 0 } });

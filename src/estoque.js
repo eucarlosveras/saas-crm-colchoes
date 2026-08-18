@@ -294,7 +294,7 @@ async function carregarEstoqueComProdutos() {
         // 1. Busca os dados do estoque com o relacionamento de categorias
         let queryEstoque = db.from('estoque').select('*, categorias(nome)');
 
-        // Admin vê tudo. Gerente/Vendedor/Terminal só veem o estoque das lojas permitidas.
+        // Admin vê tudo. Gerente/Vendedor só veem o estoque das lojas permitidas.
         const isAdminEstoque = store.currentUser.perfil === 'Administrador' || store.currentUser.perfil === 'Admin';
         if (!isAdminEstoque) {
             const lojasPermitidasEstoque = getLojasPermitidas();

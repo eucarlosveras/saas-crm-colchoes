@@ -52,7 +52,7 @@ import { escapeHtml, getHojeBrasilia } from './utils.js';
                 // Regras de visibilidade por perfil
                 if (store.currentUser.perfil === 'Vendedor') {
                     query = query.eq('id_usuario', store.currentUser.id_usuario);
-                } else if (store.currentUser.perfil === 'Gerente' || (store.currentUser.perfil || '').toLowerCase() === 'terminal') {
+                } else if (store.currentUser.perfil === 'Gerente') {
                     const lojasPermitidasAgenda = getLojasPermitidas();
                     // Nunca pula o filtro: se não há lojas permitidas, força zero resultados (falha fechada).
                     query = query.in('usuarios.id_loja', (lojasPermitidasAgenda && lojasPermitidasAgenda.length > 0) ? lojasPermitidasAgenda : ['00000000-0000-0000-0000-000000000000']);

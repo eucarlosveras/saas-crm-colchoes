@@ -32,11 +32,6 @@ import { classToFormatStatus, escapeHtml, getAgoraBrasiliaISO, getAvatarColor, g
                     if (store.selectedVendedor !== 'todos') query = query.eq('id_usuario', store.selectedVendedor);
                 } else if (store.currentUser.perfil === 'Vendedor') {
                     query = query.eq('id_usuario', store.currentUser.id_usuario);
-                } else if ((store.currentUser.perfil || '').toLowerCase() === 'terminal') {
-                    query = query.eq('usuarios.id_loja', store.currentUser.id_loja);
-                    if (window._terminalVendedorFiltro && window._terminalVendedorFiltro !== 'todos') {
-                        query = query.eq('id_usuario', window._terminalVendedorFiltro);
-                    }
                 } else {
                     if (store.selectedVendedor !== 'todos') {
                         query = query.eq('id_usuario', store.selectedVendedor);
@@ -229,7 +224,6 @@ import { classToFormatStatus, escapeHtml, getAgoraBrasiliaISO, getAvatarColor, g
                     query = query.in('usuarios.id_loja', (lojasPermitidasCSV && lojasPermitidasCSV.length > 0) ? lojasPermitidasCSV : ['00000000-0000-0000-0000-000000000000']);
                     if (store.selectedVendedor !== 'todos') query = query.eq('id_usuario', store.selectedVendedor);
                 }
-                else if ((store.currentUser.perfil || '').toLowerCase() === 'terminal') query = query.eq('usuarios.id_loja', store.currentUser.id_loja);
                 else if (store.selectedVendedor !== 'todos') query = query.eq('id_usuario', store.selectedVendedor);
                 
                 if (store.currentMonth && store.currentYear && !store.currentDay) {
@@ -469,13 +463,6 @@ function selectFilter(filter) {
             }
         }
 
-        window._terminalVendedorFiltro = window._terminalVendedorFiltro || 'todos';
-
-        function terminalFiltrarVendedor(idVendedor) {
-            window._terminalVendedorFiltro = idVendedor;
-            renderKanbanBoard();
-        }
-
         const PROBABILIDADE_POR_ETAPA = {
             [STATUS.CONTATO_INICIAL]: 0.20,
             [STATUS.NEGOCIACAO]: 0.50,
@@ -557,8 +544,6 @@ function selectFilter(filter) {
                     query = query.in('usuarios.id_loja', (lojasPermitidasKanban && lojasPermitidasKanban.length > 0) ? lojasPermitidasKanban : ['00000000-0000-0000-0000-000000000000']);
                 } else if (store.currentUser.perfil === 'Vendedor') {
                     query = query.eq('id_usuario', store.currentUser.id_usuario);
-                } else if ((store.currentUser.perfil || '').toLowerCase() === 'terminal') {
-                    query = query.eq('usuarios.id_loja', store.currentUser.id_loja);
                 } else {
                     if (store.selectedVendedor !== 'todos') {
                         query = query.eq('id_usuario', store.selectedVendedor);
@@ -803,7 +788,7 @@ function selectFilter(filter) {
                             daysDiv.appendChild(document.createTextNode(diasLabel));
                             metaDiv.appendChild(daysDiv);
 
-                            if (isGerente || (store.currentUser.perfil || '').toLowerCase() === 'terminal') {
+                            if (isGerente) {
                                 const avatarDiv = document.createElement('div');
                                 avatarDiv.className = 'kcard-avatar';
                                 avatarDiv.title = vendedor;
@@ -949,4 +934,4 @@ async function dropCardFechado(event) {
     }
 }
 
-export { PROBABILIDADE_POR_ETAPA, allowDrop, atualizarMetricasCarteira, atualizarTabelaPaginadaServer, changePage, clearSearch, dragEnter, dragLeave, dragStart, dropCard, dropCardFechado, dropCardPerdido, exportarCSV, getNegociacoesGridTemplate, getPaginaNumeros, handleSearch, handleSearchProtocolo, handleSearchUnificado, renderCarteiraPage, renderKanbanBoard, selectFilter, switchCarteiraView, terminalFiltrarVendedor, toggleAccordion };
+export { PROBABILIDADE_POR_ETAPA, allowDrop, atualizarMetricasCarteira, atualizarTabelaPaginadaServer, changePage, clearSearch, dragEnter, dragLeave, dragStart, dropCard, dropCardFechado, dropCardPerdido, exportarCSV, getNegociacoesGridTemplate, getPaginaNumeros, handleSearch, handleSearchProtocolo, handleSearchUnificado, renderCarteiraPage, renderKanbanBoard, selectFilter, switchCarteiraView, toggleAccordion };
