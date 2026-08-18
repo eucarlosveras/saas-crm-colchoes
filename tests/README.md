@@ -24,3 +24,7 @@ Cobertura atual:
   real criando um Vendedor.
 - `02-rls-clientes-multi-tenant.test.js` — um Vendedor de uma loja não
   consegue ler, via RLS, um cliente cadastrado em outra loja.
+- `03-rls-gerente-multi-tenant.test.js` — a fronteira que protege o modelo
+  de franquia: um Gerente (franqueado) multi-loja enxerga clientes de todas
+  as lojas que possui (via `usuario_lojas`), mas continua sem enxergar a
+  loja de outro franqueado.
