@@ -597,9 +597,15 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
             return linhas.join('\n');
         }
 
+        // Controla se o vendedor já digitou algo no textarea por conta própria — a
+        // partir daí o campo de % desconto para de sobrescrever o texto sozinho,
+        // pra não apagar uma edição manual sem aviso.
+        let textoOrcamentoEditadoManualmente = false;
+
         function abrirModalGerarOrcamento() {
             const orc = AppState.contextoVenda.clienteAtual;
             if (!orc) { showToast('Orçamento não encontrado.', 'error'); return; }
+            textoOrcamentoEditadoManualmente = false;
             const descontoInput = document.getElementById('gerarOrcamentoDesconto');
             if (descontoInput) descontoInput.value = '';
             const textarea = document.getElementById('textoOrcamentoGerado');
@@ -608,11 +614,20 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
         }
 
         function atualizarTextoOrcamentoComDesconto() {
+            if (textoOrcamentoEditadoManualmente) return; // não pisa numa edição manual já feita
             const orc = AppState.contextoVenda.clienteAtual;
             if (!orc) return;
             const descontoInput = document.getElementById('gerarOrcamentoDesconto');
             const textarea = document.getElementById('textoOrcamentoGerado');
             if (textarea) textarea.value = montarTextoOrcamento(orc, descontoInput?.value);
+        }
+
+        // Chamado pelo oninput do textarea — detecta a primeira edição manual e
+        // avisa uma vez só que, a partir daí, o % desconto não altera mais o texto.
+        function marcarTextoOrcamentoEditadoManualmente() {
+            if (textoOrcamentoEditadoManualmente) return;
+            textoOrcamentoEditadoManualmente = true;
+            showToast('Texto em edição manual — o campo de % desconto não vai mais alterá-lo automaticamente.', 'info');
         }
 
         async function copiarTextoOrcamento() {
@@ -1284,4 +1299,4 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
             if (form) { form.classList.add('open'); const ta = document.getElementById('novoComentario'); if (ta) ta.focus(); }
         }
 
-export { _ajusteAtualizarLixeiras, _ajusteBuildSelectOpts, abrirAjusteProposta, abrirConfirmaFechamento, abrirDetalhesCliente, abrirModalAgendamento, abrirModalGerarOrcamento, abrirMotivoPerda, abrirNovoOrcamento, adicionarProdutoRow, agendarContato, ajusteAdicionarLinha, ajusteRecalcularLinha, ajusteRecalcularTotal, ajusteValidarDesconto, atualizarBotoesLixeira, atualizarTextoOrcamentoComDesconto, buildProdutoSelectOptions, buildProdutosOptionsDatalist, calcTotalModal, carregarProdutos, confirmarFechamento, confirmarPerda, copiarTextoOrcamento, expandirComentario, fecharProdutoSugestoes, filtrarProdutoSugestoes, montarTextoOrcamento, prodNomeKeydown, recalcularLinhaNovoOrcamento, removerProdutoRow, renderDetalhesClientePage, renderNovoOrcamentoPage, salvarAjusteProposta, salvarOrcamento, selecionarModoFechamento, selecionarProdutoSugestao, setQuickDate, validarCPF, validarProdutoSelecionado, verificarClientePorCpf, voltarDetalhes };
+export { _ajusteAtualizarLixeiras, _ajusteBuildSelectOpts, abrirAjusteProposta, abrirConfirmaFechamento, abrirDetalhesCliente, abrirModalAgendamento, abrirModalGerarOrcamento, abrirMotivoPerda, abrirNovoOrcamento, adicionarProdutoRow, agendarContato, ajusteAdicionarLinha, ajusteRecalcularLinha, ajusteRecalcularTotal, ajusteValidarDesconto, atualizarBotoesLixeira, atualizarTextoOrcamentoComDesconto, buildProdutoSelectOptions, buildProdutosOptionsDatalist, calcTotalModal, carregarProdutos, confirmarFechamento, confirmarPerda, copiarTextoOrcamento, expandirComentario, fecharProdutoSugestoes, filtrarProdutoSugestoes, marcarTextoOrcamentoEditadoManualmente, montarTextoOrcamento, prodNomeKeydown, recalcularLinhaNovoOrcamento, removerProdutoRow, renderDetalhesClientePage, renderNovoOrcamentoPage, salvarAjusteProposta, salvarOrcamento, selecionarModoFechamento, selecionarProdutoSugestao, setQuickDate, validarCPF, validarProdutoSelecionado, verificarClientePorCpf, voltarDetalhes };
