@@ -213,19 +213,42 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
             if (novaVisao === store.dashboardView) return;
             store.dashboardView = novaVisao;
 
+            // A troca reescreve a tela inteira (título, KPIs, gráficos, tabela) de
+            // uma vez — sem transição, isso parece uma troca abrupta ("piscando").
+            // Um fade curto no conteúdo, antes de trocar o HTML, faz a troca
+            // parecer intencional em vez de brusca — inclusive quando o dado já
+            // está em cache e não há nenhuma espera de rede de verdade.
+            const main = document.getElementById('mainContent');
+            if (main) main.classList.add('dash-view-fading');
+
             // KPIs da Visão Gerencial só são buscados na primeira vez que alguém entra
             // nela — não no carregamento inicial da página, pra não pagar esse custo
             // por padrão (a maioria abre a tela e fica na Visão Vendedor mesmo).
-            if (novaVisao === 'gerencial' && !AppState.kpisDiariosGerente) {
-                showLoader();
-                try {
-                    await carregarKpisDiariosGerente();
-                } finally {
-                    hideLoader();
-                }
+            const precisaBuscar = novaVisao === 'gerencial' && !AppState.kpisDiariosGerente;
+            if (precisaBuscar) showLoader();
+            try {
+                await Promise.all([
+                    precisaBuscar ? carregarKpisDiariosGerente() : Promise.resolve(),
+                    // Dá tempo do fade acontecer mesmo quando o dado já está em
+                    // cache (troca instantânea, sem essa espera, pareceria um corte seco).
+                    new Promise((resolve) => setTimeout(resolve, 140))
+                ]);
+            } finally {
+                if (precisaBuscar) hideLoader();
             }
 
-            if (store.currentView === 'inicio') renderInicio();
+            if (store.currentView === 'inicio') {
+                renderInicio();
+                const mainAtualizado = document.getElementById('mainContent');
+                if (mainAtualizado) {
+                    // Um frame pra o navegador aplicar o novo conteúdo com opacidade 0
+                    // antes de tirar a classe — senão o fade-in não roda (o browser
+                    // "junta" as duas mudanças de classe no mesmo frame).
+                    requestAnimationFrame(() => requestAnimationFrame(() => mainAtualizado.classList.remove('dash-view-fading')));
+                }
+            } else if (main) {
+                main.classList.remove('dash-view-fading');
+            }
         }
 
         async function selecionarPeriodoKpiVendedor(periodo) {
