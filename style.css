@@ -694,15 +694,33 @@
         .dashboard-header {
             display: flex; align-items: center;
             justify-content: space-between;
-            flex-wrap: wrap; gap: 12px;
+            /* nowrap de propósito: o título nunca pode empurrar os controles (nem
+               vice-versa) pra uma segunda linha — ver .header-controls abaixo. */
+            flex-wrap: nowrap; gap: 12px;
+        }
+        .dashboard-header > *:first-child {
+            flex-shrink: 0; min-width: 0;
         }
         .dashboard-header h1 {
             font-size: var(--font-xl); font-weight: 800;
             letter-spacing: -0.03em; color: var(--text-primary);
         }
         .dashboard-header .header-controls {
-            display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+            display: flex; gap: 8px; align-items: center;
+            /* Nunca quebra linha nem cresce além do espaço disponível — o conjunto
+               de controles muda de tamanho conforme o contexto (ex: o toggle Visão
+               Vendedor/Gerencial adiciona um filtro a mais), e se quebrasse a altura
+               do cabeçalho mudaria, empurrando a página inteira pra baixo a cada
+               clique. flex + min-width:0 é o que garante que este container aceita
+               encolher (em vez de forçar o header a quebrar linha) e, quando mesmo
+               assim não cabe tudo, rola na horizontal — a posição do resto da
+               página nunca muda.
+            */
+            flex: 1 1 auto; min-width: 0; justify-content: flex-end;
+            flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden;
+            scrollbar-width: thin; padding-bottom: 2px;
         }
+        .dashboard-header .header-controls > * { flex-shrink: 0; }
 
         .btn-voltar {
             display: inline-flex; align-items: center; gap: 7px;
