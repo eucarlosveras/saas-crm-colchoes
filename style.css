@@ -399,11 +399,10 @@
         .login-overlay {
             position: fixed; inset: 0; z-index: 9999;
             display: flex; align-items: center; justify-content: center;
-            background: linear-gradient(135deg, #0F172A 0%, #115E59 40%, #D97706 100%);
+            background:
+                radial-gradient(circle at 82% 12%, var(--brand-accent-glow) 0%, transparent 45%),
+                linear-gradient(135deg, var(--sidebar-bg) 0%, var(--brand-blue) 55%, var(--brand-blue-dark) 100%);
             transition: opacity var(--transition-slow), visibility var(--transition-slow);
-        }
-        body.dark .login-overlay {
-            background: linear-gradient(135deg, #020617 0%, #042F2E 50%, #451A03 100%);
         }
         .login-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
 
@@ -419,7 +418,7 @@
             animation: fadeInUp 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
         }
         body.dark .login-card {
-            background: rgba(30, 41, 59, 0.85);
+            background: rgba(19, 28, 46, 0.85);
             border-color: rgba(255,255,255,0.05);
             box-shadow: var(--shadow-modal);
         }
@@ -431,11 +430,11 @@
 
         .login-card .login-icon {
             width: 60px; height: 60px; border-radius: 16px;
-            background: linear-gradient(135deg, var(--brand-blue), var(--accent-orange));
+            background: linear-gradient(135deg, var(--brand-blue), var(--gold));
             display: flex; align-items: center; justify-content: center;
             margin: 0 auto 28px;
             font-size: 20px; font-weight: 800; letter-spacing: -1px; color: #fff;
-            box-shadow: 0 8px 24px rgba(15, 118, 110, 0.4);
+            box-shadow: 0 8px 24px var(--brand-blue-glow);
         }
         .login-card h2 {
             font-size: 1.625rem; font-weight: 800;
