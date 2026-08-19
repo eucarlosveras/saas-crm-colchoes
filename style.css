@@ -19,6 +19,7 @@
             --brand-blue-dark: #14283F;
             --brand-blue-glow: rgba(30, 58, 95, 0.35);
             --brand-blue-subtle: rgba(30, 58, 95, 0.07);
+            --focus-ring: rgba(30, 58, 95, 0.16);
 
             /* Accents */
             --accent-green: #1E9E6E;
@@ -150,6 +151,10 @@
             --brand-accent: var(--gold);
             --brand-accent-dark: var(--gold-dark);
             --brand-accent-glow: var(--gold-glow);
+
+            /* Anel de foco mais claro no escuro — o navy do brand-blue sozinho
+               não teria contraste suficiente contra um fundo já escuro */
+            --focus-ring: rgba(74, 130, 209, 0.35);
 
             --shadow-xs: 0 1px 2px rgba(0,0,0,0.35);
             --shadow-sm: 0 1px 3px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.3);
@@ -376,12 +381,32 @@
             font-size: var(--font-sm);
             transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
         }
+        input:hover, textarea:hover, select:hover { border-color: var(--border-medium); }
         input:focus, textarea:focus, select:focus {
             border-color: var(--brand-blue);
             outline: none;
-            box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+            box-shadow: 0 0 0 3px var(--focus-ring);
         }
         input::placeholder, textarea::placeholder { color: var(--text-placeholder); }
+
+        /* ────────────────────────────────────────────────────────
+           BOTÕES — GLOBAL BASE
+           Comportamento comum a todo <button> do app (cursor, transição,
+           anel de foco visível ao navegar por teclado, feedback de clique)
+           — cada classe .btn-* continua definindo sua própria cor/tamanho.
+        ──────────────────────────────────────────────────────── */
+        button {
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: background var(--transition), border-color var(--transition),
+                        box-shadow var(--transition), transform var(--transition), opacity var(--transition);
+        }
+        button:disabled { cursor: not-allowed; opacity: 0.6; }
+        button:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 3px var(--focus-ring);
+        }
+        button:active:not(:disabled) { transform: scale(0.97); }
 
         body.dark input,
         body.dark textarea,
@@ -684,7 +709,7 @@
         .btn-voltar {
             display: inline-flex; align-items: center; gap: 7px;
             background: var(--card-bg); border: 1.5px solid var(--border-light);
-            color: var(--text-secondary); padding: 9px 15px;
+            color: var(--text-secondary); padding: 10px 16px;
             border-radius: var(--radius-sm); cursor: pointer;
             font-weight: 600; font-size: var(--font-sm);
             font-family: 'Inter', sans-serif; transition: all var(--transition);
@@ -765,7 +790,7 @@
             background: var(--card-bg); color: var(--text-primary);
             font-size: var(--font-xs); font-weight: 600; cursor: pointer;
             appearance: none; -webkit-appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%238A94A6' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
             background-repeat: no-repeat; background-position: right 10px center;
             padding-right: 28px; font-family: 'Inter', sans-serif;
             box-shadow: var(--shadow-xs); transition: all var(--transition);
@@ -774,7 +799,7 @@
             border-color: var(--border-medium); box-shadow: var(--shadow-sm);
         }
         .month-select:focus, .vendedor-select:focus, .day-select:focus {
-            border-color: var(--brand-blue); box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+            border-color: var(--brand-blue); box-shadow: 0 0 0 3px var(--focus-ring);
             outline: none;
         }
 
@@ -785,7 +810,7 @@
             font-family: 'Inter', sans-serif; transition: all var(--transition);
         }
         .search-input:focus {
-            border-color: var(--brand-blue); box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+            border-color: var(--brand-blue); box-shadow: 0 0 0 3px var(--focus-ring);
             outline: none;
         }
 
@@ -1070,7 +1095,7 @@
             border: 1.5px solid var(--border-light); border-radius: var(--radius-full);
             padding: 8px 14px; min-width: 240px; transition: 0.18s;
         }
-        .search-unificado:focus-within { border-color: var(--brand-blue); background: var(--card-bg); box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.08); }
+        .search-unificado:focus-within { border-color: var(--brand-blue); background: var(--card-bg); box-shadow: 0 0 0 3px var(--focus-ring); }
         .search-unificado svg { color: var(--text-muted); flex-shrink: 0; }
         .search-unificado input { border: none; background: transparent; outline: none; font-size: var(--font-sm); width: 100%; color: var(--text-primary); font-family: 'Inter', sans-serif; }
         .search-unificado input::placeholder { color: var(--text-muted); }
@@ -1582,7 +1607,7 @@
             font-family: 'Inter', sans-serif; transition: all var(--transition);
             display: inline-flex; align-items: center; gap: 7px;
         }
-        .btn-primary-action:hover { background: var(--brand-blue-dark); box-shadow: 0 4px 12px var(--brand-blue-glow); }
+        .btn-primary-action:hover { background: var(--brand-blue-dark); box-shadow: 0 4px 12px var(--brand-blue-glow); transform: translateY(-1px); }
 
         .btn-danger-ghost {
             background: var(--danger-light-bg); color: var(--danger-text);
@@ -1662,13 +1687,17 @@
         .modal-card input,
         .modal-card textarea,
         .modal-card select {
-            width: 100%; padding: 11px 13px;
-            border-radius: var(--radius-xs); border: 1.5px solid var(--border-light);
+            width: 100%; min-height: 42px; padding: 11px 13px;
+            border-radius: var(--radius-sm); border: 1.5px solid var(--border-light);
             font-size: var(--font-sm); font-family: 'Inter', sans-serif;
             color: var(--text-primary); background: var(--surface-2); margin-bottom: 4px;
+            transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+        }
+        .modal-card input:hover, .modal-card textarea:hover, .modal-card select:hover {
+            border-color: var(--border-medium);
         }
         .modal-card input:focus, .modal-card textarea:focus, .modal-card select:focus {
-            border-color: var(--brand-blue); box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12); outline: none;
+            border-color: var(--brand-blue); box-shadow: 0 0 0 3px var(--focus-ring); outline: none;
         }
         body.dark .modal-card input,
         body.dark .modal-card textarea,
@@ -1687,7 +1716,7 @@
             transition: all var(--transition); display: inline-flex;
             align-items: center; justify-content: center; gap: 8px; position: relative;
         }
-        .btn-salvar-modal:hover { background: var(--brand-blue-dark); box-shadow: 0 4px 12px var(--brand-blue-glow); }
+        .btn-salvar-modal:hover { background: var(--brand-blue-dark); box-shadow: 0 4px 12px var(--brand-blue-glow); transform: translateY(-1px); }
         .btn-salvar-modal.saving .btn-spinner { display: inline-block; }
         .btn-salvar-modal.saving .btn-text { opacity: 0.7; }
         .btn-spinner {
@@ -1743,16 +1772,11 @@
             font-size: var(--font-xs); font-weight: 700; color: var(--text-muted);
             margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.06em;
         }
-        .novo-orcamento-wrapper .form-input {
-            width: 100%; height: 38px; padding: 0 11px;
-            border: 1.5px solid var(--border-light); border-radius: var(--radius-xs);
-            font-family: 'Inter', sans-serif; font-size: var(--font-sm);
-            color: var(--text-primary); background: var(--card-bg); transition: 0.2s;
-        }
-        body.dark .novo-orcamento-wrapper .form-input { background: var(--surface-2); border-color: var(--border-medium); }
+        /* Herda altura/raio/foco de .form-input (base global) — aqui só o que
+           é realmente específico desta tela: fonte monoespaçada nos campos de
+           dado (CPF/valor) e o textarea de observações crescendo no espaço livre. */
         .novo-orcamento-wrapper .form-input.font-data { font-family: 'JetBrains Mono', monospace; font-weight: 500; }
-        .novo-orcamento-wrapper textarea.form-input { padding: 9px 11px; resize: none; height: auto; flex: 1; }
-        .novo-orcamento-wrapper .form-input:focus { border-color: var(--brand-blue); outline: none; box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12); }
+        .novo-orcamento-wrapper textarea.form-input { resize: none; height: auto; flex: 1; }
 
         .produtos-wrapper {
             flex: 1; overflow-y: auto; padding-right: 3px;
@@ -1801,11 +1825,11 @@
             color: var(--text-primary); background: var(--card-bg); transition: 0.15s; text-align: right;
         }
         body.dark .input-de, body.dark .input-por { background: var(--surface-2); border-color: var(--border-medium); color: var(--text-primary); }
-        .input-de:focus, .input-por:focus { border-color: var(--brand-blue); outline: none; box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12); }
+        .input-de:focus, .input-por:focus { border-color: var(--brand-blue); outline: none; box-shadow: 0 0 0 3px var(--focus-ring); }
         .input-de::placeholder { color: var(--text-placeholder); font-size: var(--font-xs); }
         .input-por::placeholder { color: var(--text-placeholder); font-size: var(--font-xs); }
-        .input-por { border-color: rgba(15, 118, 110, 0.35); background: rgba(15, 118, 110, 0.06); font-weight: 700; color: var(--brand-blue); }
-        body.dark .input-por { background: rgba(15, 118, 110, 0.1); border-color: rgba(15, 118, 110, 0.4); color: #99f6e4; }
+        .input-por { border-color: rgba(30, 58, 95, 0.35); background: var(--brand-blue-subtle); font-weight: 700; color: var(--brand-blue); }
+        body.dark .input-por { background: rgba(30, 58, 95, 0.18); border-color: rgba(30, 58, 95, 0.45); color: #9DBBDB; }
         .input-por:focus { border-color: var(--brand-blue); background: var(--card-bg); color: var(--text-primary); }
         body.dark .input-por:focus { background: var(--surface-2); color: var(--text-primary); }
 
@@ -1852,13 +1876,13 @@
             font-family: 'Inter', sans-serif; font-size: var(--font-sm);
             color: var(--text-primary); background: var(--card-bg); transition: 0.15s;
         }
-        select.prod-nome:focus { border-color: var(--brand-blue); outline: none; box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12); }
+        select.prod-nome:focus { border-color: var(--brand-blue); outline: none; box-shadow: 0 0 0 3px var(--focus-ring); }
         body.dark select.prod-nome { background: var(--surface-2); border-color: var(--border-medium); color: var(--text-primary); }
 
         .btn-add-item-premium {
             width: 100%; height: 38px; border-radius: var(--radius-sm);
             background: transparent; color: var(--brand-blue);
-            border: 1.5px dashed rgba(15, 118, 110, 0.4);
+            border: 1.5px dashed rgba(30, 58, 95, 0.4);
             font-weight: 700; font-size: var(--font-sm); cursor: pointer;
             display: flex; align-items: center; justify-content: center; gap: 7px;
             flex-shrink: 0; transition: all 0.15s;
@@ -1945,24 +1969,39 @@
            GLOBAL FORM INPUT (modais e páginas)
         ──────────────────────────────────────────────────────── */
         .form-input {
-            width: 100%; padding: 11px 13px;
-            border: 1.5px solid var(--border-light); border-radius: var(--radius-xs);
+            width: 100%; min-height: 44px; padding: 12px 14px;
+            border: 1.5px solid var(--border-light); border-radius: var(--radius-sm);
             font-family: 'Inter', sans-serif; font-size: var(--font-sm);
             color: var(--text-primary); background: var(--surface-2);
-            transition: all 0.2s;
+            transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
         }
+        .form-input:hover { border-color: var(--border-medium); }
         .form-input:focus {
             border-color: var(--brand-blue); outline: none;
-            box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+            box-shadow: 0 0 0 3px var(--focus-ring);
             background: var(--card-bg);
         }
         body.dark .form-input { background: var(--surface-2); border-color: var(--border-medium); color: var(--text-primary); }
+        body.dark .form-input:hover { border-color: var(--text-placeholder); }
         body.dark .form-input:focus { background: var(--surface-3); border-color: var(--brand-blue); }
+
+        /* <select class="form-input"> ganha uma seta customizada em vez da
+           nativa do navegador, consistente com .month-select/.vendedor-select */
+        select.form-input {
+            appearance: none; -webkit-appearance: none; cursor: pointer;
+            padding-right: 34px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%238A94A6' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 13px center;
+        }
+        body.dark select.form-input {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%236E7A90' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+        }
+        textarea.form-input { min-height: 88px; padding: 12px 14px; }
 
         .btn-add-item {
             width: 100%; padding: 9px; border-radius: var(--radius-sm);
             background: transparent; color: var(--brand-blue);
-            border: 1.5px dashed rgba(15, 118, 110, 0.3); font-weight: 700;
+            border: 1.5px dashed rgba(30, 58, 95, 0.3); font-weight: 700;
             font-size: var(--font-sm); cursor: pointer; transition: all 0.15s;
             display: flex; align-items: center; justify-content: center; gap: 7px;
         }
@@ -2246,7 +2285,7 @@
         }
         body.dark #modalChatIA #chatIAInput:focus {
             border-color: var(--brand-blue) !important;
-            box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.3) !important;
+            box-shadow: 0 0 0 2px var(--focus-ring) !important;
         }
         body.dark #modalChatIA #chatIASendBtn {
             background: linear-gradient(135deg, var(--brand-blue), var(--brand-blue-dark)) !important;
