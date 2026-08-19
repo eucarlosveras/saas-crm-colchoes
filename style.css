@@ -925,10 +925,20 @@
         .kpi-periodo-btn.active { background: var(--card-bg); color: var(--brand-blue-dark); box-shadow: var(--shadow-xs); }
         body.dark .kpi-periodo-btn.active { color: var(--brand-blue); }
 
-        /* ── Toggle Visão Vendedor / Visão Gerencial (tela Início) ── */
+        /* ── Toggle Visão Vendedor / Visão Gerencial (tela Início) ──
+           Fica no seu próprio grupo, com respiro + linha divisória à direita,
+           pra não se confundir visualmente com os filtros de data/vendedor que
+           vêm em seguida — é uma troca de contexto da página inteira, não só
+           mais um filtro. */
+        .dash-view-toggle-group {
+            display: flex; align-items: center; flex-shrink: 0;
+            padding-right: 16px; margin-right: 4px;
+            border-right: 1.5px solid var(--border-medium);
+        }
         .dash-view-toggle {
             display: inline-flex; gap: 3px; background: var(--surface-2); padding: 3px;
-            border-radius: var(--radius-full); border: 1px solid var(--border-light);
+            border-radius: var(--radius-full); border: 1px solid var(--border-medium);
+            box-shadow: var(--shadow-xs);
         }
         .dash-view-btn {
             display: inline-flex; align-items: center; gap: 6px;
@@ -936,10 +946,11 @@
             border-radius: var(--radius-full);
             font-size: var(--font-xs); font-weight: 600; color: var(--text-muted); cursor: pointer;
             transition: all var(--transition); font-family: 'Inter', sans-serif;
+            white-space: nowrap;
         }
         .dash-view-btn:hover:not(.active) { color: var(--text-primary); }
         .dash-view-btn.active {
-            background: var(--card-bg); color: var(--brand-blue); box-shadow: var(--shadow-xs);
+            background: var(--card-bg); color: var(--brand-blue); box-shadow: var(--shadow-sm);
         }
         .dash-view-btn.gerencial.active { color: var(--gold-dark); }
         body.dark .dash-view-btn.gerencial.active { color: var(--gold); }

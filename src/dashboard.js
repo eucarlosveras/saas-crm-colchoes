@@ -500,15 +500,17 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
     // O botão de alternar visão só existe no HTML pra quem tem permissão — pra um
     // Vendedor, essa string nem é gerada, o botão não está no DOM de jeito nenhum.
     const toggleVisaoHtml = isGerente ? `
-        <div class="dash-view-toggle" role="tablist" aria-label="Alternar entre visão do vendedor e visão gerencial">
-            <button type="button" class="dash-view-btn ${!verGerencial ? 'active' : ''}" role="tab" aria-selected="${!verGerencial}" onclick="alternarVisaoDashboard('vendedor')">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                Visão Vendedor
-            </button>
-            <button type="button" class="dash-view-btn gerencial ${verGerencial ? 'active' : ''}" role="tab" aria-selected="${verGerencial}" onclick="alternarVisaoDashboard('gerencial')">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
-                Visão Gerencial
-            </button>
+        <div class="dash-view-toggle-group">
+            <div class="dash-view-toggle" role="tablist" aria-label="Alternar entre visão do vendedor e visão gerencial">
+                <button type="button" class="dash-view-btn ${!verGerencial ? 'active' : ''}" role="tab" aria-selected="${!verGerencial}" onclick="alternarVisaoDashboard('vendedor')">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    Visão Vendedor
+                </button>
+                <button type="button" class="dash-view-btn gerencial ${verGerencial ? 'active' : ''}" role="tab" aria-selected="${verGerencial}" onclick="alternarVisaoDashboard('gerencial')">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+                    Visão Gerencial
+                </button>
+            </div>
         </div>` : '';
 
     const headerHtml = `
