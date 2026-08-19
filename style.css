@@ -907,6 +907,41 @@
         .kpi-periodo-btn.active { background: var(--card-bg); color: var(--brand-blue-dark); box-shadow: var(--shadow-xs); }
         body.dark .kpi-periodo-btn.active { color: var(--brand-blue); }
 
+        /* ── Toggle Visão Vendedor / Visão Gerencial (tela Início) ── */
+        .dash-view-toggle {
+            display: inline-flex; gap: 3px; background: var(--surface-2); padding: 3px;
+            border-radius: var(--radius-full); border: 1px solid var(--border-light);
+        }
+        .dash-view-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            border: none; background: transparent; padding: 8px 16px;
+            border-radius: var(--radius-full);
+            font-size: var(--font-xs); font-weight: 600; color: var(--text-muted); cursor: pointer;
+            transition: all var(--transition); font-family: 'Inter', sans-serif;
+        }
+        .dash-view-btn:hover:not(.active) { color: var(--text-primary); }
+        .dash-view-btn.active {
+            background: var(--card-bg); color: var(--brand-blue); box-shadow: var(--shadow-xs);
+        }
+        .dash-view-btn.gerencial.active { color: var(--gold-dark); }
+        body.dark .dash-view-btn.gerencial.active { color: var(--gold); }
+
+        /* Faixa fina abaixo do cabeçalho que muda de cor conforme a visão ativa —
+           feedback visual rápido de "em que contexto eu estou". Só existe quando o
+           toggle existe (Gerente/Admin); Vendedor nunca renderiza isso. */
+        .dash-context-strip {
+            height: 3px; border-radius: var(--radius-full);
+            margin: 14px 0 -6px; background: var(--brand-blue-subtle);
+            position: relative; overflow: hidden;
+        }
+        .dash-context-strip::after {
+            content: ''; position: absolute; inset: 0;
+            background: var(--brand-blue); border-radius: inherit;
+            transition: background var(--transition-slow);
+        }
+        .dash-context-strip.gerencial::after { background: var(--gold-dark); }
+        body.dark .dash-context-strip.gerencial::after { background: var(--gold); }
+
         /* ────────────────────────────────────────────────────────
            PROGRESS / GAMIFICATION CARD
         ──────────────────────────────────────────────────────── */

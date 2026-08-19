@@ -4,7 +4,7 @@
 import { renderAgendaDia } from './agenda.js';
 import { renderCarteiraPage } from './carteira.js';
 import { _clientes, renderClientes, renderClientesLista, renderFichaCliente } from './clientes.js';
-import { carregarKpisEDashboard, renderInicio } from './dashboard.js';
+import { carregarKpisDiariosVendedor, carregarKpisEDashboard, renderInicio } from './dashboard.js';
 import { renderEstoque } from './estoque.js';
 import { renderMetas } from './metas.js';
 import { renderDetalhesClientePage, renderNovoOrcamentoPage } from './orcamentos.js';
@@ -37,7 +37,9 @@ import { renderAdminInicio, renderAdminUsuarios } from './usuarios.js';
 
 	    // --- ROTEAMENTO ---
  	   if (view === 'inicio') {
- 	       await carregarKpisEDashboard();
+ 	       // "Visão Vendedor" é a padrão — carrega sempre. "Visão Gerencial" (Gerente/Admin)
+ 	       // só é buscada sob demanda quando o botão de alternar é clicado (ver dashboard.js).
+ 	       await Promise.all([carregarKpisEDashboard(), carregarKpisDiariosVendedor()]);
   	      renderInicio();
                atualizarFab('inicio');
  	   }

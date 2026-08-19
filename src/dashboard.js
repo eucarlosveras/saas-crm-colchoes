@@ -8,6 +8,7 @@ import { calcularMetaTotal, getGamifiedColors } from './metas.js';
 import { buildNotifications, renderNotificationBadge, toggleNotifications } from './notificacoes.js';
 import { AppState, getLojasPermitidas, store } from './state.js';
 import { db } from './supabaseClient.js';
+import { hideLoader, showLoader } from './ui.js';
 import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getHojeBrasilia, getInicioSemanaBrasilia, getPrimeiroDiaMes } from './utils.js';
 // Chart.js (~200KB) é importado sob demanda dentro de renderizarGraficos() em vez
 // de estaticamente aqui — ele só é necessário na tela de Início, então carregá-lo
@@ -200,6 +201,33 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
             };
         }
 
+        // Alterna a tela de Início entre "Visão Vendedor" (padrão, desempenho pessoal
+        // de quem está logado) e "Visão Gerencial" (loja inteira: ranking, mais
+        // vendidos, filtros de loja/vendedor). Só quem tem permissão de Gerente/Admin
+        // consegue chamar isso de verdade — o próprio botão nem existe no HTML pra
+        // quem não tem (ver renderInicio) — mas a checagem aqui é a que garante a
+        // regra, o botão é só a forma de chegar até ela.
+        async function alternarVisaoDashboard(novaVisao) {
+            const isGerente = store.currentUser.perfil === 'Gerente' || store.currentUser.perfil === 'Administrador' || store.currentUser.perfil === 'Admin';
+            if (!isGerente) return;
+            if (novaVisao === store.dashboardView) return;
+            store.dashboardView = novaVisao;
+
+            // KPIs da Visão Gerencial só são buscados na primeira vez que alguém entra
+            // nela — não no carregamento inicial da página, pra não pagar esse custo
+            // por padrão (a maioria abre a tela e fica na Visão Vendedor mesmo).
+            if (novaVisao === 'gerencial' && !AppState.kpisDiariosGerente) {
+                showLoader();
+                try {
+                    await carregarKpisDiariosGerente();
+                } finally {
+                    hideLoader();
+                }
+            }
+
+            if (store.currentView === 'inicio') renderInicio();
+        }
+
         async function selecionarPeriodoKpiVendedor(periodo) {
             if (periodo === store.kpiPeriodoVendedor) return;
             store.kpiPeriodoVendedor = periodo;
@@ -303,7 +331,10 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
         }
 
         async function carregarHistoricoFaturamento() {
-            if (!store.currentUser || store.currentUser.perfil !== 'Vendedor') { store.historicoFaturamento = []; return; }
+            // Roda pra qualquer perfil que passe pela tela "Início" (Vendedor, e também
+            // Gerente/Admin na "Visão Vendedor", que mostra o desempenho pessoal deles).
+            const perfilElegivel = ['Vendedor', 'Gerente', 'Administrador', 'Admin'].includes(store.currentUser?.perfil);
+            if (!perfilElegivel) { store.historicoFaturamento = []; return; }
             const hoje = new Date(); store.historicoFaturamento = [];
             try {
                 const uuidsFechados = store.mapStatusUUID.filter(s => [STATUS.FECHADO, STATUS.VENDIDO].includes(s.nome)).map(s => s.id_status);
@@ -437,7 +468,12 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
 
         function renderInicio() {
     const main = document.getElementById('mainContent');
+    // isGerente = permissão (quem PODE ver a Visão Gerencial e o botão de trocar).
+    // verGerencial = o que está sendo exibido AGORA — só é true se, além de ter
+    // permissão, a pessoa também tiver escolhido a Visão Gerencial no toggle.
+    // Um Vendedor nunca tem isGerente, então verGerencial nunca liga pra ele.
     const isGerente = store.currentUser.perfil === 'Gerente' || store.currentUser.perfil === 'Administrador' || store.currentUser.perfil === 'Admin';
+    const verGerencial = isGerente && store.dashboardView === 'gerencial';
 
     // 1. store.kpisMensais já vem filtrado corretamente do banco:
     //    abertos (Contato Inicial/Negociação/Em Fechamento) pela data de ABERTURA (data_criacao),
@@ -461,14 +497,29 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
     const labelPeriodo = store.currentDay ? `Resultados de ${store.currentDay} de ${nomeMesSelecionado}` : `Resultados de ${nomeMesSelecionado}`;
 
     // 4. HEADER HTML BEM FECHADO E ISOLADO
+    // O botão de alternar visão só existe no HTML pra quem tem permissão — pra um
+    // Vendedor, essa string nem é gerada, o botão não está no DOM de jeito nenhum.
+    const toggleVisaoHtml = isGerente ? `
+        <div class="dash-view-toggle" role="tablist" aria-label="Alternar entre visão do vendedor e visão gerencial">
+            <button type="button" class="dash-view-btn ${!verGerencial ? 'active' : ''}" role="tab" aria-selected="${!verGerencial}" onclick="alternarVisaoDashboard('vendedor')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                Visão Vendedor
+            </button>
+            <button type="button" class="dash-view-btn gerencial ${verGerencial ? 'active' : ''}" role="tab" aria-selected="${verGerencial}" onclick="alternarVisaoDashboard('gerencial')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+                Visão Gerencial
+            </button>
+        </div>` : '';
+
     const headerHtml = `
     <header class="dashboard-header">
         <div style="display: flex; flex-direction: column; gap: 4px;">
-            <h1 style="margin: 0;">${isGerente ? 'Dashboard Vendas' : 'Dashboard do Vendedor'}</h1>
+            <h1 style="margin: 0;">${verGerencial ? 'Dashboard Vendas' : 'Dashboard do Vendedor'}</h1>
             <span style="font-size: 13px; color: var(--text-muted); font-weight: 500; text-transform: capitalize;">${labelPeriodo}</span>
         </div>
         <div class="header-controls">
-            ${renderFiltrosData(isGerente)}
+            ${toggleVisaoHtml}
+            ${renderFiltrosData(verGerencial)}
             <div class="header-notification-area">
                 <button class="btn-notification" id="btnNotification" onclick="event.stopPropagation(); toggleNotifications();" aria-label="Notificações">
                     <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
@@ -476,7 +527,8 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
                 </button>
             </div>
         </div>
-    </header>`;
+    </header>
+    ${isGerente ? `<div class="dash-context-strip ${verGerencial ? 'gerencial' : ''}"></div>` : ''}`;
 
     // 5. CARDS E GRÁFICOS
     const progressHtml = `<div class="gamified-progress-card"><div class="progress-icon" style="background:${gamified.iconBg}; box-shadow:${gamified.shadow};">${gamified.iconSvg}</div><div class="progress-info"><h3>Atingimento de Meta</h3><p class="progress-subtitle">R$ ${valorVendido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} / R$ ${metaAtual.toLocaleString('pt-BR')}</p></div><div class="progress-bar-wrap"><div class="progress-bar-outer"><div class="progress-bar-inner-gamified" style="width:${Math.min(100, percMetaExato)}%; background:${gamified.bg}; box-shadow:${gamified.shadow};"></div></div><span class="progress-percent" style="color:${gamified.motiveColor};">${percMetaExato > 100 ? '100+' : percMetaExato}%</span></div><div class="progress-motive-text" style="color:${gamified.motiveColor};">${gamified.motive}</div></div>`;
@@ -484,13 +536,14 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
     let kpiHtml;
     let kpiToggleHtml = '';
 
-    // Verifica se deve mostrar KPIs diários (Vendedor individual ou Gerente agregado)
-    const mostrarKpisDiarios = store.currentUser.perfil === 'Vendedor' || store.currentUser.perfil === 'Gerente';
+    // Verifica se deve mostrar KPIs diários (Visão Vendedor individual ou Visão Gerencial agregada)
+    const mostrarKpisDiarios = store.currentUser.perfil === 'Vendedor' || isGerente;
 
     if (mostrarKpisDiarios) {
-        // Vendedor usa kpisDiariosVendedor, Gerente usa kpisDiariosGerente
-        const isPerfGerente = store.currentUser.perfil === 'Gerente';
-        const k = isPerfGerente 
+        // Visão Vendedor usa kpisDiariosVendedor (inclusive pra Gerente/Admin nessa
+        // visão — é o desempenho PESSOAL de quem está logado), Visão Gerencial usa
+        // kpisDiariosGerente (agregado da loja).
+        const k = verGerencial
             ? (AppState.kpisDiariosGerente || { labelComparacao: 'vs. ontem', vendas: { hoje: 0, ontem: 0 }, ticket: { hoje: 0, ontem: 0 }, clientes: { hoje: 0, ontem: 0 }, produtos: { hoje: 0, ontem: 0 } })
             : (AppState.kpisDiariosVendedor || { labelComparacao: 'vs. ontem', vendas: { hoje: 0, ontem: 0 }, ticket: { hoje: 0, ontem: 0 }, clientes: { hoje: 0, ontem: 0 }, produtos: { hoje: 0, ontem: 0 } });
 
@@ -499,11 +552,11 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
         const fmtMoeda = n => n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         const periodos = [['hoje', 'Hoje'], ['semana', 'Semana'], ['mes', 'Mês']];
 
-        // Título muda conforme o perfil
-        const tituloKpi = isPerfGerente ? 'Desempenho da Loja' : 'Meu Desempenho';
+        // Título muda conforme a visão atual
+        const tituloKpi = verGerencial ? 'Desempenho da Loja' : 'Meu Desempenho';
 
         kpiToggleHtml = `<div class="kpi-section-header">
-            <h3 class="kpi-section-title">${tituloKpi}</h3>
+            <h3 class="kpi-section-title" style="color:${verGerencial ? 'var(--gold-dark)' : 'var(--brand-blue)'};">${tituloKpi}</h3>
             <div class="kpi-periodo-toggle">${periodos.map(([valor, rotulo]) =>
                 `<button type="button" class="kpi-periodo-btn ${store.kpiPeriodoVendedor === valor ? 'active' : ''}" onclick="selecionarPeriodoKpiVendedor('${valor}')">${rotulo}</button>`
             ).join('')}</div>
@@ -528,7 +581,7 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
     }
     
     let rankingHtml = '';
-                if (isGerente) {
+                if (verGerencial) {
                     let vendedoresRanking = store.todosVendedores;
                     if (store.currentUser.perfil === 'Gerente') {
                         const lojasPermitidasRanking = getLojasPermitidas();
@@ -610,7 +663,7 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
         `}).join('') || '<li style="justify-content:center; color:var(--text-muted);">Nenhuma venda fechada</li>';
         
         const searchTagHtml = (store.searchTerm || store.searchProtocolo) ? `<span class="search-tag">🔍 "${escapeHtml(store.searchTerm || store.searchProtocolo)}" <span class="remove-search" onclick="clearSearch()" aria-label="Limpar busca">✕</span></span>` : '';
-        const gridTemplateInicio = getNegociacoesGridTemplate(isGerente);
+        const gridTemplateInicio = getNegociacoesGridTemplate(verGerencial);
             const tabelaHtml = `
             <div class="table-card">
               <div class="table-card-header">
@@ -634,7 +687,7 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
               </div>
               <div id="tabelaCarteiraWrapper">
                 <div class="negociacoes-col-head" style="grid-template-columns:${gridTemplateInicio};">
-                    <span></span><span>Cliente</span><span>Produto</span>${isGerente ? '<span>Vendedor</span>' : ''}<span>Status</span><span>Data</span><span style="text-align:right;">Valor</span><span></span>
+                    <span></span><span>Cliente</span><span>Produto</span>${verGerencial ? '<span>Vendedor</span>' : ''}<span>Status</span><span>Data</span><span style="text-align:right;">Valor</span><span></span>
                 </div>
                 <div id="tableBody" class="negociacoes-list"></div>
                 <div class="pagination-footer">
@@ -646,7 +699,7 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
 
             let chartsRowHtml = '';
             let secaoInferiorHtml = tabelaHtml;
-            if (isGerente) {
+            if (verGerencial) {
                 chartsRowHtml = `<section class="charts-row">${donutHtml}${rankingHtml}<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg> Mais Vendidos</h3><ul class="top5-list">${top5Html}</ul></div></section>`;
             } else {
                 const barrasOuVazio = barChartHtml || `<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg> Evolução Mensal</h3><div style="display:flex; align-items:center; justify-content:center; height:200px; color:var(--text-muted);">Dados insuficientes para o gráfico.</div></div>`;
@@ -662,4 +715,4 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
 
         }
 
-export { KPI_ICONES, atualizarKPIsDashboard, buildKpiCard, calcularVariacaoPercentual, carregarHistoricoFaturamento, carregarKpisDiariosGerente, carregarKpisDiariosVendedor, carregarKpisEDashboard, getIntervalosPeriodoKpi, renderInicio, renderizarGraficos, selecionarPeriodoKpiVendedor, tentarRenderizarGraficos };
+export { KPI_ICONES, alternarVisaoDashboard, atualizarKPIsDashboard, buildKpiCard, calcularVariacaoPercentual, carregarHistoricoFaturamento, carregarKpisDiariosGerente, carregarKpisDiariosVendedor, carregarKpisEDashboard, getIntervalosPeriodoKpi, renderInicio, renderizarGraficos, selecionarPeriodoKpiVendedor, tentarRenderizarGraficos };

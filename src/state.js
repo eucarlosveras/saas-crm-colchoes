@@ -51,6 +51,7 @@ const store = {
     kanbanAtivo: false,
     searchTerm: '',
     kpiPeriodoVendedor: 'hoje', // 'hoje' | 'semana' | 'mes'
+    dashboardView: 'vendedor', // 'vendedor' | 'gerencial' — sempre reinicia em 'vendedor' a cada login
     searchProtocolo: '',
     clienteSelecionadoParaAcao: null,
     clienteParaOrcamento: null,
