@@ -2226,6 +2226,12 @@
         /* Lista de sinais */
         .signal-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
 
+        /* #signalContainer ganha altura máxima via JS (ver ajustarAlturaRadarScroll em radar.js)
+           quando há mais de 7 sinais — limita a visualização inicial e habilita rolagem para o resto. */
+        #signalContainer.radar-scrollable { overflow-y: auto; padding-right: 8px; scrollbar-width: thin; }
+        #signalContainer.radar-scrollable::-webkit-scrollbar { width: 4px; }
+        #signalContainer.radar-scrollable::-webkit-scrollbar-thumb { background: var(--border-medium); border-radius: var(--radius-full); }
+
         .radar-task {
             background: var(--card-bg);
             border: 1px solid var(--border-light);

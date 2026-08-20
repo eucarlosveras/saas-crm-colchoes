@@ -359,7 +359,29 @@ function renderRadarSignals(sellerFilter) {
     });
 
     container.innerHTML = html;
+
+    ajustarAlturaRadarScroll(container);
 } // Fecha a função renderRadarSignals
+
+// Limita a visualização do Meu Radar a 7 notificações por vez: mede a altura real
+// renderizada dos 7 primeiros cards (que varia conforme têm ou não justificativa) e
+// usa isso como max-height do container, ativando rolagem para o restante.
+const LIMITE_SINAIS_VISIVEIS = 7;
+function ajustarAlturaRadarScroll(container) {
+    container.style.maxHeight = '';
+    container.classList.remove('radar-scrollable');
+
+    const cards = container.querySelectorAll('.radar-task');
+    if (cards.length <= LIMITE_SINAIS_VISIVEIS) return;
+
+    const ultimoVisivel = cards[LIMITE_SINAIS_VISIVEIS - 1];
+    // getBoundingClientRect (em vez de offsetTop) porque offsetTop é relativo ao
+    // offsetParent posicionado mais próximo, que pode não ser o próprio container.
+    const alturaVisivel = ultimoVisivel.getBoundingClientRect().bottom - container.getBoundingClientRect().top;
+
+    container.style.maxHeight = `${Math.ceil(alturaVisivel)}px`;
+    container.classList.add('radar-scrollable');
+}
 
 window.handleRadarAction = function(id) {
     // Redireciona para o detalhe do orçamento usando a função nativa do CRM
