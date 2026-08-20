@@ -8,7 +8,6 @@ import { carregarKpisDiariosVendedor, carregarKpisEDashboard, renderInicio } fro
 import { renderEstoque } from './estoque.js';
 import { renderMetas } from './metas.js';
 import { renderDetalhesClientePage, renderNovoOrcamentoPage } from './orcamentos.js';
-import { renderMeuRadar } from './radar.js';
 import { store } from './state.js';
 import { atualizarFab } from './ui.js';
 import { renderAdminInicio, renderAdminUsuarios } from './usuarios.js';
@@ -68,10 +67,6 @@ import { renderAdminInicio, renderAdminUsuarios } from './usuarios.js';
     else if (view === 'estoque') {
         atualizarFab('estoque');
         await renderEstoque();
-    }
-    else if (view === 'meu_radar') {
-        atualizarFab('meu_radar');
-        renderMeuRadar();
     }
 }
 

@@ -7,16 +7,18 @@ import { db } from './supabaseClient.js';
 import { closeModal, openModal, showToast } from './ui.js';
 import { escapeHtml, getHojeBrasilia } from './utils.js';
 
-function renderMeuRadar() {
-    const main = document.getElementById('mainContent');
-    main.innerHTML = `
+// Retorna o HTML do bloco "Meu Radar" (header + cards de contagem + lista de sinais).
+// Extraído para ser embutido em qualquer container — hoje é usado dentro da tela
+// Início (Visão Vendedor), no lugar da antiga fileira de gráficos.
+function getMeuRadarBlockHtml() {
+    return `
         <div class="radar-header">
-            <h1 class="page-title">
+            <h2 class="page-title">
                 <span class="radar-icon-badge">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/></svg>
                 </span>
                 Meu Radar
-            </h1>
+            </h2>
             <div class="header-actions">
                 <select class="seller-select" id="sellerFilter">
                     <option value="Todos">Todos os vendedores</option>
@@ -55,7 +57,6 @@ function renderMeuRadar() {
             <p>Nenhum sinal pendente. Continue acompanhando seus clientes e o radar te avisará quando algo precisar de atenção.</p>
         </div>
     `;
-    initMeuRadar();
 }
 
 function getIgnoredRadarIds() {
@@ -680,4 +681,4 @@ async function enviarMensagemChatIA() {
     }
 }
 
-export { abrirModalChatIA, addConcludedRadarId, addIgnoredRadarId, analisarClienteComIA, carregarSinaisRadar, chamarIA, enviarMensagemChatIA, fecharModalChatIA, formatDateForDisplay, formatarMensagemIA, getConcludedRadarIds, getIgnoredRadarIds, initMeuRadar, renderMeuRadar, renderRadarSignals, renderizarMensagensChat };
+export { abrirModalChatIA, addConcludedRadarId, addIgnoredRadarId, analisarClienteComIA, carregarSinaisRadar, chamarIA, enviarMensagemChatIA, fecharModalChatIA, formatDateForDisplay, formatarMensagemIA, getConcludedRadarIds, getIgnoredRadarIds, getMeuRadarBlockHtml, initMeuRadar, renderRadarSignals, renderizarMensagensChat };

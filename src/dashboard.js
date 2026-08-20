@@ -6,6 +6,7 @@ import { STATUS } from './constants.js';
 import { renderFiltrosData } from './filtros.js';
 import { calcularMetaTotal, getGamifiedColors } from './metas.js';
 import { buildNotifications, renderNotificationBadge, toggleNotifications } from './notificacoes.js';
+import { getMeuRadarBlockHtml, initMeuRadar } from './radar.js';
 import { AppState, getLojasPermitidas, store } from './state.js';
 import { db } from './supabaseClient.js';
 import { hideLoader, showLoader } from './ui.js';
@@ -597,14 +598,11 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
     }
     
     
+    // "Aproveitamento" (donut) e "Evolução Mensal" (barras) só existem na Visão
+    // Gerencial agora — na Visão Vendedor esse espaço virou o bloco "Meu Radar"
+    // (ver chartsRowHtml mais abaixo).
     const donutHtml = `<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Aproveitamento</h3><div class="donut-wrapper"><canvas id="donutCanvas" width="200" height="200"></canvas></div><div class="donut-legend"><div style="display:flex; align-items:center; gap:8px;"><span class="legend-color orcados"></span> Orçados <strong>${total}</strong></div><div style="display:flex; align-items:center; gap:8px;"><span class="legend-color fechados"></span> Fechados <strong>${fechados}</strong></div></div></div>`;
 
-    let barChartHtml = '';
-
-    if (store.historicoFaturamento.length > 0) {
-        barChartHtml = `<div class="chart-card" style="display:flex; flex-direction:column;"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg> Evolução Mensal</h3><div class="bar-chart-wrapper"><canvas id="barChartCanvas"></canvas></div></div>`;
-    }
-    
     let rankingHtml = '';
                 if (verGerencial) {
                     let vendedoresRanking = store.todosVendedores;
@@ -727,13 +725,19 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
             if (verGerencial) {
                 chartsRowHtml = `<section class="charts-row">${donutHtml}${rankingHtml}<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg> Mais Vendidos</h3><ul class="top5-list">${top5Html}</ul></div></section>`;
             } else {
-                const barrasOuVazio = barChartHtml || `<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg> Evolução Mensal</h3><div style="display:flex; align-items:center; justify-content:center; height:200px; color:var(--text-muted);">Dados insuficientes para o gráfico.</div></div>`;
-                chartsRowHtml = `<section class="charts-row-triplo">${donutHtml}${barrasOuVazio}<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg> Mais Vendidos</h3><ul class="top5-list">${top5Html}</ul></div></section>`;
+                // Visão Vendedor: no lugar da antiga fileira de gráficos (Aproveitamento +
+                // Evolução Mensal + Mais Vendidos), mostra o "Meu Radar" — os sinais e
+                // alertas pessoais do vendedor logado.
+                chartsRowHtml = `<section class="radar-inicio-section">${getMeuRadarBlockHtml()}</section>`;
             }
 
             main.innerHTML = `${headerHtml}${progressHtml}${kpiToggleHtml}<section class="kpi-row">${kpiHtml}</section>${chartsRowHtml}${secaoInferiorHtml}`;
 
-            requestAnimationFrame(() => { tentarRenderizarGraficos(total, fechados); });
+            if (verGerencial) {
+                requestAnimationFrame(() => { tentarRenderizarGraficos(total, fechados); });
+            } else {
+                initMeuRadar();
+            }
 
             atualizarTabelaPaginadaServer();
             renderNotificationBadge(buildNotifications().length);
