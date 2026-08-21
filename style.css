@@ -585,7 +585,7 @@
             padding: 0;
             border-right: 1px solid var(--sidebar-border);
             box-shadow: var(--shadow-lg);
-            transition: transform 0.28s ease, background var(--transition-slow);
+            transition: transform 0.28s ease, background var(--transition-slow), width var(--transition-slow);
         }
 
         .sidebar-greeting {
@@ -688,6 +688,50 @@
         .theme-toggle:hover { border-color: rgba(255,255,255,0.15); color: var(--sidebar-text); }
 
         /* ────────────────────────────────────────────────────────
+           SIDEBAR COLAPSÁVEL (modo ícone-only) — só desktop.
+           Ativado/desativado por toggleSidebarCollapse() (ui.js), que só
+           alterna a classe body.sidebar-collapsed + persiste em localStorage.
+           Tudo aqui fica atrás de min-width:769px de propósito, pra nunca
+           interferir no drawer mobile (.sidebar.open / hamburger), que usa
+           as próprias regras dentro de @media (max-width:768px) mais abaixo.
+        ──────────────────────────────────────────────────────── */
+        /* Oculto por padrão (mobile usa o hamburger, não este botão) — só a
+           media query abaixo (desktop) o torna visível. */
+        .sidebar-collapse-btn { display: none; }
+        @media (min-width: 769px) {
+            .sidebar-collapse-btn {
+                display: flex;
+                position: absolute; top: 72px; right: -12px;
+                width: 24px; height: 24px; border-radius: 50%;
+                background: var(--card-bg); border: 1px solid var(--border-light);
+                display: flex; align-items: center; justify-content: center;
+                cursor: pointer; box-shadow: var(--shadow-sm); z-index: 101;
+                color: var(--text-secondary); transition: var(--transition);
+            }
+            .sidebar-collapse-btn:hover { border-color: var(--border-medium); color: var(--text-primary); }
+            .sidebar-collapse-btn svg { transition: transform var(--transition-slow); }
+            body.sidebar-collapsed .sidebar-collapse-btn svg { transform: rotate(180deg); }
+
+            body.sidebar-collapsed .sidebar { width: 64px; min-width: 64px; }
+            body.sidebar-collapsed .main-content { margin-left: 64px; }
+
+            body.sidebar-collapsed .sidebar-greeting { display: none; }
+            body.sidebar-collapsed .sidebar-nav { padding-top: 22px; }
+            body.sidebar-collapsed .nav-item { justify-content: center; padding-left: 0; padding-right: 0; }
+            body.sidebar-collapsed .nav-label { display: none; }
+
+            body.sidebar-collapsed .sidebar-footer { justify-content: center; padding-left: 0; padding-right: 0; }
+            body.sidebar-collapsed .sidebar-footer .user-info { display: none; }
+
+            /* .theme-toggle é só texto (sem ícone) — não tem como reduzir a um
+               ícone sem inventar um novo, então fica indisponível recolhida;
+               basta expandir a sidebar pra trocar o tema. O logout mantém o
+               ícone (só esconde o rótulo), continua sempre acessível. */
+            body.sidebar-collapsed .sidebar-actions .theme-toggle { display: none; }
+            body.sidebar-collapsed .btn-logout-sidebar { justify-content: center; padding-left: 0; padding-right: 0; }
+        }
+
+        /* ────────────────────────────────────────────────────────
            MAIN CONTENT AREA
         ──────────────────────────────────────────────────────── */
         .main-content {
@@ -696,7 +740,7 @@
             display: flex; flex-direction: column; gap: 24px;
             min-width: 0;
             overflow-x: hidden;
-            transition: opacity 0.15s ease;
+            transition: opacity 0.15s ease, margin-left var(--transition-slow);
         }
         /* Usado ao trocar Visão Vendedor/Gerencial: evita que a troca de conteúdo
            pareça um corte seco — ver alternarVisaoDashboard em dashboard.js. */

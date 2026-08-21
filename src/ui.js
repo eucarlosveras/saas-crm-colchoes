@@ -72,4 +72,12 @@ import { renderAdminInicio, renderAdminUsuarios } from './usuarios.js';
             else if (store.currentView === 'ficha_cliente') renderFichaCliente();
         }
 
-export { atualizarFab, closeModal, esconderLoaderGlobalSeExistir, hideLoader, mostrarToastErroGenerico, openModal, showLoader, showToast, toggleTheme };
+        // Recolhe/expande a sidebar pra modo só-ícone (desktop). Puramente visual —
+        // não afeta nenhuma tela renderizada, só a largura da sidebar/main-content
+        // via classe no body (ver style.css, tudo dentro de @media min-width:769px).
+        function toggleSidebarCollapse() {
+            document.body.classList.toggle('sidebar-collapsed');
+            localStorage.setItem('sidebarCollapsed', document.body.classList.contains('sidebar-collapsed') ? '1' : '0');
+        }
+
+export { atualizarFab, closeModal, esconderLoaderGlobalSeExistir, hideLoader, mostrarToastErroGenerico, openModal, showLoader, showToast, toggleSidebarCollapse, toggleTheme };

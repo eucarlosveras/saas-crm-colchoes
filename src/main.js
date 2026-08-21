@@ -18,7 +18,7 @@ import { _ajusteAtualizarLixeiras, abrirAjusteProposta, abrirConfirmaFechamento,
 import { analisarClienteComIA, enviarMensagemChatIA, fecharModalChatIA } from './radar.js';
 import { navigateTo } from './router.js';
 import { store } from './state.js';
-import { closeModal, esconderLoaderGlobalSeExistir, mostrarToastErroGenerico, toggleTheme } from './ui.js';
+import { closeModal, esconderLoaderGlobalSeExistir, mostrarToastErroGenerico, toggleSidebarCollapse, toggleTheme } from './ui.js';
 import { abrirModalExcluirUsuarioAdmin, abrirModalUsuarioAdmin, confirmarExclusaoUsuario, salvarUsuarioAdmin, toggleCampoLojasMultiplas, toggleSenhaAdmin } from './usuarios.js';
 import { escapeHtml, formatCurrency, validateField } from './utils.js';
 
@@ -97,6 +97,7 @@ window.setQuickDate = setQuickDate;
 window.toggleCampoLojasMultiplas = toggleCampoLojasMultiplas;
 window.toggleNotifications = toggleNotifications;
 window.toggleSenhaAdmin = toggleSenhaAdmin;
+window.toggleSidebarCollapse = toggleSidebarCollapse;
 window.toggleTheme = toggleTheme;
 window.validarCPF = validarCPF;
 window.validateField = validateField;
@@ -121,6 +122,7 @@ window.voltarDetalhes = voltarDetalhes;
 
         (function() {
             if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark');
+            if (localStorage.getItem('sidebarCollapsed') === '1') document.body.classList.add('sidebar-collapsed');
         })();
 
         document.addEventListener('keydown', function(e) {
