@@ -394,8 +394,8 @@ function selectFilter(filter) {
 			                <div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Meta do Mês</span></div>
 			                <div class="kpi-value" id="carteiraMetaValor">R$ 0</div>
 			                <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">Coberta em <strong id="carteiraMetaPercentual">0%</strong></div>
-			                <div style="margin-top:6px; width:100%; height:3px; background:var(--border-color, #e9edf2); border-radius:4px; overflow:hidden;">
-			                    <div id="carteiraMetaProgresso" style="width:0%; height:100%; background:#22c55e; border-radius:4px; transition:width .3s;"></div>
+			                <div style="margin-top:6px; width:100%; height:3px; background:var(--border-light); border-radius:4px; overflow:hidden;">
+			                    <div id="carteiraMetaProgresso" style="width:0%; height:100%; background:var(--accent-green); border-radius:4px; transition:width .3s;"></div>
 			                </div>
 			            </div>
 			        </div>
@@ -404,7 +404,7 @@ function selectFilter(filter) {
 			            <div id="searchTagContainer"></div>
 			            <input type="text" class="search-input" placeholder="Buscar cliente..." id="searchInput" onchange="handleSearch()" onkeyup="if(event.key === 'Enter') handleSearch()" value="${escapeHtml(store.searchTerm)}">
 			            <input type="text" class="search-input" placeholder="Buscar protocolo..." id="searchProtocoloInput" onchange="handleSearchProtocolo()" onkeyup="if(event.key === 'Enter') handleSearchProtocolo()" value="${escapeHtml(store.searchProtocolo)}" style="width:160px;">
-			            <select class="form-input" style="width:auto; padding:8px 16px; border-radius:20px; font-size:var(--font-sm);" id="listFilterSelect" onchange="selectFilter(this.value)">
+			            <select class="form-input" style="width:auto; padding:8px 16px; border-radius:var(--radius-full); font-size:var(--font-sm);" id="listFilterSelect" onchange="selectFilter(this.value)">
 			                 <option value="todos" ${store.currentFilter === 'todos' ? 'selected' : ''}>Todos os Status</option>
 			                 <option value="Contato Inicial" ${store.currentFilter === STATUS.CONTATO_INICIAL ? 'selected' : ''}>Contato Inicial</option>
 			                 <option value="Negociação" ${store.currentFilter === STATUS.NEGOCIACAO ? 'selected' : ''}>Negociação</option>
@@ -814,7 +814,7 @@ function selectFilter(filter) {
                 board.appendChild(boardDiv);
 
             } catch (e) {
-                board.innerHTML = `<div style="padding:24px; text-align:center; color:#ef4444;">Erro ao carregar pipeline: ${e.message}</div>`;
+                board.innerHTML = `<div style="padding:24px; text-align:center; color:var(--danger-text);">Erro ao carregar pipeline: ${e.message}</div>`;
             }
         }
 
