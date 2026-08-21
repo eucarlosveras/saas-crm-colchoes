@@ -20,30 +20,20 @@ function getMeuRadarBlockHtml() {
                 Meu Radar
             </h2>
             <div class="header-actions">
-                <select class="seller-select" id="sellerFilter">
-                    <option value="Todos">Todos os vendedores</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="summary-grid">
-            <div class="summary-card">
-                <div class="summary-icon alerts">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                <!-- Chips filtráveis no lugar dos 3 cards de resumo antigos (~140px -> ~32px
+                     de altura) e do seletor de vendedor (removido — a sessão logada + RLS já
+                     escopam os dados ao usuário certo, ver initMeuRadar/renderRadarSignals). -->
+                <div class="radar-chips" id="radarChips">
+                    <button type="button" class="radar-chip" data-tipo="alert" onclick="toggleRadarChip('alert')" title="Filtrar por Alertas urgentes">
+                        <span class="radar-chip-label">Urgentes</span><span class="radar-chip-sep">·</span><span class="radar-chip-count" id="count-alerts">0</span>
+                    </button>
+                    <button type="button" class="radar-chip" data-tipo="tip" onclick="toggleRadarChip('tip')" title="Filtrar por Dicas de abordagem">
+                        <span class="radar-chip-emoji" aria-hidden="true">💡</span><span class="radar-chip-label">Dicas</span><span class="radar-chip-sep">·</span><span class="radar-chip-count" id="count-tips">0</span>
+                    </button>
+                    <button type="button" class="radar-chip" data-tipo="suggestion" onclick="toggleRadarChip('suggestion')" title="Filtrar por Sugestões de ação">
+                        <span class="radar-chip-emoji" aria-hidden="true">✓</span><span class="radar-chip-label">Ações</span><span class="radar-chip-sep">·</span><span class="radar-chip-count" id="count-suggestions">0</span>
+                    </button>
                 </div>
-                <div class="summary-info"><h4>Alertas urgentes</h4><span id="count-alerts">0</span></div>
-            </div>
-            <div class="summary-card">
-                <div class="summary-icon tips">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-                </div>
-                <div class="summary-info"><h4>Dicas de abordagem</h4><span id="count-tips">0</span></div>
-            </div>
-            <div class="summary-card">
-                <div class="summary-icon suggestions">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 00-4 12.75c.44.37.7.86.7 1.42V17h6.6v-.83c0-.56.26-1.05.7-1.42A7 7 0 0012 2z"/></svg>
-                </div>
-                <div class="summary-info"><h4>Sugestões de ação</h4><span id="count-suggestions">0</span></div>
             </div>
         </div>
 
@@ -228,64 +218,51 @@ function formatDateForDisplay(date) {
 }
 
 async function initMeuRadar() {
-    // Carrega os sinais reais do Supabase primeiro
+    // Carrega os sinais reais do Supabase primeiro — a query já vem escopada ao
+    // usuário logado via RLS (login + senha definem o dono dos dados), então não
+    // existe mais filtro de vendedor no cliente: o radar é sempre pessoal.
     await carregarSinaisRadar();
-    
-    const sellerSelect = document.getElementById('sellerFilter');
-    if (sellerSelect) {
-        // Puxa o nome do usuário real do CRM, ou usa fallback
-        let nomeLogado = (typeof store.currentUser !== 'undefined' && store.currentUser?.nome) ? store.currentUser.nome : 'Sem Nome';
-        
-        // Adapta os sinais para mostrar os cards para o usuário logado
-        store.radarSignalsData.forEach(s => {
-            if (s.seller === 'Carlos' || s.seller === 'Maria') {
-                s.seller = nomeLogado;
-            }
-        });
 
-        let opts = '<option value="Todos">Todos os vendedores</option>';
-        opts += `<option value="${nomeLogado}">Eu (${nomeLogado})</option>`;
-        
-        // Adiciona outros vendedores únicos dos sinais
-        const vendedoresUnicos = [...new Set(store.radarSignalsData.map(s => s.seller))];
-        vendedoresUnicos.forEach(v => {
-            if (v !== nomeLogado && v !== 'Sem Nome') {
-                opts += `<option value="${v}">${v}</option>`;
-            }
-        });
-        
-        sellerSelect.innerHTML = opts;
-        sellerSelect.value = nomeLogado;
+    // Filtro por categoria (chips) começa sempre zerado a cada visita à tela —
+    // ver toggleRadarChip/renderRadarSignals.
+    store.radarChipFiltro = new Set();
 
-        sellerSelect.addEventListener('change', (e) => {
-            renderRadarSignals(e.target.value);
-        });
-        
-        renderRadarSignals(nomeLogado);
-    }
+    renderRadarSignals();
 }
 
-function renderRadarSignals(sellerFilter) {
+function renderRadarSignals() {
     const container = document.getElementById('signalContainer');
     const emptyState = document.getElementById('emptyState');
     if(!container) return;
 
+    const chipFiltro = store.radarChipFiltro || (store.radarChipFiltro = new Set());
     const ordemPrioridade = { critical: 0, high: 1, medium: 2, low: 3 };
-    const filtered = store.radarSignalsData
-        .filter(s => {
-            if (s.ignored) return false;
-            if (sellerFilter === 'Todos') return true;
-            return s.seller === sellerFilter;
-        })
+
+    // Base: todos os sinais não-ignorados do usuário logado (RLS já garante que só
+    // vêm dados dele). As contagens dos chips usam essa base inteira — não encolhem
+    // quando um chip filtra a lista, senão o usuário perderia a noção do total.
+    const base = store.radarSignalsData.filter(s => !s.ignored);
+    const contagens = {
+        alert: base.filter(s => s.type === 'alert').length,
+        tip: base.filter(s => s.type === 'tip').length,
+        suggestion: base.filter(s => s.type === 'suggestion').length
+    };
+
+    // Lista visível: se algum chip está ativo, mostra só as categorias marcadas;
+    // sem nenhum chip ativo (estado inicial), mostra tudo.
+    const filtered = base
+        .filter(s => chipFiltro.size === 0 || chipFiltro.has(s.type))
         .sort((a, b) => (ordemPrioridade[a.priority] ?? 4) - (ordemPrioridade[b.priority] ?? 4));
 
-    // Atualiza contadores
-    const elAlerts = document.getElementById('count-alerts');
-    const elTips = document.getElementById('count-tips');
-    const elSugs = document.getElementById('count-suggestions');
-    if(elAlerts) elAlerts.innerText = filtered.filter(s => s.type === 'alert').length;
-    if(elTips) elTips.innerText = filtered.filter(s => s.type === 'tip').length;
-    if(elSugs) elSugs.innerText = filtered.filter(s => s.type === 'suggestion').length;
+    // Atualiza contagem + estado visual (ativo / contagem zero) de cada chip
+    document.querySelectorAll('#radarChips .radar-chip').forEach(chip => {
+        const tipo = chip.dataset.tipo;
+        const n = contagens[tipo] || 0;
+        const countEl = chip.querySelector('.radar-chip-count');
+        if (countEl) countEl.textContent = n;
+        chip.classList.toggle('active', chipFiltro.has(tipo));
+        chip.classList.toggle('count-zero', n === 0);
+    });
 
     if (filtered.length === 0) {
         container.innerHTML = '';
@@ -410,10 +387,19 @@ window.handleRadarCheck = function(id) {
             const index = store.radarSignalsData.findIndex(s => s.id === id);
             if (index > -1) store.radarSignalsData[index].ignored = true; // some da lista igual ao "ignorar"
 
-            const select = document.getElementById('sellerFilter');
-            renderRadarSignals(select ? select.value : 'Todos');
+            renderRadarSignals();
         }, 450);
     }
+};
+
+// Chip de categoria (Urgentes/Dicas/Ações) funciona como filtro multi-seleção da
+// lista abaixo: clique ativa/desativa aquela categoria; com nenhum chip ativo,
+// mostra tudo (estado inicial). Ver renderRadarSignals, que lê store.radarChipFiltro.
+window.toggleRadarChip = function(tipo) {
+    if (!store.radarChipFiltro) store.radarChipFiltro = new Set();
+    if (store.radarChipFiltro.has(tipo)) store.radarChipFiltro.delete(tipo);
+    else store.radarChipFiltro.add(tipo);
+    renderRadarSignals();
 };
 
 window.handleRadarIgnore = function(id) {
@@ -427,9 +413,8 @@ window.handleRadarIgnore = function(id) {
             addIgnoredRadarId(id);
             const index = store.radarSignalsData.findIndex(s => s.id === id);
             if (index > -1) store.radarSignalsData[index].ignored = true;
-            
-            const select = document.getElementById('sellerFilter');
-            renderRadarSignals(select ? select.value : 'Todos');
+
+            renderRadarSignals();
         }, 300);
     }
 };
