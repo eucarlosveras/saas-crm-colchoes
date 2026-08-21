@@ -1,7 +1,6 @@
 // ═══════════════════════════════════════════════════════════════
 // Módulo: dashboard.js — extraído automaticamente do antigo app.js monolítico
 // ═══════════════════════════════════════════════════════════════
-import { atualizarTabelaPaginadaServer, clearSearch, getNegociacoesGridTemplate, handleSearchUnificado, selectFilter } from './carteira.js';
 import { STATUS } from './constants.js';
 import { renderFiltrosData } from './filtros.js';
 import { calcularMetaTotal, getGamifiedColors } from './metas.js';
@@ -685,43 +684,7 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
             </li>
         `}).join('') || '<li style="justify-content:center; color:var(--text-muted);">Nenhuma venda fechada</li>';
         
-        const searchTagHtml = (store.searchTerm || store.searchProtocolo) ? `<span class="search-tag">🔍 "${escapeHtml(store.searchTerm || store.searchProtocolo)}" <span class="remove-search" onclick="clearSearch()" aria-label="Limpar busca">✕</span></span>` : '';
-        const gridTemplateInicio = getNegociacoesGridTemplate(verGerencial);
-            const tabelaHtml = `
-            <div class="table-card">
-              <div class="table-card-header">
-                <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg> Carteira de Negociações</h3>
-                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                  <div id="searchTagContainer">${searchTagHtml}</div>
-                  <div class="search-unificado">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input type="text" placeholder="Buscar por cliente ou protocolo..." id="searchUnificado" onchange="handleSearchUnificado()" onkeyup="if(event.key === 'Enter') handleSearchUnificado()" value="${escapeHtml(store.searchTerm || store.searchProtocolo)}" aria-label="Buscar por cliente ou protocolo">
-                  </div>
-                  <select class="form-input" style="width:auto; padding:8px 16px; border-radius:var(--radius-full); font-size:var(--font-sm);" id="listFilterSelect" onchange="selectFilter(this.value)" aria-label="Filtrar por status">
-                     <option value="todos" ${store.currentFilter === 'todos' ? 'selected' : ''}>Todos</option>
-                     <option value="Contato Inicial" ${store.currentFilter === STATUS.CONTATO_INICIAL ? 'selected' : ''}>Contato Inicial</option>
-                     <option value="Negociação" ${store.currentFilter === STATUS.NEGOCIACAO ? 'selected' : ''}>Negociação</option>
-                     <option value="Em Fechamento" ${store.currentFilter === STATUS.EM_FECHAMENTO ? 'selected' : ''}>Em Fechamento</option>
-                    <option value="Fechado" ${store.currentFilter === STATUS.FECHADO ? 'selected' : ''}>Fechado</option>
-                    <option value="Perdido" ${store.currentFilter === STATUS.PERDIDO ? 'selected' : ''}>Perdido</option>
-                </select> 
-                        
-                </div>
-              </div>
-              <div id="tabelaCarteiraWrapper">
-                <div class="negociacoes-col-head" style="grid-template-columns:${gridTemplateInicio};">
-                    <span></span><span>Cliente</span><span>Produto</span>${verGerencial ? '<span>Vendedor</span>' : ''}<span>Status</span><span>Data</span><span style="text-align:right;">Valor</span><span></span>
-                </div>
-                <div id="tableBody" class="negociacoes-list"></div>
-                <div class="pagination-footer">
-                    <span class="footer-info" id="paginationInfo"></span>
-                    <div class="pagination-pills" id="paginationContainer"></div>
-                </div>
-              </div>
-            </div>`;
-
             let chartsRowHtml = '';
-            let secaoInferiorHtml = tabelaHtml;
             if (verGerencial) {
                 chartsRowHtml = `<section class="charts-row">${donutHtml}${rankingHtml}<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg> Mais Vendidos</h3><ul class="top5-list">${top5Html}</ul></div></section>`;
             } else {
@@ -731,7 +694,7 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
                 chartsRowHtml = `<section class="radar-inicio-section">${getMeuRadarBlockHtml()}</section>`;
             }
 
-            main.innerHTML = `${headerHtml}${progressHtml}${kpiToggleHtml}<section class="kpi-row">${kpiHtml}</section>${chartsRowHtml}${secaoInferiorHtml}`;
+            main.innerHTML = `${headerHtml}${progressHtml}${kpiToggleHtml}<section class="kpi-row">${kpiHtml}</section>${chartsRowHtml}`;
 
             if (verGerencial) {
                 requestAnimationFrame(() => { tentarRenderizarGraficos(total, fechados); });
@@ -739,7 +702,6 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
                 initMeuRadar();
             }
 
-            atualizarTabelaPaginadaServer();
             renderNotificationBadge(buildNotifications().length);
 
         }
