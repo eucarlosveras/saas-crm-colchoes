@@ -12,9 +12,9 @@ import { escapeHtml, getHojeBrasilia } from './utils.js';
 // Início (Visão Vendedor), no lugar da antiga fileira de gráficos.
 function getMeuRadarBlockHtml() {
     return `
-        <div class="radar-header">
-            <h2 class="page-title">
-                <span class="radar-icon-badge">
+        <div class="section-header">
+            <h2 class="section-title">
+                <span class="section-icon-badge">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/></svg>
                 </span>
                 Meu Radar
