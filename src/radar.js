@@ -95,11 +95,11 @@ async function carregarSinaisRadar() {
     const ignoredIds = [...getIgnoredRadarIds(), ...getConcludedRadarIds()];
 
     try {
-        // 1. Busca Orçamentos
+        // 1. Busca Orçamentos (inclui protocolo para exibir na coluna da direita)
         const { data: orcamentos, error: errOrc } = await db
             .from('orcamentos')
             .select(`
-                id_orcamento, data_criacao, data_contato, data_entrega, ligacao_confirmada, valor_orcado, modelo_colchao,
+                id_orcamento, protocolo, data_criacao, data_contato, data_entrega, ligacao_confirmada, valor_orcado, modelo_colchao,
                 clientes(nome_cliente), usuarios(nome), status_orcamento(nome)
             `);
         
@@ -153,6 +153,7 @@ async function carregarSinaisRadar() {
             if (isFechado && orc.data_entrega === hojeIso && !ignoredIds.includes(idEntrega)) {
                 store.radarSignalsData.push({
                     id: idEntrega,
+                    protocolo: orc.protocolo || null,
                     seller: nomeVendedor,
                     type: 'alert',
                     priority: 'high',
@@ -176,6 +177,7 @@ async function carregarSinaisRadar() {
                     const valorFmt = parseFloat(orc.valor_orcado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
                     store.radarSignalsData.push({
                         id: idEstagnado,
+                        protocolo: orc.protocolo || null,
                         seller: nomeVendedor,
                         type: 'tip',
                         priority: 'medium',
@@ -198,6 +200,7 @@ async function carregarSinaisRadar() {
                 if (temCamaColchao && !temAcessorios && statusNome === 'Em Fechamento' && !ignoredIds.includes(idCross)) {
                     store.radarSignalsData.push({
                         id: idCross,
+                        protocolo: orc.protocolo || null,
                         seller: nomeVendedor,
                         type: 'suggestion',
                         priority: 'low',
@@ -327,24 +330,23 @@ function renderRadarSignals() {
     let html = '<ul class="radar-list">';
 
     filtered.forEach(signal => {
-        const conf = configMap[signal.type];
         const isEstoque = signal.id.startsWith('est-');
         // Clique na linha abre os detalhes — exceto sinais de estoque, que não
         // correspondem a um orçamento (handleRadarAction já ignora esses, mas
         // aqui evitamos até o cursor:pointer enganoso).
         const clickRow = !isEstoque ? ` onclick="handleRadarAction('${signal.id}')"` : '';
-        const tituloCompleto = escapeHtml(signal.message || '') + (signal.justification ? ' — ' + escapeHtml(signal.justification) : '');
+        // Descrição inline: "Cliente · justificativa truncada" — o tooltip title
+        // no <span> deixa o texto completo disponível sem poluir a linha.
+        const descInline = [signal.leadName, signal.justification].filter(Boolean).join(' · ');
+        const tituloCompleto = escapeHtml(signal.message || '') + (descInline ? ' — ' + escapeHtml(descInline) : '');
 
         html += `
             <li class="radar-row" id="radar-card-${signal.id}" data-tipo="${signal.type}" data-prioridade="${signal.priority || 'low'}"${clickRow}>
                 <button class="radar-check" onclick="event.stopPropagation(); handleRadarCheck('${signal.id}')" title="Marcar como resolvido" aria-label="Marcar sinal como concluído"></button>
-                <span class="radar-cat" data-tipo="${signal.type}" aria-hidden="true">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${conf.icone}</svg>
-                </span>
-                <div class="radar-text" title="${tituloCompleto}">
-                    <strong>${escapeHtml(signal.message || '')}</strong>${signal.justification ? `<span class="radar-desc"> · ${escapeHtml(signal.justification)}</span>` : ''}
-                </div>
-                <span class="mini-tag">${escapeHtml(signal.leadName || '')}</span>
+                <span class="radar-cat" data-tipo="${signal.type}" aria-hidden="true"></span>
+                <span class="radar-title">${escapeHtml(signal.message || '')}</span>
+                <span class="radar-desc-truncated" title="${tituloCompleto}">${escapeHtml(descInline)}</span>
+                ${signal.protocolo ? `<span class="radar-protocolo">${escapeHtml(signal.protocolo)}</span>` : ''}
                 <time class="radar-date">${escapeHtml(signal.time || '')}</time>
                 <div class="radar-actions">
                     <button class="radar-action-icon" onclick="event.stopPropagation(); handleRadarAction('${signal.id}')" title="${escapeHtml(signal.actionText || 'Ver Detalhes')}" aria-label="${escapeHtml(signal.actionText || 'Ver Detalhes')}">

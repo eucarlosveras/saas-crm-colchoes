@@ -91,8 +91,11 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
             const deltaHtml = temVariacao
                 ? `<span class="kpi-variacao ${positivo ? 'kpi-var-up' : 'kpi-var-down'}">${positivo ? '▲' : '▼'} ${Math.abs(Math.round(variacao))}%</span>`
                 : '';
+            // Sem .kpi-dot aqui (modelo v2) — dentro de .kpi-grid-compact o dot
+            // colorido some (só fazia sentido ao lado do ícone que também não
+            // existe mais nesse contexto); label sozinho já basta.
             return `<div class="kpi-card${destaque ? ' vendido-highlight' : ''}">
-                <div class="kpi-label-row"><span class="kpi-dot ${cor}"></span><span class="kpi-label">${label}</span></div>
+                <div class="kpi-label-row"><span class="kpi-label">${label}</span></div>
                 <div class="kpi-value-row"><span class="kpi-value">${valor}</span>${deltaHtml}</div>
                 ${comparacaoLabel ? `<span class="kpi-comparacao-label">${comparacaoLabel}</span>` : ''}
             </div>`;
@@ -567,8 +570,38 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
     </header>
     ${isGerente ? `<div class="dash-context-strip ${verGerencial ? 'gerencial' : ''}"></div>` : ''}`;
 
-    // 5. CARDS E GRÁFICOS
-    const progressHtml = `<div class="gamified-progress-card"><div class="progress-icon" style="background:${gamified.iconBg}; box-shadow:${gamified.shadow};">${gamified.iconSvg}</div><div class="progress-info"><h3>Atingimento de Meta</h3><p class="progress-subtitle">R$ ${valorVendido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} / R$ ${metaAtual.toLocaleString('pt-BR')}</p></div><div class="progress-bar-wrap"><div class="progress-bar-outer"><div class="progress-bar-inner-gamified" style="width:${Math.min(100, percMetaExato)}%; background:${gamified.bg}; box-shadow:${gamified.shadow};"></div></div><span class="progress-percent" style="color:${gamified.motiveColor};">${percMetaExato > 100 ? '100+' : percMetaExato}%</span></div><div class="progress-motive-text" style="color:${gamified.motiveColor};">${gamified.motive}</div></div>`;
+    // 5. CARDS E GRÁFICOS — Seção "Meta de [mês]" (Claude Design v2: herói numérico)
+    const diaAtual = new Date().getDate();
+    const ultimoDiaMes = new Date(store.currentYear, store.currentMonth, 0).getDate();
+    const nomeMesAbrev = new Date(store.currentYear, store.currentMonth - 1, 1)
+        .toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '');
+    const faltam = Math.max(0, metaAtual - valorVendido);
+    const fmtMeta = n => n.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+
+    const progressHtml = `
+<section class="meta-inicio-section">
+    <span class="meta-section-label">Meta de ${nomeMesSelecionado}</span>
+    <div class="meta-hero-card">
+        <div class="meta-hero-top">
+            <div class="meta-hero-left">
+                <span class="meta-hero-value">R$ ${fmtMeta(valorVendido)}</span>
+                <span class="meta-hero-sub">de <span class="meta-mono">${fmtMeta(metaAtual)}</span> · faltam <span class="meta-mono">${fmtMeta(faltam)}</span></span>
+            </div>
+            <div class="meta-hero-right">
+                <span class="meta-pct-big" style="color:${gamified.motiveColor};">${percMetaExato > 100 ? '100+' : percMetaExato}%</span>
+                <span class="meta-motive-label" style="color:${gamified.motiveColor};">${gamified.motive}</span>
+            </div>
+        </div>
+        <div class="meta-bar-outer">
+            <div class="meta-bar-fill" style="width:${Math.min(100, percMetaExato)}%; background:${gamified.bg};"></div>
+        </div>
+        <div class="meta-scale">
+            <span>01 ${nomeMesAbrev}</span>
+            <span class="meta-scale-today">hoje · dia ${diaAtual}</span>
+            <span>${ultimoDiaMes} ${nomeMesAbrev}</span>
+        </div>
+    </div>
+</section>`;
     
     // Monta a seção inteira (título + toolbar + grid) já pronta — junto num único
     // <section>, senão o gap:24px que .main-content dá entre TODOS os filhos de
@@ -612,9 +645,9 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
         // Mesmo padrão de "Meu Radar" (.section-header/.section-title/.section-icon-badge)
         // — as duas seções da Início precisam ler como irmãs do mesmo grupo, não como
         // blocos com estilo próprio cada um. Ver comentário em style.css (MÓDULO MEU RADAR).
-        // O segmented control Hoje/Semana/Mês sai do header e entra na .kpi-toolbar,
-        // dentro do MESMO painel (.kpi-panel) dos cards — proximidade + enclosure é
-        // o que faz o filtro ser lido como "o controle destes números específicos".
+        // Modelo v2: o segmented control Hoje/Semana/Mês sai do .kpi-toolbar (que
+        // não existe mais visualmente — display:none) e vai pro .header-actions
+        // do próprio .section-header, ficando na mesma linha do rótulo da seção.
         kpiSectionHtml = `<section class="kpi-inicio-section">
             <div class="section-header">
                 <h2 class="section-title">
@@ -623,13 +656,13 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
                     </span>
                     ${tituloKpi}
                 </h2>
-            </div>
-            <div class="kpi-panel">
-                <div class="kpi-toolbar">
+                <div class="header-actions">
                     <div class="kpi-periodo-toggle">${periodos.map(([valor, rotulo]) =>
                         `<button type="button" class="kpi-periodo-btn ${store.kpiPeriodoVendedor === valor ? 'active' : ''}" onclick="selecionarPeriodoKpiVendedor('${valor}')">${rotulo}</button>`
                     ).join('')}</div>
                 </div>
+            </div>
+            <div class="kpi-panel">
                 <div class="kpi-grid-compact">${cardsKpiHtml}</div>
             </div>
         </section>`;
