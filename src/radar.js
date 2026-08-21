@@ -62,6 +62,12 @@ function addIgnoredRadarId(idOrcamento) {
     }
 }
 
+// Usado pelo botão "Desfazer" do toast — reverte addIgnoredRadarId.
+function removerIgnoredRadarId(idOrcamento) {
+    const ignored = getIgnoredRadarIds().filter(id => id !== idOrcamento);
+    sessionStorage.setItem('radar_ignorados', JSON.stringify(ignored));
+}
+
 function getConcludedRadarIds() {
     const stored = localStorage.getItem('radar_concluidos');
     return stored ? JSON.parse(stored) : [];
@@ -73,6 +79,12 @@ function addConcludedRadarId(idOrcamento) {
         concluidos.push(idOrcamento);
         localStorage.setItem('radar_concluidos', JSON.stringify(concluidos));
     }
+}
+
+// Usado pelo botão "Desfazer" do toast — reverte addConcludedRadarId.
+function removerConcludedRadarId(idOrcamento) {
+    const concluidos = getConcludedRadarIds().filter(id => id !== idOrcamento);
+    localStorage.setItem('radar_concluidos', JSON.stringify(concluidos));
 }
 
 async function carregarSinaisRadar() {
@@ -217,6 +229,35 @@ function formatDateForDisplay(date) {
     return date.toLocaleDateString('pt-BR');
 }
 
+// Toast com botão "Desfazer" pra concluir/ignorar um sinal do Radar — não usa
+// showToast() (ui.js) de propósito: aquela função é genérica, sem botão de ação,
+// usada em ~20 lugares do app, e mexer nela pra suportar um botão mudaria o
+// comportamento de todos os outros toasts. Este aqui reaproveita o mesmo
+// #toast-container e a mesma classe .toast (visual idêntico), só que com um
+// botão extra e ficando na tela um pouco mais (a ação some da lista antes do
+// toast — a pessoa precisa de tempo pra perceber e decidir se quer desfazer).
+function mostrarToastDesfazerRadar(mensagem, aoDesfazer) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = 'toast info toast-desfazer';
+    toast.innerHTML = `
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <span>${escapeHtml(mensagem)}</span>
+        <button type="button">Desfazer</button>
+    `;
+    container.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('show'));
+
+    const remover = () => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); };
+    const timer = setTimeout(remover, 5000);
+    toast.querySelector('button').onclick = () => {
+        clearTimeout(timer);
+        remover();
+        aoDesfazer();
+    };
+}
+
 async function initMeuRadar() {
     // Carrega os sinais reais do Supabase primeiro — a query já vem escopada ao
     // usuário logado via RLS (login + senha definem o dono dos dados), então não
@@ -278,63 +319,46 @@ function renderRadarSignals() {
         suggestion: { icone: '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>' }
     };
 
-    // Agrupa por tipo, na ordem: alertas → dicas → sugestões
-    const grupos = [
-        { tipo: 'alert', titulo: '🔴 Ação Imediata' },
-        { tipo: 'tip', titulo: '💡 Dicas para Hoje' },
-        { tipo: 'suggestion', titulo: '⚡ Oportunidades' }
-    ];
+    // Lista única, ordenada por prioridade (já feito em `filtered` acima) — sem
+    // agrupar por categoria: cada linha já carrega seu próprio dot/ícone colorido
+    // (.radar-cat) indicando o tipo, então um cabeçalho de grupo separado seria
+    // redundante numa lista densa tipo to-do. O mais urgente sempre fica no topo,
+    // não importa a categoria.
+    let html = '<ul class="radar-list">';
 
-    let html = '';
-    grupos.forEach(grupo => {
-        const itens = filtered.filter(s => s.type === grupo.tipo);
-        if (itens.length === 0) return;
+    filtered.forEach(signal => {
+        const conf = configMap[signal.type];
+        const isEstoque = signal.id.startsWith('est-');
+        // Clique na linha abre os detalhes — exceto sinais de estoque, que não
+        // correspondem a um orçamento (handleRadarAction já ignora esses, mas
+        // aqui evitamos até o cursor:pointer enganoso).
+        const clickRow = !isEstoque ? ` onclick="handleRadarAction('${signal.id}')"` : '';
+        const tituloCompleto = escapeHtml(signal.message || '') + (signal.justification ? ' — ' + escapeHtml(signal.justification) : '');
 
-        html += `<div class="signal-section-title">${grupo.titulo}</div><div class="signal-list">`;
-
-        itens.forEach(signal => {
-            const conf = configMap[signal.type];
-
-            // Extrai UUID correto removendo sufixo pelo final (UUIDs contêm hífens)
-            const sufixos = ['-estagnado', '-entrega', '-crosssell'];
-            let orcId = signal.id;
-            for (const s of sufixos) { if (signal.id.endsWith(s)) { orcId = signal.id.slice(0, -s.length); break; } }
-
-            const isEstoque = signal.id.startsWith('est-');
-            const leadTag = isEstoque
-                ? `<span class="meta-tag client">${escapeHtml(signal.leadName || '')}</span>`
-                : `<span class="meta-tag client" style="cursor:pointer;" onclick="abrirDetalhesCliente('${orcId}')">${escapeHtml(signal.leadName || '')}</span>`;
-
-            html += `
-                <div class="radar-task" id="radar-card-${signal.id}" data-tipo="${signal.type}" data-prioridade="${signal.priority || 'low'}">
-                    <div class="radar-task-icon">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${conf.icone}</svg>
-                    </div>
-                    <div class="radar-task-body">
-                        <div class="radar-task-top">
-                            <span class="radar-task-message">${escapeHtml(signal.message || '')}</span>
-                            <span class="radar-task-time">${escapeHtml(signal.time || '')}</span>
-                        </div>
-                        ${signal.justification ? `<div class="radar-task-desc">${escapeHtml(signal.justification)}</div>` : ''}
-                        <div class="radar-task-meta">
-                            ${leadTag}
-                            <span class="meta-tag store">${escapeHtml(signal.seller || '')}</span>
-                        </div>
-                        <div class="radar-task-actions">
-                            <button class="btn-action primary" onclick="handleRadarAction('${signal.id}')">${escapeHtml(signal.actionText || 'Ver Detalhes')}</button>
-                            <button class="btn-action ghost" onclick="handleRadarIgnore('${signal.id}')">Ignorar</button>
-                        </div>
-                    </div>
-                    <button class="radar-check-btn" onclick="handleRadarCheck('${signal.id}')" title="Marcar como resolvido" aria-label="Marcar tarefa como concluída">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        html += `
+            <li class="radar-row" id="radar-card-${signal.id}" data-tipo="${signal.type}" data-prioridade="${signal.priority || 'low'}"${clickRow}>
+                <button class="radar-check" onclick="event.stopPropagation(); handleRadarCheck('${signal.id}')" title="Marcar como resolvido" aria-label="Marcar sinal como concluído"></button>
+                <span class="radar-cat" data-tipo="${signal.type}" aria-hidden="true">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${conf.icone}</svg>
+                </span>
+                <div class="radar-text" title="${tituloCompleto}">
+                    <strong>${escapeHtml(signal.message || '')}</strong>${signal.justification ? `<span class="radar-desc"> · ${escapeHtml(signal.justification)}</span>` : ''}
+                </div>
+                <span class="mini-tag">${escapeHtml(signal.leadName || '')}</span>
+                <time class="radar-date">${escapeHtml(signal.time || '')}</time>
+                <div class="radar-actions">
+                    <button class="radar-action-icon" onclick="event.stopPropagation(); handleRadarAction('${signal.id}')" title="${escapeHtml(signal.actionText || 'Ver Detalhes')}" aria-label="${escapeHtml(signal.actionText || 'Ver Detalhes')}">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                    </button>
+                    <button class="radar-action-icon ghost" onclick="event.stopPropagation(); handleRadarIgnore('${signal.id}')" title="Ignorar" aria-label="Ignorar sinal">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
                 </div>
-            `;
-        });
-
-        html += `</div>`;
+            </li>
+        `;
     });
 
+    html += '</ul>';
     container.innerHTML = html;
 
     ajustarAlturaRadarScroll(container);
@@ -348,7 +372,7 @@ function ajustarAlturaRadarScroll(container) {
     container.style.maxHeight = '';
     container.classList.remove('radar-scrollable');
 
-    const cards = container.querySelectorAll('.radar-task');
+    const cards = container.querySelectorAll('.radar-row');
     if (cards.length <= LIMITE_SINAIS_VISIVEIS) return;
 
     const ultimoVisivel = cards[LIMITE_SINAIS_VISIVEIS - 1];
@@ -381,14 +405,24 @@ window.handleRadarAction = function(id) {
 window.handleRadarCheck = function(id) {
     const card = document.getElementById(`radar-card-${id}`);
     if (card) {
-        card.classList.add('radar-task-checked');
+        // .done = opacity reduzida + risco no texto (lê como "concluído", diferente
+        // do fade completo do "ignorar" logo abaixo — semânticas diferentes).
+        card.classList.add('done');
+        const signal = store.radarSignalsData.find(s => s.id === id);
         setTimeout(() => {
             addConcludedRadarId(id);
             const index = store.radarSignalsData.findIndex(s => s.id === id);
             if (index > -1) store.radarSignalsData[index].ignored = true; // some da lista igual ao "ignorar"
 
             renderRadarSignals();
-        }, 450);
+
+            mostrarToastDesfazerRadar(`Concluído: ${signal?.message || 'sinal'}`, () => {
+                removerConcludedRadarId(id);
+                const idx = store.radarSignalsData.findIndex(s => s.id === id);
+                if (idx > -1) store.radarSignalsData[idx].ignored = false;
+                renderRadarSignals();
+            });
+        }, 300);
     }
 };
 
@@ -408,6 +442,7 @@ window.handleRadarIgnore = function(id) {
         card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
         card.style.opacity = '0';
         card.style.transform = 'translateX(20px)';
+        const signal = store.radarSignalsData.find(s => s.id === id);
 
         setTimeout(() => {
             addIgnoredRadarId(id);
@@ -415,6 +450,13 @@ window.handleRadarIgnore = function(id) {
             if (index > -1) store.radarSignalsData[index].ignored = true;
 
             renderRadarSignals();
+
+            mostrarToastDesfazerRadar(`Ignorado: ${signal?.message || 'sinal'}`, () => {
+                removerIgnoredRadarId(id);
+                const idx = store.radarSignalsData.findIndex(s => s.id === id);
+                if (idx > -1) store.radarSignalsData[idx].ignored = false;
+                renderRadarSignals();
+            });
         }, 300);
     }
 };
