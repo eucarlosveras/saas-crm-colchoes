@@ -584,11 +584,21 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
         // Título muda conforme a visão atual
         const tituloKpi = verGerencial ? 'Desempenho da Loja' : 'Meu Desempenho';
 
-        kpiToggleHtml = `<div class="kpi-section-header">
-            <h3 class="kpi-section-title" style="color:${verGerencial ? 'var(--gold-dark)' : 'var(--brand-blue)'};">${tituloKpi}</h3>
-            <div class="kpi-periodo-toggle">${periodos.map(([valor, rotulo]) =>
-                `<button type="button" class="kpi-periodo-btn ${store.kpiPeriodoVendedor === valor ? 'active' : ''}" onclick="selecionarPeriodoKpiVendedor('${valor}')">${rotulo}</button>`
-            ).join('')}</div>
+        // Mesmo padrão de "Meu Radar" (.section-header/.section-title/.section-icon-badge)
+        // — as duas seções da Início precisam ler como irmãs do mesmo grupo, não como
+        // blocos com estilo próprio cada um. Ver comentário em style.css (MÓDULO MEU RADAR).
+        kpiToggleHtml = `<div class="section-header">
+            <h2 class="section-title">
+                <span class="section-icon-badge">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+                </span>
+                ${tituloKpi}
+            </h2>
+            <div class="header-actions">
+                <div class="kpi-periodo-toggle">${periodos.map(([valor, rotulo]) =>
+                    `<button type="button" class="kpi-periodo-btn ${store.kpiPeriodoVendedor === valor ? 'active' : ''}" onclick="selecionarPeriodoKpiVendedor('${valor}')">${rotulo}</button>`
+                ).join('')}</div>
+            </div>
         </div>`;
         kpiHtml = [
             buildKpiCard({ icone: KPI_ICONES.vendas, cor: 'green', label: `Vendas ${sufixoPeriodo}`, valor: `R$ ${fmtMoeda(k.vendas.hoje)}`, variacao: calcularVariacaoPercentual(k.vendas.hoje, k.vendas.ontem), comparacaoLabel: k.labelComparacao }),

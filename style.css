@@ -747,10 +747,11 @@
         .main-content.dash-view-fading { opacity: 0; }
 
         /* ── Page Header ──
-           Sublinhado sutil em todo cabeçalho de página (dashboard-header e
-           radar-header abaixo compartilham o mesmo tratamento) pra dar uma
-           sensação de "topbar" consistente em toda tela, mesmo sem existir
-           uma barra fixa única no shell. */
+           Sublinhado sutil no cabeçalho de topo de cada tela — dá uma sensação
+           de "topbar" consistente, mesmo sem existir uma barra fixa única no
+           shell. Os sub-cabeçalhos de seção DENTRO da página (Meu Desempenho,
+           Meu Radar) usam um padrão à parte, .section-header — sem sublinhado
+           de propósito, ver comentário lá. */
         .dashboard-header {
             display: flex; align-items: center;
             justify-content: space-between;
@@ -975,11 +976,10 @@
         body.dark .kpi-var-down { color: #f87171; background: rgba(248, 113, 113, 0.14); }
         .kpi-comparacao-label { font-size: var(--font-2xs); font-weight: 500; color: var(--text-muted); }
 
-        .kpi-section-header {
-            display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
-            margin: 4px 0 14px;
-        }
-        .kpi-section-title { margin: 0; font-size: var(--font-sm); font-weight: 700; color: var(--text-secondary); }
+        /* .kpi-section-header/.kpi-section-title foram substituídos pelo padrão
+           genérico .section-header/.section-title (ver MÓDULO MEU RADAR mais
+           abaixo) — "Meu Desempenho" agora usa exatamente as mesmas classes
+           que "Meu Radar", em vez de ter estilo de título próprio. */
         .kpi-periodo-toggle {
             display: inline-flex; gap: 3px; background: var(--surface-2); padding: 3px;
             border-radius: var(--radius-sm); width: fit-content;
@@ -2232,32 +2232,42 @@
            gráficos, etc. — ver .main-content). Aqui soma-se +8px só nesta
            transição específica (KPIs -> Meu Radar), totalizando 32px: o dobro
            do respiro que o header do Radar tem pro próprio conteúdo (14px, ver
-           .radar-header) — é essa assimetria que faz o Radar ler como uma
+           .section-header) — é essa assimetria que faz o Radar ler como uma
            seção nova, não um apêndice colado no "Meu Desempenho" de cima. */
         .radar-inicio-section { margin-top: 8px; }
 
-        /* Cabeçalho do Meu Radar — de propósito SEM o sublinhado/divisor que
-           .dashboard-header usa (ver comentário lá): aqui o título precisa
-           "comandar" a lista de sinais logo abaixo como um único bloco coeso,
-           não ficar isolado numa faixa própria. Regra de proximidade: o espaço
-           daqui pro conteúdo (margin-bottom) é bem menor que o espaço que
-           separa o bloco inteiro da seção anterior (ver .radar-inicio-section
-           em style.css, junto de .kpi-row). */
-        .radar-header {
-            display: flex; align-items: center; justify-content: space-between;
-            margin-bottom: 14px; gap: 16px; flex-wrap: wrap;
+        /* ── Section Header — padrão único e reutilizável pros "sub-cabeçalhos"
+           de seção da tela Início (Meu Desempenho, Meu Radar, e qualquer seção
+           nova futura): ícone em container arredondado + título + controles à
+           direita. "Meu Radar" foi a referência original — as duas seções
+           agora literalmente compartilham estas mesmas 4 classes, então ficam
+           visualmente irmãs por construção, não por coincidência. Nenhuma
+           seção nova da Início deve criar estilo de título próprio.
+           De propósito SEM sublinhado/divisor (diferente do .dashboard-header,
+           que tem o dele — ver comentário lá): aqui o título precisa "comandar"
+           o conteúdo logo abaixo como um bloco coeso, não ficar isolado numa
+           faixa própria. Regra de proximidade: o espaço daqui pro conteúdo
+           (margin-bottom) é bem menor que o espaço que separa o bloco inteiro
+           da seção anterior (32px — ver .radar-inicio-section acima). */
+        .section-header {
+            display: flex; align-items: center; flex-wrap: wrap;
+            gap: 16px; margin-bottom: 14px;
         }
-        .radar-header .page-title {
+        .section-title {
             font-size: var(--font-xl); font-weight: 800; letter-spacing: -0.03em;
             display: flex; align-items: center; gap: 10px; color: var(--text-primary);
+            margin: 0;
         }
-        .radar-icon-badge {
+        .section-icon-badge {
             width: 36px; height: 36px; border-radius: var(--radius-sm);
             background: var(--brand-blue-subtle); color: var(--brand-blue);
             display: flex; align-items: center; justify-content: center; flex-shrink: 0;
         }
-        body.dark .radar-icon-badge { background: rgba(45, 212, 191, 0.14); color: #5eead4; }
-        .radar-header .header-actions { display: flex; align-items: center; gap: 12px; }
+        body.dark .section-icon-badge { background: rgba(45, 212, 191, 0.14); color: #5eead4; }
+        /* margin-left:auto (em vez de justify-content:space-between no pai) —
+           empurra só os controles pra direita mesmo se um dia o header ganhar
+           mais de 2 filhos (ex: um badge extra entre título e ações). */
+        .section-header .header-actions { display: flex; align-items: center; gap: 12px; margin-left: auto; }
 
         /* Chips filtráveis do Meu Radar — substituem os 3 cards de resumo antigos
            (.summary-*, removidos) e o seletor de vendedor (.seller-select,
@@ -2396,7 +2406,7 @@
         .empty-state p { font-size: var(--font-sm); max-width: 340px; margin: 0 auto; line-height: 1.6; }
 
         @media (max-width: 768px) {
-            .radar-header { flex-direction: column; align-items: flex-start; }
+            .section-header { flex-direction: column; align-items: flex-start; }
             .radar-task { flex-direction: column; }
             .radar-task-actions { flex-wrap: wrap; }
         }
