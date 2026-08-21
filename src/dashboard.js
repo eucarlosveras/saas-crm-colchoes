@@ -516,8 +516,12 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
     const gamified = getGamifiedColors(percMetaExato);
 
     // 3. UI/UX: RÓTULO DE PERÍODO CLARO PARA O USUÁRIO
-    const nomeMesSelecionado = new Date(store.currentYear, store.currentMonth - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-    const labelPeriodo = store.currentDay ? `Resultados de ${store.currentDay} de ${nomeMesSelecionado}` : `Resultados de ${nomeMesSelecionado}`;
+    // Formato enxuto ("Agosto 2026" / "21 Agosto 2026") em vez de "Resultados de
+    // agosto de 2026" — mais curto e evita o "De" duplicado que o
+    // text-transform:capitalize do span (abaixo) gerava em cima do "de" do
+    // toLocaleDateString (ficava "Resultados De Agosto De 2026").
+    const nomeMesSelecionado = new Date(store.currentYear, store.currentMonth - 1, 1).toLocaleDateString('pt-BR', { month: 'long' });
+    const labelPeriodo = store.currentDay ? `${store.currentDay} ${nomeMesSelecionado} ${store.currentYear}` : `${nomeMesSelecionado} ${store.currentYear}`;
 
     // 4. HEADER HTML BEM FECHADO E ISOLADO
     // O botão de alternar visão só existe no HTML pra quem tem permissão — pra um
