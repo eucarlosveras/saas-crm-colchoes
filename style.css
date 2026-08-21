@@ -666,7 +666,7 @@
         }
         .avatar-small {
             width: 34px; height: 34px; border-radius: var(--radius-sm);
-            background: linear-gradient(135deg, var(--brand-blue), var(--accent-orange));
+            background: var(--brand-blue); border: 1px solid rgba(255,255,255,0.12);
             display: flex; align-items: center; justify-content: center;
             color: #fff; font-weight: 700; font-size: var(--font-xs); flex-shrink: 0;
         }
@@ -750,8 +750,8 @@
         ──────────────────────────────────────────────────────── */
         .main-content {
             margin-left: 180px; flex: 1;
-            padding: 28px 28px 36px;
-            display: flex; flex-direction: column; gap: 24px;
+            padding: 32px 32px 48px;
+            display: flex; flex-direction: column; gap: 32px;
             min-width: 0;
             overflow-x: hidden;
             transition: opacity 0.15s ease, margin-left var(--transition-slow);
@@ -984,11 +984,11 @@
            abaixo) — "Meu Desempenho" agora usa exatamente as mesmas classes
            que "Meu Radar", em vez de ter estilo de título próprio. */
         .kpi-periodo-toggle {
-            display: inline-flex; gap: 3px; background: var(--surface-2); padding: 3px;
-            border-radius: var(--radius-sm); width: fit-content;
+            display: inline-flex; gap: 2px; background: var(--surface-2); padding: 3px;
+            border-radius: var(--radius-full); width: fit-content;
         }
         .kpi-periodo-btn {
-            border: none; background: transparent; padding: 6px 16px; border-radius: calc(var(--radius-sm) - 2px);
+            border: none; background: transparent; padding: 6px 16px; border-radius: var(--radius-full);
             font-size: var(--font-xs); font-weight: 600; color: var(--text-secondary); cursor: pointer;
             transition: all 0.15s ease; font-family: 'Inter', sans-serif;
         }
@@ -1010,16 +1010,26 @@
            de período e o grid de KPIs lerem como uma coisa só — o filtro deixa
            de ser "um controle solto no header" e vira "o controle DESTES
            números", porque literalmente mora dentro do mesmo container. */
-        .kpi-panel {
-            background: var(--card-bg); border: 1px solid var(--border-light);
-            border-radius: var(--radius-md); padding: 14px;
-            box-shadow: var(--shadow-sm);
-        }
-        .kpi-toolbar { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+        /* Modelo v2: o painel próprio (fundo+borda+sombra) some — o toggle de
+           período migra pro .section-header (ver bloco "Section Header" acima),
+           então .kpi-toolbar fica vazia/não-usada e .kpi-panel vira só um
+           wrapper neutro em volta do grid. */
+        .kpi-panel { background: none; border: none; box-shadow: none; padding: 0; }
+        .kpi-toolbar { display: none; }
+
         /* .kpi-grid-compact (não ".kpi-grid" — esse nome já existia pro grid de
            métricas de Carteira/Estoque, ver MÓDULO DE ESTOQUE mais abaixo; usar o
-           mesmo nome faria os estilos compactos daqui vazarem pra lá). */
-        .kpi-grid-compact { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+           mesmo nome faria os estilos compactos daqui vazarem pra lá). Agora É o
+           painel: fundo+borda+cantos arredondados, e as divisórias entre cards
+           são desenhadas via box-shadow inset (não gap sobre fundo cinza) — é
+           isso que evita sobrar um retângulo cinza vazio quando a última linha
+           do grid auto-fit fica incompleta. */
+        .kpi-grid-compact {
+            display: grid; gap: 0;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            background: var(--card-bg); border: 1px solid var(--border-light);
+            border-radius: var(--radius-md); overflow: hidden;
+        }
 
         /* Cards compactos — só dentro de .kpi-grid-compact. Sobrescreve .kpi-card
            (linha ~920) apenas aqui: Carteira/Estoque/Admin continuam com o
@@ -1027,16 +1037,21 @@
            abaixo dos ~170px originais (padding menor, sem ícone — o dot colorido
            do label já identifica o KPI — e delta inline junto do valor). */
         .kpi-grid-compact .kpi-card {
-            background: var(--surface-2); border: 1px solid transparent;
-            border-radius: var(--radius-sm); padding: 14px 14px 12px;
-            min-height: 0; box-shadow: none;
+            background: var(--card-bg); border: none; border-radius: 0;
+            padding: 20px 22px 18px; min-height: 0;
+            box-shadow: inset 1px 0 0 var(--divider), inset 0 1px 0 var(--divider);
         }
-        .kpi-grid-compact .kpi-card:hover { box-shadow: var(--shadow-xs); border-color: var(--border-light); transform: none; }
-        .kpi-grid-compact .kpi-card.vendido-highlight { border-top: 2px solid var(--accent-orange); }
+        .kpi-grid-compact .kpi-card:hover { box-shadow: inset 1px 0 0 var(--divider), inset 0 1px 0 var(--divider); transform: none; }
+        .kpi-grid-compact .kpi-card.vendido-highlight { border-top: none; }
         .kpi-grid-compact .kpi-card.vendido-highlight::after { content: none; }
         .kpi-grid-compact .kpi-label-row { margin-bottom: 6px; }
-        .kpi-grid-compact .kpi-label { font-size: var(--font-2xs); }
-        .kpi-grid-compact .kpi-value { font-size: 1.35rem; }
+        .kpi-grid-compact .kpi-label { font-size: var(--font-xs); text-transform: none; letter-spacing: 0; }
+        .kpi-grid-compact .kpi-dot { display: none; }
+        .kpi-grid-compact .kpi-value {
+            font-size: 1.375rem; font-weight: 800; letter-spacing: -0.03em;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .kpi-grid-compact .kpi-variacao { background: none; padding: 0; }
 
         /* Micro-transição ao trocar de período: como selecionarPeriodoKpiVendedor
            re-renderiza a Início inteira (ver dashboard.js), os cards são
@@ -1045,10 +1060,6 @@
            segmento e a mudança dos números, sem precisar de JS extra pra isso. */
         @keyframes kpiValorEntrada { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
         .kpi-grid-compact .kpi-value-row { animation: kpiValorEntrada 150ms ease; }
-
-        @media (max-width: 1100px) { .kpi-grid-compact { grid-template-columns: 1fr 1fr; } }
-        @media (max-width: 768px)  { .kpi-grid-compact { grid-template-columns: 1fr 1fr; } }
-        @media (max-width: 480px)  { .kpi-grid-compact { grid-template-columns: 1fr; } }
 
         /* ── Toggle Visão Vendedor / Visão Gerencial (tela Início) ──
            Fica no seu próprio grupo, com respiro + linha divisória à direita,
@@ -1138,6 +1149,54 @@
             font-size: var(--font-xs); font-weight: 600; color: var(--text-muted);
             margin-top: 4px; text-align: right; min-width: 180px;
         }
+
+        /* ── Seção "Meta de [mês]" — substitui o gamified-progress-card (inline)
+           pelo padrão do Claude Design v2: rótulo-label de seção + card herói
+           com valor grande em monospace, régua de contexto (início/hoje/fim). */
+        .meta-inicio-section { display: flex; flex-direction: column; gap: 12px; }
+        .meta-section-label {
+            font-size: 11px; font-weight: 700; letter-spacing: 0.12em;
+            text-transform: uppercase; color: var(--text-muted);
+        }
+        .meta-hero-card {
+            background: var(--card-bg); border: 1px solid var(--border-light);
+            border-radius: var(--radius-lg); /* 20px */
+            box-shadow: 0 4px 14px rgba(20,33,61,0.06);
+            padding: 28px 32px; display: flex; flex-direction: column; gap: 20px;
+        }
+        .meta-hero-top {
+            display: flex; align-items: flex-end; justify-content: space-between;
+            gap: 24px; flex-wrap: wrap;
+        }
+        .meta-hero-left { display: flex; flex-direction: column; gap: 6px; }
+        .meta-hero-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2.375rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1;
+            color: var(--text-primary);
+        }
+        .meta-hero-sub { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+        .meta-mono { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--text-secondary); }
+        .meta-hero-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+        .meta-pct-big {
+            font-family: 'JetBrains Mono', monospace; font-size: 1.75rem; font-weight: 800;
+            letter-spacing: -0.02em; line-height: 1;
+        }
+        .meta-motive-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+        .meta-bar-outer {
+            position: relative; height: 8px; background: var(--surface-2);
+            border-radius: var(--radius-full); overflow: hidden;
+        }
+        .meta-bar-fill {
+            height: 100%; border-radius: var(--radius-full);
+            background: var(--brand-blue);
+            transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+        }
+        .meta-scale {
+            display: flex; justify-content: space-between;
+            font-family: 'JetBrains Mono', monospace; font-size: 11px;
+            color: var(--text-placeholder);
+        }
+        .meta-scale-today { color: var(--text-secondary); }
 
         /* ────────────────────────────────────────────────────────
            CHART CARDS
@@ -2291,7 +2350,7 @@
            do respiro que o header do Radar tem pro próprio conteúdo (14px, ver
            .section-header) — é essa assimetria que faz o Radar ler como uma
            seção nova, não um apêndice colado no "Meu Desempenho" de cima. */
-        .radar-inicio-section { margin-top: 8px; }
+        .radar-inicio-section { }
 
         /* ── Section Header — padrão único e reutilizável pros "sub-cabeçalhos"
            de seção da tela Início (Meu Desempenho, Meu Radar, e qualquer seção
@@ -2305,26 +2364,53 @@
            o conteúdo logo abaixo como um bloco coeso, não ficar isolado numa
            faixa própria. Regra de proximidade: o espaço daqui pro conteúdo
            (margin-bottom) é bem menor que o espaço que separa o bloco inteiro
-           da seção anterior (32px — ver .radar-inicio-section acima). */
-        .section-header {
+           da seção anterior (32px — ver .radar-inicio-section acima).
+           Escopado a .kpi-inicio-section/.radar-inicio-section de propósito —
+           ".section-header"/".section-title" sozinhos (sem esse prefixo) já
+           existiam antes pro cabeçalho de card da tela "Novo Orçamento" (ver
+           .novo-orcamento-section mais acima); um nome bare aqui vazaria pra
+           lá (achado e corrigido nesta mudança — os cards de "Novo Orçamento"
+           estavam silenciosamente herdando fonte/tamanho errados). */
+        .kpi-inicio-section .section-header,
+        .radar-inicio-section .section-header {
             display: flex; align-items: center; flex-wrap: wrap;
             gap: 16px; margin-bottom: 14px;
         }
-        .section-title {
+        .kpi-inicio-section .section-title,
+        .radar-inicio-section .section-title {
             font-size: var(--font-xl); font-weight: 800; letter-spacing: -0.03em;
             display: flex; align-items: center; gap: 10px; color: var(--text-primary);
             margin: 0;
         }
-        .section-icon-badge {
+        .kpi-inicio-section .section-icon-badge,
+        .radar-inicio-section .section-icon-badge {
             width: 36px; height: 36px; border-radius: var(--radius-sm);
             background: var(--brand-blue-subtle); color: var(--brand-blue);
             display: flex; align-items: center; justify-content: center; flex-shrink: 0;
         }
-        body.dark .section-icon-badge { background: rgba(45, 212, 191, 0.14); color: #5eead4; }
+        body.dark .kpi-inicio-section .section-icon-badge,
+        body.dark .radar-inicio-section .section-icon-badge { background: rgba(45, 212, 191, 0.14); color: #5eead4; }
         /* margin-left:auto (em vez de justify-content:space-between no pai) —
            empurra só os controles pra direita mesmo se um dia o header ganhar
            mais de 2 filhos (ex: um badge extra entre título e ações). */
-        .section-header .header-actions { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+        .kpi-inicio-section .section-header .header-actions,
+        .radar-inicio-section .section-header .header-actions { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+
+        /* ── Modelo v2 (Claude Design): rótulos de seção discretos em vez de
+           "manchete" — "MEU DESEMPENHO"/"MEU RADAR" viram um rótulo pequeno,
+           maiúsculo, sem ícone, só com os controles (toggle de período/chips)
+           na mesma linha à direita. Sobrescreve o bloco acima só nestas duas
+           seções da Início. */
+        .kpi-inicio-section .section-title,
+        .radar-inicio-section .section-title {
+            font-size: var(--font-2xs); font-weight: 700;
+            letter-spacing: 0.12em; text-transform: uppercase;
+            color: var(--text-muted); gap: 0;
+        }
+        .kpi-inicio-section .section-icon-badge,
+        .radar-inicio-section .section-icon-badge { display: none; }
+        .kpi-inicio-section .section-header,
+        .radar-inicio-section .section-header { justify-content: space-between; }
 
         /* Chips filtráveis do Meu Radar — substituem os 3 cards de resumo antigos
            (.summary-*, removidos) e o seletor de vendedor (.seller-select,
@@ -2373,60 +2459,63 @@
         #signalContainer.radar-scrollable::-webkit-scrollbar { width: 4px; }
         #signalContainer.radar-scrollable::-webkit-scrollbar-thumb { background: var(--border-medium); border-radius: var(--radius-full); }
 
-        .radar-list { list-style: none; }
+        .radar-list { list-style: none; padding: 0; margin: 0; }
+
+        /* Container do radar — card branco com borda/radius (como o KPI grid) */
+        #signalContainer {
+            background: var(--card-bg); border: 1px solid var(--border-light);
+            border-radius: 16px; overflow: hidden;
+        }
 
         .radar-row {
-            display: flex; align-items: center; gap: 10px;
-            padding: 10px 14px; min-height: 48px;
+            display: flex; align-items: center; gap: 12px;
+            padding: 11px 18px; min-height: 48px;
             border-bottom: 1px solid var(--divider);
             cursor: pointer; transition: background 0.12s ease;
         }
         .radar-row:last-child { border-bottom: none; }
-        /* Prioridade crítica/alta ganha um fundo levemente tingido, pra se destacar
-           das demais linhas — precisa vir ANTES do :hover pra este sempre vencer. */
-        .radar-row[data-prioridade="critical"],
-        .radar-row[data-prioridade="high"] { background: var(--danger-light-bg); }
+        /* Só critical recebe tint vermelho (design v2) — high volta pro branco padrão */
+        .radar-row[data-prioridade="critical"] { background: rgba(251,238,238,1); }
+        .radar-row[data-prioridade="high"] { background: var(--card-bg); }
         .radar-row:hover { background: var(--surface-2); }
         .radar-row:hover .radar-actions { opacity: 1; }
 
         /* Checkbox circular à esquerda (padrão to-do) — clique conclui o sinal */
         .radar-check {
-            width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0;
-            border: 2px solid var(--border-medium); background: transparent;
+            width: 17px; height: 17px; border-radius: 50%; flex-shrink: 0;
+            border: 1.5px solid var(--border-medium); background: transparent;
             padding: 0; cursor: pointer; transition: all 0.15s ease;
         }
         .radar-check:hover { border-color: var(--accent-green); background: var(--accent-green-subtle); }
 
-        /* Dot colorido por categoria — substitui a borda lateral grossa que os
-           cards antigos tinham; mais discreto, cabe numa linha de 48-56px. */
+        /* Dot colorido minimalista (6×6 px) — puro CSS, sem ícone SVG dentro */
         .radar-cat {
-            width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
-            display: flex; align-items: center; justify-content: center;
+            width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
         }
-        .radar-cat[data-tipo="alert"] { background: var(--danger-light-bg); color: var(--danger-text); }
-        .radar-cat[data-tipo="tip"] { background: var(--brand-blue-subtle); color: var(--brand-blue); }
-        .radar-cat[data-tipo="suggestion"] { background: var(--accent-green-subtle); color: var(--accent-green-dark); }
-        body.dark .radar-cat[data-tipo="tip"] { color: #5eead4; }
+        .radar-cat[data-tipo="alert"] { background: #D65C5C; }
+        .radar-cat[data-tipo="tip"] { background: #2C5282; }
+        .radar-cat[data-tipo="suggestion"] { background: #1E9E6E; }
 
-        /* Título + descrição na mesma linha, truncados com ellipsis — o texto
-           completo fica disponível via title="" (tooltip nativo) ou no detalhe
-           (clique na linha). */
-        .radar-text {
-            flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-            font-size: var(--font-sm); color: var(--text-primary);
+        /* Título curto, sem truncar — identifica o tipo do sinal */
+        .radar-title {
+            font-size: 13px; font-weight: 600; white-space: nowrap;
+            flex-shrink: 0; color: var(--text-primary); letter-spacing: -0.01em;
         }
-        .radar-text strong { font-weight: 700; letter-spacing: -0.01em; }
-        .radar-desc { color: var(--text-muted); font-weight: 400; }
-
-        .mini-tag {
-            font-size: var(--font-2xs); font-weight: 600; padding: 3px 9px;
-            border-radius: var(--radius-full); text-transform: uppercase; letter-spacing: 0.04em;
-            background: var(--surface-2); color: var(--text-secondary);
-            white-space: nowrap; flex-shrink: 0; cursor: default;
+        /* Descrição contextual (cliente · justificativa) truncada — flex:1 ocupa
+           o espaço restante entre título e colunas fixas à direita */
+        .radar-desc-truncated {
+            flex: 1; min-width: 0; font-size: 12px; color: var(--text-muted);
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        /* Código de protocolo (ORC-xxxx) — monoespaço discreto */
+        .radar-protocolo {
+            font-family: 'JetBrains Mono', monospace; font-size: 11px;
+            color: var(--text-placeholder); flex-shrink: 0;
         }
         .radar-date {
-            font-size: var(--font-2xs); color: var(--text-muted); white-space: nowrap;
+            font-size: 11px; color: var(--text-secondary); white-space: nowrap;
             flex-shrink: 0; font-family: 'JetBrains Mono', monospace;
+            width: 34px; text-align: right;
         }
 
         /* Ações (follow-up / ignorar) só aparecem sob demanda — no hover em
@@ -2449,7 +2538,7 @@
            do "ignorar" (handleRadarIgnore), que continua com o fade+slide
            original — semânticas diferentes: uma é "feito", a outra é "dispensado". */
         .radar-row.done { opacity: 0.5; }
-        .radar-row.done .radar-text { text-decoration: line-through; }
+        .radar-row.done .radar-title { text-decoration: line-through; }
 
         @media (max-width: 768px) {
             .radar-actions { opacity: 1; }
@@ -2469,7 +2558,8 @@
         .empty-state p { font-size: var(--font-sm); max-width: 340px; margin: 0 auto; line-height: 1.6; }
 
         @media (max-width: 768px) {
-            .section-header { flex-direction: column; align-items: flex-start; }
+            .kpi-inicio-section .section-header,
+            .radar-inicio-section .section-header { flex-direction: column; align-items: flex-start; }
         }
 
         /* ────────────────────────────────────────────────────────
