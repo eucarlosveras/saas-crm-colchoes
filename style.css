@@ -2461,77 +2461,122 @@
 
         .radar-list { list-style: none; padding: 0; margin: 0; }
 
-        /* Container do radar — card branco com borda/radius (como o KPI grid) */
-        #signalContainer {
+        /* ── Card principal do Radar (design v2) ──
+           Substitui o #signalContainer como "enclosure" — o card agora tem
+           header-bar (total/resumo) + lista de linhas + footer (rodapé + histórico). */
+        .radar-card {
             background: var(--card-bg); border: 1px solid var(--border-light);
             border-radius: 16px; overflow: hidden;
+            box-shadow: 0 1px 2px rgba(20,33,61,0.03);
         }
+        .radar-card-header {
+            display: flex; align-items: baseline; justify-content: space-between;
+            gap: 16px; padding: 12px 18px;
+            background: var(--surface-2); border-bottom: 1px solid var(--divider);
+        }
+        .radar-card-header-left { display: flex; align-items: baseline; gap: 8px; }
+        .radar-total {
+            font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700;
+            color: var(--brand-blue);
+        }
+        .radar-resumo { font-size: 12px; color: var(--text-muted); }
+        .radar-updated {
+            font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600;
+            color: var(--text-placeholder);
+        }
+        .radar-card-footer {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 16px; padding: 12px 18px; border-top: 1px solid var(--divider);
+        }
+        .radar-rodape { font-size: 12px; color: var(--text-muted); }
+        .radar-ver-historico {
+            border: 1px solid var(--border-light); background: var(--card-bg);
+            border-radius: 8px; padding: 7px 14px;
+            font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600;
+            color: var(--brand-blue); cursor: pointer; transition: all 0.15s;
+            white-space: nowrap; flex-shrink: 0;
+        }
+        .radar-ver-historico:hover { background: var(--surface-2); border-color: #C2D3E8; }
 
+        /* #signalContainer é apenas o container scrollável das linhas —
+           border/radius agora estão no .radar-card pai. */
+        #signalContainer { overflow: hidden; }
+        #signalContainer.radar-scrollable { overflow-y: auto; max-height: none; scrollbar-width: thin; scrollbar-color: var(--border-medium) transparent; }
+        #signalContainer.radar-scrollable::-webkit-scrollbar { width: 6px; }
+        #signalContainer.radar-scrollable::-webkit-scrollbar-thumb { background: var(--border-medium); border-radius: var(--radius-full); }
+
+        /* Linha: grid de 6 colunas (design v2)
+           18px checkbox | 1fr conteúdo | auto tipo-badge | auto protocolo | auto data | 22px seta */
         .radar-row {
-            display: flex; align-items: center; gap: 12px;
-            padding: 11px 18px; min-height: 48px;
+            display: grid;
+            grid-template-columns: 18px 1fr auto auto auto 22px;
+            align-items: center; column-gap: 14px;
+            padding: 13px 18px 13px 16px;
             border-bottom: 1px solid var(--divider);
             cursor: pointer; transition: background 0.12s ease;
         }
         .radar-row:last-child { border-bottom: none; }
-        /* Só critical recebe tint vermelho (design v2) — high volta pro branco padrão */
-        .radar-row[data-prioridade="critical"] { background: rgba(251,238,238,1); }
+        /* Só critical ganha tint + stripe esquerda (aplicada via inline style no JS) */
+        .radar-row[data-prioridade="critical"] { background: #FDF6F6; }
         .radar-row[data-prioridade="high"] { background: var(--card-bg); }
         .radar-row:hover { background: var(--surface-2); }
-        .radar-row:hover .radar-actions { opacity: 1; }
 
-        /* Checkbox circular à esquerda (padrão to-do) — clique conclui o sinal */
+        /* Checkbox circular */
         .radar-check {
-            width: 17px; height: 17px; border-radius: 50%; flex-shrink: 0;
+            width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0;
             border: 1.5px solid var(--border-medium); background: transparent;
             padding: 0; cursor: pointer; transition: all 0.15s ease;
         }
         .radar-check:hover { border-color: var(--accent-green); background: var(--accent-green-subtle); }
 
-        /* Dot colorido minimalista (6×6 px) — puro CSS, sem ícone SVG dentro */
-        .radar-cat {
-            width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
-        }
-        .radar-cat[data-tipo="alert"] { background: #D65C5C; }
-        .radar-cat[data-tipo="tip"] { background: #2C5282; }
-        .radar-cat[data-tipo="suggestion"] { background: #1E9E6E; }
-
-        /* Título curto, sem truncar — identifica o tipo do sinal */
+        /* Coluna de conteúdo: título em cima, descrição embaixo */
+        .radar-content { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+        .radar-content-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
         .radar-title {
-            font-size: 13px; font-weight: 600; white-space: nowrap;
-            flex-shrink: 0; color: var(--text-primary); letter-spacing: -0.01em;
+            font-size: 13px; font-weight: 650; letter-spacing: -0.01em;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            color: var(--text-primary);
         }
-        /* Descrição contextual (cliente · justificativa) truncada — flex:1 ocupa
-           o espaço restante entre título e colunas fixas à direita */
+        /* Badge "urgente" — só para prioridade critical */
+        .radar-urgente-badge {
+            flex-shrink: 0; font-size: 9px; font-weight: 800; letter-spacing: 0.1em;
+            text-transform: uppercase; color: #A93A3A; border: 1px solid #E8BEBE;
+            border-radius: 4px; padding: 2px 5px; line-height: 1;
+        }
         .radar-desc-truncated {
-            flex: 1; min-width: 0; font-size: 12px; color: var(--text-muted);
+            font-size: 12px; color: var(--text-muted);
             overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
-        /* Código de protocolo (ORC-xxxx) — monoespaço discreto */
+
+        /* Tipo-badge colorido (Alerta / Dica / Sugestão) */
+        .radar-tipo-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 11px; font-weight: 700;
+            padding: 4px 9px; border-radius: 6px; white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .radar-tipo-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+
+        /* Protocolo — coluna ORC-xxxx */
         .radar-protocolo {
             font-family: 'JetBrains Mono', monospace; font-size: 11px;
             color: var(--text-placeholder); flex-shrink: 0;
         }
+        /* Data/tempo decorrido */
         .radar-date {
-            font-size: 11px; color: var(--text-secondary); white-space: nowrap;
-            flex-shrink: 0; font-family: 'JetBrains Mono', monospace;
-            width: 34px; text-align: right;
+            font-family: 'JetBrains Mono', monospace; font-size: 11px;
+            color: var(--text-secondary); width: 40px; text-align: right; flex-shrink: 0;
         }
+        /* Seta direita — clique ignora o sinal (mesma função do antigo botão X) */
+        .radar-arrow {
+            font-size: 18px; color: var(--border-medium); text-align: right;
+            cursor: pointer; transition: color 0.15s ease; line-height: 1;
+            user-select: none;
+        }
+        .radar-arrow:hover { color: var(--text-muted); }
 
-        /* Ações (follow-up / ignorar) só aparecem sob demanda — no hover em
-           desktop (.radar-row:hover acima); em telas de toque, sem hover
-           confiável, ficam sempre visíveis (ver @media mais abaixo) em vez de
-           um menu kebab à parte — mesmo resultado prático ("ação não
-           permanente atrapalhando a leitura") com bem menos peça nova de UI. */
-        .radar-actions { display: flex; gap: 4px; flex-shrink: 0; opacity: 0; transition: opacity 0.15s ease; }
-        .radar-action-icon {
-            width: 26px; height: 26px; border-radius: var(--radius-xs);
-            display: flex; align-items: center; justify-content: center;
-            background: transparent; border: none; cursor: pointer;
-            color: var(--text-muted); transition: all 0.15s ease;
-        }
-        .radar-action-icon:hover { background: var(--brand-blue-subtle); color: var(--brand-blue); }
-        .radar-action-icon.ghost:hover { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+        /* Ações removidas do design v2 — substituídas pela seta › à direita
+           (.radar-arrow) que faz o mesmo "ignorar" com um clique. */
 
         /* Estado transitório ao concluir (checkbox) — risco no texto + opacidade
            reduzida, antes da linha sumir de vez (ver handleRadarCheck). Diferente
@@ -2540,9 +2585,7 @@
         .radar-row.done { opacity: 0.5; }
         .radar-row.done .radar-title { text-decoration: line-through; }
 
-        @media (max-width: 768px) {
-            .radar-actions { opacity: 1; }
-        }
+        /* (radar-actions removido no design v2 — sem regra mobile necessária) */
 
         /* Empty state */
         .empty-state {

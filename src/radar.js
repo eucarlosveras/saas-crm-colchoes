@@ -13,31 +13,36 @@ import { escapeHtml, getHojeBrasilia } from './utils.js';
 function getMeuRadarBlockHtml() {
     return `
         <div class="section-header">
-            <h2 class="section-title">
-                <span class="section-icon-badge">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/></svg>
-                </span>
-                Meu Radar
-            </h2>
+            <h2 class="section-title">Meu Radar</h2>
             <div class="header-actions">
-                <!-- Chips filtráveis no lugar dos 3 cards de resumo antigos (~140px -> ~32px
-                     de altura) e do seletor de vendedor (removido — a sessão logada + RLS já
-                     escopam os dados ao usuário certo, ver initMeuRadar/renderRadarSignals). -->
                 <div class="radar-chips" id="radarChips">
-                    <button type="button" class="radar-chip" data-tipo="alert" onclick="toggleRadarChip('alert')" title="Filtrar por Alertas urgentes">
-                        <span class="radar-chip-label">Urgentes</span><span class="radar-chip-sep">·</span><span class="radar-chip-count" id="count-alerts">0</span>
+                    <button type="button" class="radar-chip" data-tipo="alert" onclick="toggleRadarChip('alert')" title="Filtrar Alertas">
+                        <span class="radar-chip-label">Alertas</span><span class="radar-chip-sep">·</span><span class="radar-chip-count" id="count-alerts">0</span>
                     </button>
-                    <button type="button" class="radar-chip" data-tipo="tip" onclick="toggleRadarChip('tip')" title="Filtrar por Dicas de abordagem">
-                        <span class="radar-chip-emoji" aria-hidden="true">💡</span><span class="radar-chip-label">Dicas</span><span class="radar-chip-sep">·</span><span class="radar-chip-count" id="count-tips">0</span>
+                    <button type="button" class="radar-chip" data-tipo="tip" onclick="toggleRadarChip('tip')" title="Filtrar Dicas">
+                        <span class="radar-chip-label">Dicas</span><span class="radar-chip-sep">·</span><span class="radar-chip-count" id="count-tips">0</span>
                     </button>
-                    <button type="button" class="radar-chip" data-tipo="suggestion" onclick="toggleRadarChip('suggestion')" title="Filtrar por Sugestões de ação">
-                        <span class="radar-chip-emoji" aria-hidden="true">✓</span><span class="radar-chip-label">Ações</span><span class="radar-chip-sep">·</span><span class="radar-chip-count" id="count-suggestions">0</span>
+                    <button type="button" class="radar-chip" data-tipo="suggestion" onclick="toggleRadarChip('suggestion')" title="Filtrar Sugestões">
+                        <span class="radar-chip-label">Sugestões</span><span class="radar-chip-sep">·</span><span class="radar-chip-count" id="count-suggestions">0</span>
                     </button>
                 </div>
             </div>
         </div>
 
-        <div id="signalContainer"></div>
+        <div class="radar-card">
+            <div class="radar-card-header">
+                <div class="radar-card-header-left">
+                    <span class="radar-total" id="radarTotal">--</span>
+                    <span class="radar-resumo" id="radarResumo">sinais</span>
+                </div>
+                <span class="radar-updated" id="radarUpdated"></span>
+            </div>
+            <div id="signalContainer"></div>
+            <div class="radar-card-footer" id="radarCardFooter">
+                <span class="radar-rodape" id="radarRodape"></span>
+                <button class="radar-ver-historico" onclick="navigateTo('carteira')">Ver histórico</button>
+            </div>
+        </div>
 
         <div class="empty-state" id="emptyState" style="display: none;">
             <div class="empty-state-icon">
@@ -308,54 +313,69 @@ function renderRadarSignals() {
         chip.classList.toggle('count-zero', n === 0);
     });
 
+    const radarCard = document.querySelector('.radar-card');
+
     if (filtered.length === 0) {
         container.innerHTML = '';
+        if (radarCard) radarCard.style.display = 'none';
         if(emptyState) emptyState.style.display = 'block';
         return;
     }
 
+    if (radarCard) radarCard.style.display = '';
     if(emptyState) emptyState.style.display = 'none';
 
-    const configMap = {
-        alert:      { icone: '<path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>' },
-        tip:        { icone: '<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/>' },
-        suggestion: { icone: '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>' }
+    // Atualiza o header do card (total + resumo + hora)
+    const totalEl    = document.getElementById('radarTotal');
+    const resumoEl   = document.getElementById('radarResumo');
+    const updatedEl  = document.getElementById('radarUpdated');
+    const rodapeEl   = document.getElementById('radarRodape');
+    const criticos   = filtered.filter(s => s.priority === 'critical').length;
+    if (totalEl)   totalEl.textContent  = String(filtered.length).padStart(2, '0');
+    if (resumoEl)  resumoEl.textContent = (filtered.length === 1 ? 'sinal aberto' : 'sinais abertos')
+                                          + (criticos ? ` · ${criticos} exige ação hoje` : '');
+    if (updatedEl) updatedEl.textContent = 'atualizado ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    if (rodapeEl)  rodapeEl.textContent  = chipFiltro.size > 0
+        ? 'Filtro ativo — alguns sinais estão ocultos'
+        : 'Sinais gerados automaticamente a partir dos seus orçamentos';
+
+    // Mapeamento tipo → badge visual (label, cores e dot)
+    const tipoInfo = {
+        alert:      { label: 'Alerta',   bg: 'rgba(251,238,238,1)',   fg: '#A93A3A', catColor: '#D65C5C' },
+        tip:        { label: 'Dica',     bg: 'rgba(30,58,95,0.06)',   fg: '#1E3A5F', catColor: '#2C5282' },
+        suggestion: { label: 'Sugestão', bg: 'rgba(30,158,110,0.08)', fg: '#167A56', catColor: '#1E9E6E' }
     };
 
-    // Lista única, ordenada por prioridade (já feito em `filtered` acima) — sem
-    // agrupar por categoria: cada linha já carrega seu próprio dot/ícone colorido
-    // (.radar-cat) indicando o tipo, então um cabeçalho de grupo separado seria
-    // redundante numa lista densa tipo to-do. O mais urgente sempre fica no topo,
-    // não importa a categoria.
     let html = '<ul class="radar-list">';
 
     filtered.forEach(signal => {
+        const info      = tipoInfo[signal.type] || tipoInfo.tip;
         const isEstoque = signal.id.startsWith('est-');
-        // Clique na linha abre os detalhes — exceto sinais de estoque, que não
-        // correspondem a um orçamento (handleRadarAction já ignora esses, mas
-        // aqui evitamos até o cursor:pointer enganoso).
-        const clickRow = !isEstoque ? ` onclick="handleRadarAction('${signal.id}')"` : '';
-        // Descrição inline: "Cliente · justificativa truncada" — o tooltip title
-        // no <span> deixa o texto completo disponível sem poluir a linha.
+        const isCritical = signal.priority === 'critical';
+        // Clique na linha abre os detalhes — exceto sinais de estoque.
+        const clickRow   = !isEstoque ? ` onclick="handleRadarAction('${signal.id}')"` : '';
+        // Stripe colorida na borda esquerda só pra critical (inset box-shadow)
+        const stripe     = isCritical ? `box-shadow: inset 3px 0 0 ${info.catColor};` : '';
+        // Descrição contextual: cliente · justificativa (tooltip = texto completo)
         const descInline = [signal.leadName, signal.justification].filter(Boolean).join(' · ');
         const tituloCompleto = escapeHtml(signal.message || '') + (descInline ? ' — ' + escapeHtml(descInline) : '');
 
         html += `
-            <li class="radar-row" id="radar-card-${signal.id}" data-tipo="${signal.type}" data-prioridade="${signal.priority || 'low'}"${clickRow}>
+            <li class="radar-row" id="radar-card-${signal.id}" data-tipo="${signal.type}" data-prioridade="${signal.priority || 'low'}" style="${stripe}"${clickRow}>
                 <button class="radar-check" onclick="event.stopPropagation(); handleRadarCheck('${signal.id}')" title="Marcar como resolvido" aria-label="Marcar sinal como concluído"></button>
-                <span class="radar-cat" data-tipo="${signal.type}" aria-hidden="true"></span>
-                <span class="radar-title">${escapeHtml(signal.message || '')}</span>
-                <span class="radar-desc-truncated" title="${tituloCompleto}">${escapeHtml(descInline)}</span>
-                ${signal.protocolo ? `<span class="radar-protocolo">${escapeHtml(signal.protocolo)}</span>` : ''}
-                <time class="radar-date">${escapeHtml(signal.time || '')}</time>
-                <div class="radar-actions">
-                    <button class="radar-action-icon" onclick="event.stopPropagation(); handleRadarAction('${signal.id}')" title="${escapeHtml(signal.actionText || 'Ver Detalhes')}" aria-label="${escapeHtml(signal.actionText || 'Ver Detalhes')}">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-                    </button>
-                    <button class="radar-action-icon ghost" onclick="event.stopPropagation(); handleRadarIgnore('${signal.id}')" title="Ignorar" aria-label="Ignorar sinal">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                    </button>
+                <div class="radar-content">
+                    <div class="radar-content-top">
+                        <span class="radar-title">${escapeHtml(signal.message || '')}</span>
+                        ${isCritical ? '<span class="radar-urgente-badge">urgente</span>' : ''}
+                    </div>
+                    <span class="radar-desc-truncated" title="${tituloCompleto}">${escapeHtml(descInline)}</span>
                 </div>
+                <span class="radar-tipo-badge" style="background:${info.bg}; color:${info.fg};">
+                    <span class="radar-tipo-dot" style="background:${info.catColor};"></span>${info.label}
+                </span>
+                <span class="radar-protocolo">${signal.protocolo ? escapeHtml(signal.protocolo) : ''}</span>
+                <time class="radar-date">${escapeHtml(signal.time || '')}</time>
+                <span class="radar-arrow" onclick="event.stopPropagation(); handleRadarIgnore('${signal.id}')" title="Ignorar" aria-label="Ignorar sinal">&#x203A;</span>
             </li>
         `;
     });
