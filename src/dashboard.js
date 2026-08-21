@@ -79,24 +79,22 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
             return ((atual - anterior) / anterior) * 100;
         }
 
-        const KPI_ICONES = {
-            vendas: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>',
-            ticket: '<path d="M21 12V7H5a2 2 0 010-4h14v4"/><path d="M3 5v14a2 2 0 002 2h16v-5"/><path d="M18 12a2 2 0 000 4h4v-4z"/>',
-            clientes: '<path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>',
-            produtos: '<path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" y1="22" x2="12" y2="12"/>'
-        };
-
-        function buildKpiCard({ icone, cor, label, valor, variacao, comparacaoLabel, destaque = false }) {
+        // Card compacto de "Meu Desempenho"/"Desempenho da Loja" — sem ícone: o dot
+        // colorido ao lado do label já identifica o KPI, um ícone a mais seria
+        // redundância visual. Delta fica inline ao lado do valor (.kpi-value-row),
+        // não numa linha própria — ver .kpi-grid-compact .kpi-card em style.css pro
+        // dimensionamento compacto (essas regras não afetam .kpi-card em outras
+        // telas, como Carteira/Estoque/Admin, que também usam a classe base).
+        function buildKpiCard({ cor, label, valor, variacao, comparacaoLabel, destaque = false }) {
             const temVariacao = variacao !== undefined && variacao !== null;
             const positivo = temVariacao && variacao >= 0;
-            const rodape = temVariacao
-                ? `<div class="kpi-footer"><span class="kpi-variacao ${positivo ? 'kpi-var-up' : 'kpi-var-down'}">${positivo ? '▲' : '▼'} ${Math.abs(Math.round(variacao))}%</span>${comparacaoLabel ? `<span class="kpi-comparacao-label">${comparacaoLabel}</span>` : ''}</div>`
+            const deltaHtml = temVariacao
+                ? `<span class="kpi-variacao ${positivo ? 'kpi-var-up' : 'kpi-var-down'}">${positivo ? '▲' : '▼'} ${Math.abs(Math.round(variacao))}%</span>`
                 : '';
             return `<div class="kpi-card${destaque ? ' vendido-highlight' : ''}">
-                <div class="kpi-icon-badge kpi-badge-${cor}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icone}</svg></div>
                 <div class="kpi-label-row"><span class="kpi-dot ${cor}"></span><span class="kpi-label">${label}</span></div>
-                <div class="kpi-value">${valor}</div>
-                ${rodape}
+                <div class="kpi-value-row"><span class="kpi-value">${valor}</span>${deltaHtml}</div>
+                ${comparacaoLabel ? `<span class="kpi-comparacao-label">${comparacaoLabel}</span>` : ''}
             </div>`;
         }
 
@@ -110,7 +108,7 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
                     inicioAtual, fimAtualExclusivo: amanhaStr,
                     inicioAnterior: addDiasADataStr(inicioAtual, -7),
                     fimAnteriorExclusivo: addDiasADataStr(amanhaStr, -7),
-                    labelComparacao: 'vs. semana passada'
+                    labelComparacao: 'vs. semana anterior'
                 };
             }
             if (periodo === 'mes') {
@@ -120,7 +118,7 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
                     inicioAtual, fimAtualExclusivo: amanhaStr,
                     inicioAnterior: getPrimeiroDiaMes(diaEquivalenteMesPassado),
                     fimAnteriorExclusivo: addDiasADataStr(diaEquivalenteMesPassado, 1),
-                    labelComparacao: 'vs. mês passado'
+                    labelComparacao: 'vs. mês anterior'
                 };
             }
             // 'hoje' (padrão)
@@ -254,10 +252,20 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
         async function selecionarPeriodoKpiVendedor(periodo) {
             if (periodo === store.kpiPeriodoVendedor) return;
             store.kpiPeriodoVendedor = periodo;
-            if (AppState.usuarioLogado.perfil === 'Vendedor') {
-                await carregarKpisDiariosVendedor(periodo);
-            } else if (AppState.usuarioLogado.perfil === 'Gerente') {
+            // Bug pré-existente corrigido aqui: decidia qual cache re-buscar só pelo
+            // perfil (Vendedor vs Gerente), ignorando QUAL sub-visão da Início está
+            // ativa. Um Gerente/Admin na Visão Vendedor (verGerencial em renderInicio,
+            // linha ~497) mostra AppState.kpisDiariosVendedor — mas ao trocar de
+            // período, o código antigo sempre re-buscava kpisDiariosGerente pra
+            // qualquer perfil não-Vendedor, deixando kpisDiariosVendedor parado nos
+            // valores/rótulo ("vs. ontem") do carregamento inicial. E Administrador
+            // não caía em nenhum dos dois braços — nunca re-buscava nada.
+            const isGerenteOuAdmin = ['Gerente', 'Administrador', 'Admin'].includes(AppState.usuarioLogado.perfil);
+            const verGerencial = isGerenteOuAdmin && store.dashboardView === 'gerencial';
+            if (verGerencial) {
                 await carregarKpisDiariosGerente(periodo);
+            } else {
+                await carregarKpisDiariosVendedor(periodo);
             }
             if (store.currentView === 'inicio') renderInicio();
         }
@@ -562,8 +570,11 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
     // 5. CARDS E GRÁFICOS
     const progressHtml = `<div class="gamified-progress-card"><div class="progress-icon" style="background:${gamified.iconBg}; box-shadow:${gamified.shadow};">${gamified.iconSvg}</div><div class="progress-info"><h3>Atingimento de Meta</h3><p class="progress-subtitle">R$ ${valorVendido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} / R$ ${metaAtual.toLocaleString('pt-BR')}</p></div><div class="progress-bar-wrap"><div class="progress-bar-outer"><div class="progress-bar-inner-gamified" style="width:${Math.min(100, percMetaExato)}%; background:${gamified.bg}; box-shadow:${gamified.shadow};"></div></div><span class="progress-percent" style="color:${gamified.motiveColor};">${percMetaExato > 100 ? '100+' : percMetaExato}%</span></div><div class="progress-motive-text" style="color:${gamified.motiveColor};">${gamified.motive}</div></div>`;
     
-    let kpiHtml;
-    let kpiToggleHtml = '';
+    // Monta a seção inteira (título + toolbar + grid) já pronta — junto num único
+    // <section>, senão o gap:24px que .main-content dá entre TODOS os filhos de
+    // topo entraria também entre o título e o painel de KPIs, brigando com o
+    // respiro apertado (regra de proximidade) que .section-header pede.
+    let kpiSectionHtml;
 
     // Verifica se deve mostrar KPIs diários (Visão Vendedor individual ou Visão Gerencial agregada)
     const mostrarKpisDiarios = store.currentUser.perfil === 'Vendedor' || isGerente;
@@ -576,38 +587,54 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
             ? (AppState.kpisDiariosGerente || { labelComparacao: 'vs. ontem', vendas: { hoje: 0, ontem: 0 }, ticket: { hoje: 0, ontem: 0 }, clientes: { hoje: 0, ontem: 0 }, produtos: { hoje: 0, ontem: 0 } })
             : (AppState.kpisDiariosVendedor || { labelComparacao: 'vs. ontem', vendas: { hoje: 0, ontem: 0 }, ticket: { hoje: 0, ontem: 0 }, clientes: { hoje: 0, ontem: 0 }, produtos: { hoje: 0, ontem: 0 } });
 
-        // Sufixo do nome do card muda junto com o período selecionado
-        const sufixoPeriodo = { hoje: 'Hoje', semana: 'Semana', mes: 'Mês' }[store.kpiPeriodoVendedor];
+        // Label de cada card muda com o período selecionado — é a conexão semântica
+        // entre o filtro (toolbar) e os números: confirma pro usuário qual período
+        // está vendo, sem precisar olhar pro segmented control pra descobrir.
+        const LABELS_KPI_POR_PERIODO = {
+            hoje:   { vendas: 'Vendas hoje',          ticket: 'Ticket médio hoje',          clientes: 'Novos clientes hoje',          produtos: 'Produtos vendidos hoje' },
+            semana: { vendas: 'Vendas na semana',     ticket: 'Ticket médio na semana',     clientes: 'Novos clientes na semana',     produtos: 'Produtos vendidos na semana' },
+            mes:    { vendas: 'Vendas no mês',        ticket: 'Ticket médio no mês',         clientes: 'Novos clientes no mês',        produtos: 'Produtos vendidos no mês' }
+        };
+        const labelsKpi = LABELS_KPI_POR_PERIODO[store.kpiPeriodoVendedor] || LABELS_KPI_POR_PERIODO.hoje;
         const fmtMoeda = n => n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         const periodos = [['hoje', 'Hoje'], ['semana', 'Semana'], ['mes', 'Mês']];
 
         // Título muda conforme a visão atual
         const tituloKpi = verGerencial ? 'Desempenho da Loja' : 'Meu Desempenho';
 
+        const cardsKpiHtml = [
+            buildKpiCard({ cor: 'green', label: labelsKpi.vendas, valor: `R$ ${fmtMoeda(k.vendas.hoje)}`, variacao: calcularVariacaoPercentual(k.vendas.hoje, k.vendas.ontem), comparacaoLabel: k.labelComparacao }),
+            buildKpiCard({ cor: 'blue', label: labelsKpi.ticket, valor: `R$ ${fmtMoeda(k.ticket.hoje)}`, variacao: calcularVariacaoPercentual(k.ticket.hoje, k.ticket.ontem), comparacaoLabel: k.labelComparacao }),
+            buildKpiCard({ cor: 'orange', label: labelsKpi.clientes, valor: k.clientes.hoje, variacao: calcularVariacaoPercentual(k.clientes.hoje, k.clientes.ontem), comparacaoLabel: k.labelComparacao }),
+            buildKpiCard({ cor: 'green', label: labelsKpi.produtos, valor: k.produtos.hoje, variacao: calcularVariacaoPercentual(k.produtos.hoje, k.produtos.ontem), comparacaoLabel: k.labelComparacao, destaque: true })
+        ].join('');
+
         // Mesmo padrão de "Meu Radar" (.section-header/.section-title/.section-icon-badge)
         // — as duas seções da Início precisam ler como irmãs do mesmo grupo, não como
         // blocos com estilo próprio cada um. Ver comentário em style.css (MÓDULO MEU RADAR).
-        kpiToggleHtml = `<div class="section-header">
-            <h2 class="section-title">
-                <span class="section-icon-badge">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
-                </span>
-                ${tituloKpi}
-            </h2>
-            <div class="header-actions">
-                <div class="kpi-periodo-toggle">${periodos.map(([valor, rotulo]) =>
-                    `<button type="button" class="kpi-periodo-btn ${store.kpiPeriodoVendedor === valor ? 'active' : ''}" onclick="selecionarPeriodoKpiVendedor('${valor}')">${rotulo}</button>`
-                ).join('')}</div>
+        // O segmented control Hoje/Semana/Mês sai do header e entra na .kpi-toolbar,
+        // dentro do MESMO painel (.kpi-panel) dos cards — proximidade + enclosure é
+        // o que faz o filtro ser lido como "o controle destes números específicos".
+        kpiSectionHtml = `<section class="kpi-inicio-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span class="section-icon-badge">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+                    </span>
+                    ${tituloKpi}
+                </h2>
             </div>
-        </div>`;
-        kpiHtml = [
-            buildKpiCard({ icone: KPI_ICONES.vendas, cor: 'green', label: `Vendas ${sufixoPeriodo}`, valor: `R$ ${fmtMoeda(k.vendas.hoje)}`, variacao: calcularVariacaoPercentual(k.vendas.hoje, k.vendas.ontem), comparacaoLabel: k.labelComparacao }),
-            buildKpiCard({ icone: KPI_ICONES.ticket, cor: 'blue', label: `Ticket Médio ${sufixoPeriodo}`, valor: `R$ ${fmtMoeda(k.ticket.hoje)}`, variacao: calcularVariacaoPercentual(k.ticket.hoje, k.ticket.ontem), comparacaoLabel: k.labelComparacao }),
-            buildKpiCard({ icone: KPI_ICONES.clientes, cor: 'orange', label: `Novos Clientes ${sufixoPeriodo}`, valor: k.clientes.hoje, variacao: calcularVariacaoPercentual(k.clientes.hoje, k.clientes.ontem), comparacaoLabel: k.labelComparacao }),
-            buildKpiCard({ icone: KPI_ICONES.produtos, cor: 'green', label: `Produtos Vendidos ${sufixoPeriodo}`, valor: k.produtos.hoje, variacao: calcularVariacaoPercentual(k.produtos.hoje, k.produtos.ontem), comparacaoLabel: k.labelComparacao, destaque: true })
-        ].join('');
+            <div class="kpi-panel">
+                <div class="kpi-toolbar">
+                    <div class="kpi-periodo-toggle">${periodos.map(([valor, rotulo]) =>
+                        `<button type="button" class="kpi-periodo-btn ${store.kpiPeriodoVendedor === valor ? 'active' : ''}" onclick="selecionarPeriodoKpiVendedor('${valor}')">${rotulo}</button>`
+                    ).join('')}</div>
+                </div>
+                <div class="kpi-grid-compact">${cardsKpiHtml}</div>
+            </div>
+        </section>`;
     } else {
-        kpiHtml = `<div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot blue"></span><span class="kpi-label">Oportunidades Geradas</span></div><div class="kpi-value">${total}</div></div><div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot orange"></span><span class="kpi-label">Em Tratativa</span></div><div class="kpi-value">${negociacao}</div></div><div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Taxa de Conversão</span></div><div class="kpi-value">${conversao}%</div></div><div class="kpi-card vendido-highlight"><div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Vendas Fechadas</span></div><div class="kpi-value">R$ ${valorVendido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div></div>`;
+        kpiSectionHtml = `<section class="kpi-row"><div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot blue"></span><span class="kpi-label">Oportunidades Geradas</span></div><div class="kpi-value">${total}</div></div><div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot orange"></span><span class="kpi-label">Em Tratativa</span></div><div class="kpi-value">${negociacao}</div></div><div class="kpi-card"><div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Taxa de Conversão</span></div><div class="kpi-value">${conversao}%</div></div><div class="kpi-card vendido-highlight"><div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Vendas Fechadas</span></div><div class="kpi-value">R$ ${valorVendido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div></div></section>`;
     }
     
     
@@ -708,7 +735,7 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
                 chartsRowHtml = `<section class="radar-inicio-section">${getMeuRadarBlockHtml()}</section>`;
             }
 
-            main.innerHTML = `${headerHtml}${progressHtml}${kpiToggleHtml}<section class="kpi-row">${kpiHtml}</section>${chartsRowHtml}`;
+            main.innerHTML = `${headerHtml}${progressHtml}${kpiSectionHtml}${chartsRowHtml}`;
 
             if (verGerencial) {
                 requestAnimationFrame(() => { tentarRenderizarGraficos(total, fechados); });
@@ -720,4 +747,4 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
 
         }
 
-export { KPI_ICONES, alternarVisaoDashboard, atualizarKPIsDashboard, buildKpiCard, calcularVariacaoPercentual, carregarHistoricoFaturamento, carregarKpisDiariosGerente, carregarKpisDiariosVendedor, carregarKpisEDashboard, getIntervalosPeriodoKpi, renderInicio, renderizarGraficos, selecionarPeriodoKpiVendedor, tentarRenderizarGraficos };
+export { alternarVisaoDashboard, atualizarKPIsDashboard, buildKpiCard, calcularVariacaoPercentual, carregarHistoricoFaturamento, carregarKpisDiariosGerente, carregarKpisDiariosVendedor, carregarKpisEDashboard, getIntervalosPeriodoKpi, renderInicio, renderizarGraficos, selecionarPeriodoKpiVendedor, tentarRenderizarGraficos };
