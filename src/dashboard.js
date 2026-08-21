@@ -697,7 +697,7 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     <input type="text" placeholder="Buscar por cliente ou protocolo..." id="searchUnificado" onchange="handleSearchUnificado()" onkeyup="if(event.key === 'Enter') handleSearchUnificado()" value="${escapeHtml(store.searchTerm || store.searchProtocolo)}" aria-label="Buscar por cliente ou protocolo">
                   </div>
-                  <select class="form-input" style="width:auto; padding:8px 16px; border-radius:20px; font-size:var(--font-sm);" id="listFilterSelect" onchange="selectFilter(this.value)" aria-label="Filtrar por status">
+                  <select class="form-input" style="width:auto; padding:8px 16px; border-radius:var(--radius-full); font-size:var(--font-sm);" id="listFilterSelect" onchange="selectFilter(this.value)" aria-label="Filtrar por status">
                      <option value="todos" ${store.currentFilter === 'todos' ? 'selected' : ''}>Todos</option>
                      <option value="Contato Inicial" ${store.currentFilter === STATUS.CONTATO_INICIAL ? 'selected' : ''}>Contato Inicial</option>
                      <option value="Negociação" ${store.currentFilter === STATUS.NEGOCIACAO ? 'selected' : ''}>Negociação</option>

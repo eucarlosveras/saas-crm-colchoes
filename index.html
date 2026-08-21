@@ -96,12 +96,12 @@
             <div id="fechamentoStep1">
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
                     <button id="btnOpcaoEntrega" onclick="selecionarModoFechamento('entrega')"
-                        style="padding:18px 12px; border-radius:12px; border:2px solid var(--border-light); background:var(--card-bg); cursor:pointer; font-family:'Inter',sans-serif; font-size:var(--font-sm); font-weight:600; color:var(--text-primary); transition:all .2s; display:flex; flex-direction:column; align-items:center; gap:8px;">
+                        style="padding:18px 12px; border-radius:var(--radius-md); border:2px solid var(--border-light); background:var(--card-bg); cursor:pointer; font-family:'Inter',sans-serif; font-size:var(--font-sm); font-weight:600; color:var(--text-primary); transition:all .2s; display:flex; flex-direction:column; align-items:center; gap:8px;">
                         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
                         Entrega
                     </button>
                     <button id="btnOpcaoRetirada" onclick="selecionarModoFechamento('retirada')"
-                        style="padding:18px 12px; border-radius:12px; border:2px solid var(--border-light); background:var(--card-bg); cursor:pointer; font-family:'Inter',sans-serif; font-size:var(--font-sm); font-weight:600; color:var(--text-primary); transition:all .2s; display:flex; flex-direction:column; align-items:center; gap:8px;">
+                        style="padding:18px 12px; border-radius:var(--radius-md); border:2px solid var(--border-light); background:var(--card-bg); cursor:pointer; font-family:'Inter',sans-serif; font-size:var(--font-sm); font-weight:600; color:var(--text-primary); transition:all .2s; display:flex; flex-direction:column; align-items:center; gap:8px;">
                         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                         Retirada na Loja
                     </button>
@@ -114,7 +114,7 @@
                 <label for="fechamentoDataEntrega">Data de Entrega *</label>
                 <input type="date" id="fechamentoDataEntrega" class="form-input" style="margin-bottom:4px;">
                 <div class="field-error" id="errDataEntrega"></div>
-                <div style="background:var(--accent-green-subtle); border:1px solid rgba(5, 150, 105, 0.3); border-radius:8px; padding:10px 14px; margin-top:12px; font-size:var(--font-xs); color:var(--accent-green-dark); display:flex; align-items:flex-start; gap:8px;">
+                <div style="background:var(--accent-green-subtle); border:1px solid rgba(5, 150, 105, 0.3); border-radius:var(--radius-sm); padding:10px 14px; margin-top:12px; font-size:var(--font-xs); color:var(--accent-green-dark); display:flex; align-items:flex-start; gap:8px;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; margin-top:1px;"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                     <span>Um agendamento de <strong>confirmação de recebimento</strong> será criado automaticamente na data de entrega.</span>
                 </div>
@@ -174,7 +174,7 @@
         <div class="modal-card" style="max-width:420px;">
             <h3>Excluir Usuário</h3>
             <p style="margin-bottom:16px;">Tem certeza que deseja excluir <strong><span id="nomeUsuarioExcluir"></span></strong>?</p>
-            <p style="margin-bottom:16px; font-size:var(--font-xs); color:var(--danger-text); background:var(--danger-light-bg); padding:10px; border-radius:8px; border:1px solid var(--danger-border);"><strong>Confirmação Destrutiva:</strong> Se este usuário tiver orçamentos registrados, a exclusão poderá falhar ou gerar inconsistência no histórico de vendas da equipe. Recomendamos a <strong>Inativação</strong> através da edição de perfil.</p>
+            <p style="margin-bottom:16px; font-size:var(--font-xs); color:var(--danger-text); background:var(--danger-light-bg); padding:10px; border-radius:var(--radius-sm); border:1px solid var(--danger-border);"><strong>Confirmação Destrutiva:</strong> Se este usuário tiver orçamentos registrados, a exclusão poderá falhar ou gerar inconsistência no histórico de vendas da equipe. Recomendamos a <strong>Inativação</strong> através da edição de perfil.</p>
             <div class="field-error" id="errExcluirUsuario"></div>
             <div class="modal-btns"><button class="btn-cancelar-modal" onclick="closeModal('modalExcluirUsuarioAdmin')">Cancelar</button><button class="btn-salvar-modal" id="btnConfirmarExclusaoUsuario" style="background:#ef4444;" onclick="confirmarExclusaoUsuario()">Excluir Definitivamente</button></div>
         </div>
@@ -190,7 +190,7 @@
             </h3>
 
             <div style="margin:16px 0;">
-                <div style="font-size:10px; font-weight:600; color:#94a3b8; text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px;">Acesso rápido</div>
+                <div style="font-size:10px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px;">Acesso rápido</div>
                 <div class="det-quick-dates">
                     <button class="btn-quick-date" onclick="setQuickDate(1)">Amanhã</button>
                     <button class="btn-quick-date" onclick="setQuickDate(3)">Em 3 dias</button>
@@ -367,7 +367,7 @@
                         id="chatInputIA" 
                         placeholder="Digite sua pergunta ou solicitação..." 
                         rows="2"
-                        style="flex:1; resize:none; border:1px solid var(--border-medium); border-radius:8px; padding:10px 12px; font-family:'Inter', sans-serif; font-size:14px; line-height:1.5; outline:none; transition:border-color 0.2s; background:var(--card-bg); color:var(--text-primary);"
+                        style="flex:1; resize:none; border:1px solid var(--border-medium); border-radius:var(--radius-sm); padding:10px 12px; font-family:'Inter', sans-serif; font-size:14px; line-height:1.5; outline:none; transition:border-color 0.2s; background:var(--card-bg); color:var(--text-primary);"
                         onfocus="this.style.borderColor='var(--brand-blue)'"
                         onblur="this.style.borderColor='var(--border-medium)'"
                         onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); enviarMensagemChatIA();}"
@@ -375,7 +375,7 @@
                     <button 
                         id="btnEnviarChatIA"
                         onclick="enviarMensagemChatIA()"
-                        style="background:linear-gradient(135deg, var(--brand-blue), var(--brand-blue-dark)); color:white; border:none; border-radius:8px; padding:10px 16px; font-weight:600; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:6px; transition:transform 0.2s, opacity 0.2s;"
+                        style="background:linear-gradient(135deg, var(--brand-blue), var(--brand-blue-dark)); color:white; border:none; border-radius:var(--radius-sm); padding:10px 16px; font-weight:600; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:6px; transition:transform 0.2s, opacity 0.2s;"
                         onmouseover="this.style.transform='translateY(-1px)'"
                         onmouseout="this.style.transform='translateY(0)'"
                     >
@@ -427,7 +427,7 @@
         <div class="modal-card" style="max-width:420px;">
             <h3>Excluir Cliente</h3>
             <p style="margin-bottom:12px;">Tem certeza que deseja excluir <strong id="nomeClienteExcluir"></strong>?</p>
-            <p style="font-size:var(--font-xs); color:var(--danger-text); background:var(--danger-light-bg); padding:10px; border-radius:8px; border:1px solid var(--danger-border); margin-bottom:4px;" id="avisoExcluirCliente"></p>
+            <p style="font-size:var(--font-xs); color:var(--danger-text); background:var(--danger-light-bg); padding:10px; border-radius:var(--radius-sm); border:1px solid var(--danger-border); margin-bottom:4px;" id="avisoExcluirCliente"></p>
             <div class="field-error" id="errExcluirCliente"></div>
             <div class="modal-btns">
                 <button class="btn-cancelar-modal" onclick="closeModal('modalExcluirCliente')">Cancelar</button>
