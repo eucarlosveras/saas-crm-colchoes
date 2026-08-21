@@ -705,7 +705,6 @@ function selectFilter(filter) {
                             let borderClass = 'kcard-fresh';
                             let daysClass = 'ok-days';
                             let clockIconHtml = `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
-                            let alertChipData = null;
 
                             const isFechado = [STATUS.FECHADO, 'Vendido'].includes(o.status_orcamento?.nome);
                             const isPerdido = [STATUS.PERDIDO, STATUS.DECLINADO].includes(o.status_orcamento?.nome);
@@ -730,7 +729,7 @@ function selectFilter(filter) {
                                 // FOCO 3: Sem nenhuma agenda e já faz muitos dias — abandono real
                                 borderClass = 'kcard-urgent';
                                 daysClass = 'alert-days';
-                                alertChipData = `${diasAtras}d no funil`;
+                                // alertChipData removido: o tempo já aparece no rodapé do card (kcard-days)
                             }
 
                             const diasLabel = isFechado ? `há ${diasAtras}d` : diasAtras === 0 ? 'Hoje' : diasAtras === 1 ? 'Ontem' : `há ${diasAtras}d`;
@@ -746,15 +745,6 @@ function selectFilter(filter) {
                             } else {
                                 card.draggable = true;
                                 card.addEventListener('dragstart', e => dragStart(e, o.id_orcamento));
-                            }
-
-                            // Alert chip (se houver)
-                            if (alertChipData) {
-                                const chip = document.createElement('div');
-                                chip.className = 'kcard-alert-chip';
-                                chip.innerHTML = `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
-                                chip.appendChild(document.createTextNode(alertChipData));
-                                card.appendChild(chip);
                             }
 
                             // kcard-top
