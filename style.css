@@ -240,6 +240,20 @@
         .toast.error { background: #dc2626; }
         .toast.info { background: var(--brand-blue); }
 
+        /* Variante com botão "Desfazer" (Meu Radar concluir/ignorar, ver
+           mostrarToastDesfazerRadar em radar.js) — #toast-container tem
+           pointer-events:none pra não bloquear cliques atrás dele quando vazio;
+           esta variante precisa reabilitar pointer-events pra o botão funcionar. */
+        .toast-desfazer { pointer-events: auto; }
+        .toast-desfazer button {
+            background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.35);
+            color: #fff; padding: 4px 10px; border-radius: var(--radius-xs);
+            font-size: var(--font-xs); font-weight: 700; cursor: pointer;
+            margin-left: auto; flex-shrink: 0; transition: background 0.15s;
+            font-family: 'Inter', sans-serif;
+        }
+        .toast-desfazer button:hover { background: rgba(255,255,255,0.32); }
+
         /* ────────────────────────────────────────────────────────
            STATUS TAGS
         ──────────────────────────────────────────────────────── */
@@ -2213,7 +2227,7 @@
             .kpi-grid { grid-template-columns: 1fr; }
         }
 
-        /* Tipografia alinhada com .status-tag/.meta-tag — mesmo "sistema" de
+        /* Tipografia alinhada com .status-tag/.mini-tag — mesmo "sistema" de
            badge/pill em toda a aplicação, só a cor semântica muda por contexto. */
         .pill {
             display: inline-block;
@@ -2342,98 +2356,104 @@
         .radar-chip[data-tipo="suggestion"] { background: var(--accent-green-subtle); color: var(--accent-green-dark); }
         .radar-chip[data-tipo="suggestion"].active { border-color: var(--accent-green); }
 
-        /* Título de cada seção (Ação Imediata / Dicas / Oportunidades) — sub-elemento
-           do Radar, não um cabeçalho próprio: fonte menor que antes e sem a linha
-           divisória que tinha à direita (::after removido), pra não competir
-           visualmente com o título "Meu Radar" logo acima. */
-        .signal-section-title {
-            font-size: var(--font-2xs); font-weight: 700; color: var(--text-muted);
-            text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px;
-            display: flex; align-items: center; gap: 8px;
+        /* ── Meu Radar como lista de tarefas (to-do) ──
+           Um único painel (#signalContainer) contendo uma lista plana de linhas
+           (.radar-row), ordenada por prioridade — sem cards individuais, sem
+           agrupar por categoria (cada linha já carrega seu próprio dot colorido
+           .radar-cat indicando o tipo). #signalContainer ganha altura máxima via
+           JS quando há mais de 7 sinais (ver ajustarAlturaRadarScroll em
+           radar.js) — overflow:hidden por padrão só recorta os cantos
+           arredondados; quando .radar-scrollable é adicionada, vira scroll
+           vertical sem abrir mão do corte horizontal. */
+        #signalContainer {
+            background: var(--card-bg); border: 1px solid var(--border-light);
+            border-radius: var(--radius-md); overflow: hidden;
         }
-
-        /* Lista de sinais */
-        .signal-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
-
-        /* #signalContainer ganha altura máxima via JS (ver ajustarAlturaRadarScroll em radar.js)
-           quando há mais de 7 sinais — limita a visualização inicial e habilita rolagem para o resto. */
-        #signalContainer.radar-scrollable { overflow-y: auto; padding-right: 8px; scrollbar-width: thin; }
+        #signalContainer.radar-scrollable { overflow: hidden auto; scrollbar-width: thin; }
         #signalContainer.radar-scrollable::-webkit-scrollbar { width: 4px; }
         #signalContainer.radar-scrollable::-webkit-scrollbar-thumb { background: var(--border-medium); border-radius: var(--radius-full); }
 
-        .radar-task {
-            background: var(--card-bg);
-            border: 1px solid var(--border-light);
-            border-radius: var(--radius-md);
-            padding: 16px 18px;
-            display: flex;
-            align-items: flex-start;
-            gap: 14px;
-            position: relative;
-            overflow: hidden;
-            transition: box-shadow var(--transition), border-color var(--transition), opacity 0.3s ease, transform 0.3s ease;
-        }
-        .radar-task::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
-        .radar-task:hover {
-            box-shadow: var(--shadow-md);
-            border-color: var(--border-medium);
-            transform: translateX(2px);
-        }
-        .radar-task[data-tipo="alert"]::before { background: var(--danger-text); }
-        .radar-task[data-tipo="tip"]::before { background: var(--brand-blue); }
-        .radar-task[data-tipo="suggestion"]::before { background: var(--accent-green); }
-        /* Prioridade crítica/alta ganha um fundo levemente tingido, pra se destacar das demais tarefas */
-        .radar-task[data-prioridade="critical"],
-        .radar-task[data-prioridade="high"] { background: var(--danger-light-bg); }
+        .radar-list { list-style: none; }
 
-        /* Ícone por tipo de sinal */
-        .radar-task-icon {
-            flex-shrink: 0; width: 36px; height: 36px; border-radius: var(--radius-sm);
-            display: flex; align-items: center; justify-content: center; margin-top: 2px;
+        .radar-row {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 14px; min-height: 48px;
+            border-bottom: 1px solid var(--divider);
+            cursor: pointer; transition: background 0.12s ease;
         }
-        .radar-task[data-tipo="alert"] .radar-task-icon { background: var(--danger-light-bg); color: var(--danger-text); }
-        .radar-task[data-tipo="tip"] .radar-task-icon { background: var(--brand-blue-subtle); color: var(--brand-blue); }
-        .radar-task[data-tipo="suggestion"] .radar-task-icon { background: var(--accent-green-subtle); color: var(--accent-green-dark); }
-        body.dark .radar-task[data-tipo="tip"] .radar-task-icon { color: #5eead4; }
+        .radar-row:last-child { border-bottom: none; }
+        /* Prioridade crítica/alta ganha um fundo levemente tingido, pra se destacar
+           das demais linhas — precisa vir ANTES do :hover pra este sempre vencer. */
+        .radar-row[data-prioridade="critical"],
+        .radar-row[data-prioridade="high"] { background: var(--danger-light-bg); }
+        .radar-row:hover { background: var(--surface-2); }
+        .radar-row:hover .radar-actions { opacity: 1; }
 
-        .radar-task-body { flex: 1; min-width: 0; }
-        .radar-task-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
-        .radar-task-message { font-size: var(--font-sm); font-weight: 700; letter-spacing: -0.01em; line-height: 1.4; color: var(--text-primary); }
-        .radar-task-time { font-size: var(--font-2xs); color: var(--text-muted); white-space: nowrap; flex-shrink: 0; font-family: 'JetBrains Mono', monospace; }
-        .radar-task-desc { font-size: var(--font-xs); color: var(--text-secondary); line-height: 1.5; margin-bottom: 10px; }
-        .radar-task-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-        .meta-tag {
+        /* Checkbox circular à esquerda (padrão to-do) — clique conclui o sinal */
+        .radar-check {
+            width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0;
+            border: 2px solid var(--border-medium); background: transparent;
+            padding: 0; cursor: pointer; transition: all 0.15s ease;
+        }
+        .radar-check:hover { border-color: var(--accent-green); background: var(--accent-green-subtle); }
+
+        /* Dot colorido por categoria — substitui a borda lateral grossa que os
+           cards antigos tinham; mais discreto, cabe numa linha de 48-56px. */
+        .radar-cat {
+            width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .radar-cat[data-tipo="alert"] { background: var(--danger-light-bg); color: var(--danger-text); }
+        .radar-cat[data-tipo="tip"] { background: var(--brand-blue-subtle); color: var(--brand-blue); }
+        .radar-cat[data-tipo="suggestion"] { background: var(--accent-green-subtle); color: var(--accent-green-dark); }
+        body.dark .radar-cat[data-tipo="tip"] { color: #5eead4; }
+
+        /* Título + descrição na mesma linha, truncados com ellipsis — o texto
+           completo fica disponível via title="" (tooltip nativo) ou no detalhe
+           (clique na linha). */
+        .radar-text {
+            flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            font-size: var(--font-sm); color: var(--text-primary);
+        }
+        .radar-text strong { font-weight: 700; letter-spacing: -0.01em; }
+        .radar-desc { color: var(--text-muted); font-weight: 400; }
+
+        .mini-tag {
             font-size: var(--font-2xs); font-weight: 600; padding: 3px 9px;
             border-radius: var(--radius-full); text-transform: uppercase; letter-spacing: 0.04em;
-            cursor: default;
+            background: var(--surface-2); color: var(--text-secondary);
+            white-space: nowrap; flex-shrink: 0; cursor: default;
         }
-        .meta-tag.client { background: var(--brand-blue-subtle); color: var(--brand-blue-dark); }
-        body.dark .meta-tag.client { color: #5eead4; }
-        .meta-tag.store { background: var(--surface-2); color: var(--text-secondary); }
-
-        .radar-task-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
-        .btn-action {
-            padding: 7px 14px; border-radius: var(--radius-xs);
-            font-size: var(--font-xs); font-weight: 600; font-family: 'Inter', sans-serif;
-            cursor: pointer; transition: var(--transition); border: none;
-            display: inline-flex; align-items: center; gap: 6px;
+        .radar-date {
+            font-size: var(--font-2xs); color: var(--text-muted); white-space: nowrap;
+            flex-shrink: 0; font-family: 'JetBrains Mono', monospace;
         }
-        .btn-action.primary { background: var(--brand-blue); color: white; }
-        .btn-action.primary:hover { background: var(--brand-blue-dark); box-shadow: 0 2px 8px var(--brand-blue-glow); }
-        .btn-action.ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border-light); }
-        .btn-action.ghost:hover { background: var(--surface-2); color: var(--text-secondary); }
 
-        /* Botão circular de check — clique confirma a conclusão da tarefa */
-        .radar-check-btn {
-            width: 28px; height: 28px; border-radius: 50%;
-            border: 2px solid var(--border-medium); background: transparent;
+        /* Ações (follow-up / ignorar) só aparecem sob demanda — no hover em
+           desktop (.radar-row:hover acima); em telas de toque, sem hover
+           confiável, ficam sempre visíveis (ver @media mais abaixo) em vez de
+           um menu kebab à parte — mesmo resultado prático ("ação não
+           permanente atrapalhando a leitura") com bem menos peça nova de UI. */
+        .radar-actions { display: flex; gap: 4px; flex-shrink: 0; opacity: 0; transition: opacity 0.15s ease; }
+        .radar-action-icon {
+            width: 26px; height: 26px; border-radius: var(--radius-xs);
             display: flex; align-items: center; justify-content: center;
-            color: transparent; cursor: pointer; flex-shrink: 0;
-            transition: all 0.15s ease; margin-top: 4px;
+            background: transparent; border: none; cursor: pointer;
+            color: var(--text-muted); transition: all 0.15s ease;
         }
-        .radar-check-btn:hover { border-color: var(--accent-green); color: var(--accent-green); background: var(--accent-green-subtle); transform: scale(1.1); }
-        .radar-task-checked { opacity: 0; transform: scale(0.97); }
-        .radar-task-checked .radar-check-btn { border-color: var(--accent-green); background: var(--accent-green); color: #fff; }
+        .radar-action-icon:hover { background: var(--brand-blue-subtle); color: var(--brand-blue); }
+        .radar-action-icon.ghost:hover { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
+        /* Estado transitório ao concluir (checkbox) — risco no texto + opacidade
+           reduzida, antes da linha sumir de vez (ver handleRadarCheck). Diferente
+           do "ignorar" (handleRadarIgnore), que continua com o fade+slide
+           original — semânticas diferentes: uma é "feito", a outra é "dispensado". */
+        .radar-row.done { opacity: 0.5; }
+        .radar-row.done .radar-text { text-decoration: line-through; }
+
+        @media (max-width: 768px) {
+            .radar-actions { opacity: 1; }
+        }
 
         /* Empty state */
         .empty-state {
@@ -2450,8 +2470,6 @@
 
         @media (max-width: 768px) {
             .section-header { flex-direction: column; align-items: flex-start; }
-            .radar-task { flex-direction: column; }
-            .radar-task-actions { flex-wrap: wrap; }
         }
 
         /* ────────────────────────────────────────────────────────
