@@ -852,8 +852,6 @@ async function dropCard(event, statusNomeDestino) {
         return;
     }
 
-    showToast('Atualizando pipeline...', 'info');
-
     try {
         // 3. Salva a nova etapa direto no Supabase
         const { error } = await db.from('orcamentos')
@@ -903,7 +901,6 @@ async function dropCardFechado(event) {
         return;
     }
 
-    showToast('Fechando negócio...', 'info');
     try {
         const { error } = await db.from('orcamentos')
             .update({ id_status: statusObj.id_status, data_fechamento: getAgoraBrasiliaISO() })
