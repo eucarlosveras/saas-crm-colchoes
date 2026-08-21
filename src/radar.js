@@ -73,151 +73,309 @@ function removerIgnoredRadarId(idOrcamento) {
     sessionStorage.setItem('radar_ignorados', JSON.stringify(ignored));
 }
 
+// Concluídos têm TTL de 7 dias — depois voltam a aparecer caso o problema persista.
+// Formato interno: [{id, ts}] (novo) ou string[] (legado, migrado na próxima gravação).
+const CONCLUIDOS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
 function getConcludedRadarIds() {
-    const stored = localStorage.getItem('radar_concluidos');
-    return stored ? JSON.parse(stored) : [];
+    try {
+        const stored = localStorage.getItem('radar_concluidos');
+        if (!stored) return [];
+        const parsed = JSON.parse(stored);
+
+        // Formato legado (array de strings) — sem TTL, retorna direto
+        if (parsed.length > 0 && typeof parsed[0] === 'string') return parsed;
+
+        // Novo formato [{id, ts}] — filtra expirados e compacta
+        const agora = Date.now();
+        const validos = parsed.filter(e => agora - (e.ts || 0) < CONCLUIDOS_TTL_MS);
+        if (validos.length !== parsed.length) {
+            localStorage.setItem('radar_concluidos', JSON.stringify(validos));
+        }
+        return validos.map(e => e.id);
+    } catch { return []; }
 }
 
-function addConcludedRadarId(idOrcamento) {
-    const concluidos = getConcludedRadarIds();
-    if (!concluidos.includes(idOrcamento)) {
-        concluidos.push(idOrcamento);
-        localStorage.setItem('radar_concluidos', JSON.stringify(concluidos));
-    }
+function addConcludedRadarId(id) {
+    try {
+        const stored = localStorage.getItem('radar_concluidos');
+        let lista = stored ? JSON.parse(stored) : [];
+        // Migra formato legado
+        if (lista.length > 0 && typeof lista[0] === 'string') {
+            lista = lista.map(oldId => ({ id: oldId, ts: Date.now() }));
+        }
+        if (!lista.some(e => e.id === id)) {
+            lista.push({ id, ts: Date.now() });
+            localStorage.setItem('radar_concluidos', JSON.stringify(lista));
+        }
+    } catch {}
 }
 
 // Usado pelo botão "Desfazer" do toast — reverte addConcludedRadarId.
-function removerConcludedRadarId(idOrcamento) {
-    const concluidos = getConcludedRadarIds().filter(id => id !== idOrcamento);
-    localStorage.setItem('radar_concluidos', JSON.stringify(concluidos));
+function removerConcludedRadarId(id) {
+    try {
+        const stored = localStorage.getItem('radar_concluidos');
+        if (!stored) return;
+        const lista = JSON.parse(stored);
+        // Suporta ambos os formatos
+        const nova = lista.filter(e => (typeof e === 'string' ? e : e.id) !== id);
+        localStorage.setItem('radar_concluidos', JSON.stringify(nova));
+    } catch {}
 }
 
 async function carregarSinaisRadar() {
     const hojeIso = getHojeBrasilia();
     const hoje = new Date(`${hojeIso}T00:00:00`);
-    
+
     store.radarSignalsData = [];
     const ignoredIds = [...getIgnoredRadarIds(), ...getConcludedRadarIds()];
 
     try {
-        // 1. Busca Orçamentos (inclui protocolo para exibir na coluna da direita)
-        const { data: orcamentos, error: errOrc } = await db
-            .from('orcamentos')
-            .select(`
-                id_orcamento, protocolo, data_criacao, data_contato, data_entrega, ligacao_confirmada, valor_orcado, modelo_colchao,
+        // ── Busca paralela: orçamentos + estoque ─────────────────────────────
+        const [{ data: orcamentos, error: errOrc }, { data: estoque }] = await Promise.all([
+            db.from('orcamentos').select(`
+                id_orcamento, protocolo, data_criacao, data_contato, data_entrega,
+                ligacao_confirmada, valor_orcado, modelo_colchao,
                 clientes(nome_cliente), usuarios(nome), status_orcamento(nome)
-            `);
-        
-        // 2. Busca Estoque Zerado (Regra 1)
-        const { data: estoqueZero, error: errEst } = await db
-            .from('estoque')
-            .select('id_produto, codigo_produto, nome_produto')
-            .lte('qtd_disponivel', 0);
+            `),
+            // Busca até qtd 2 para cobrir tanto zerado quanto baixo numa única query
+            db.from('estoque')
+              .select('id_produto, codigo_produto, nome_produto, qtd_disponivel')
+              .lte('qtd_disponivel', 2),
+        ]);
 
-        if (estoqueZero && estoqueZero.length > 0) {
-            estoqueZero.forEach(item => {
-                const signalId = 'est-' + item.id_produto;
-                if (ignoredIds.includes(signalId)) return;
-                store.radarSignalsData.push({
-                    id: signalId,
-                    seller: 'Todos', // Alerta global para a loja
-                    type: 'alert',
-                    priority: 'high',
-                    message: `Ruptura de Estoque: ${item.nome_produto}`,
-                    leadName: item.codigo_produto,
-                    time: 'Hoje',
-                    justification: `Produto atingiu zero unidades disponíveis. Acione compras ou fornecedor com urgência para não travar vendas.`,
-                    actionText: 'Ver Estoque',
-                    executed: false,
-                    ignored: false
-                });
+        // ── Regra 1: Ruptura de estoque (zerado) ─────────────────────────────
+        // e prepara mapa de produtos com estoque baixo (1-2 un.) para Regra 7
+        const produtosBaixoEstoque = new Map(); // nome_produto.lower → {nome, qtd}
+        if (estoque) {
+            estoque.forEach(item => {
+                const nomeLower = item.nome_produto.toLowerCase();
+                if (item.qtd_disponivel <= 0) {
+                    const signalId = 'est-' + item.id_produto;
+                    if (!ignoredIds.includes(signalId)) {
+                        store.radarSignalsData.push({
+                            id: signalId,
+                            seller: 'Todos',
+                            type: 'alert',
+                            priority: 'high',
+                            message: `Ruptura de estoque: ${item.nome_produto}`,
+                            leadName: item.codigo_produto || '',
+                            time: 'Hoje',
+                            justification: `Produto zerado. Acione compras ou fornecedor com urgência para não travar vendas em andamento.`,
+                            actionText: 'Ver Estoque',
+                            executed: false,
+                            ignored: false
+                        });
+                    }
+                } else {
+                    // qtd 1-2: candidato ao alerta de estoque baixo (Regra 7)
+                    produtosBaixoEstoque.set(nomeLower, { nome: item.nome_produto, qtd: item.qtd_disponivel });
+                }
             });
         }
 
         if (errOrc || !orcamentos) return;
 
-        // Dicionário de SLA médio em dias para cada fase (Regra 3 - Ajustável)
-        const SLAs = {
-            'Contato Inicial': 2,
-            'Negociação': 5,
-            'Em Fechamento': 3
-        };
+        // SLA em dias por fase (quanto tempo é considerado normal naquela etapa)
+        const SLAs = { 'Contato Inicial': 2, 'Negociação': 5, 'Em Fechamento': 3 };
 
         orcamentos.forEach(orc => {
-            const statusNome = orc.status_orcamento?.nome || '';
-            const isFechado = statusNome === 'Fechado' || statusNome === 'Vendido';
-            const isPerdido = statusNome === 'Perdido' || statusNome === 'Declinado';
-            
-            const nomeCliente = orc.clientes?.nome_cliente || 'Cliente';
-            const nomeVendedor = orc.usuarios?.nome || 'Sem Vendedor';
-            const dataCriacao = orc.data_criacao ? new Date(orc.data_criacao) : null;
-            const diffDays = dataCriacao ? Math.floor(Math.abs(hoje - dataCriacao) / (1000 * 60 * 60 * 24)) : 0;
+            const statusNome   = orc.status_orcamento?.nome || '';
+            const isFechado    = statusNome === 'Fechado' || statusNome === 'Vendido';
+            const isPerdido    = statusNome === 'Perdido' || statusNome === 'Declinado';
+            const nomeCliente  = orc.clientes?.nome_cliente || 'Cliente';
+            const nomeVendedor = orc.usuarios?.nome || '';
 
-            // Regra 2: Data de Entrega Hoje (Apenas para fechados)
-            const idEntrega = orc.id_orcamento + '-entrega';
-            if (isFechado && orc.data_entrega === hojeIso && !ignoredIds.includes(idEntrega)) {
+            const dataCriacao = orc.data_criacao ? new Date(orc.data_criacao) : null;
+
+            // data_contato = data agendada para o próximo contato/retorno.
+            // Nos fechados com entrega, o RPC seta data_contato = data_entrega
+            // (confirmação de recebimento) — ignoramos ela fora do contexto de entrega.
+            const dataContato = (!isFechado && orc.data_contato)
+                ? new Date(`${orc.data_contato}T00:00:00`)
+                : null;
+
+            // Dias desde o retorno agendado (positivo = vencido, 0 = hoje, negativo = futuro)
+            const diasRetornoVencido = dataContato
+                ? Math.floor((hoje - dataContato) / (1000 * 60 * 60 * 24))
+                : null;
+
+            // Dias desde a criação — usado como fallback para estagnamento
+            const diffCriacao = dataCriacao
+                ? Math.floor((hoje - dataCriacao) / (1000 * 60 * 60 * 24))
+                : 0;
+
+            // ────────────────────────────────────────────────────────────────
+            // REGRAS PARA ORÇAMENTOS FECHADOS
+            // ────────────────────────────────────────────────────────────────
+            if (isFechado) {
+                // Regra 2: Dia de entrega hoje
+                const idEntrega = orc.id_orcamento + '-entrega';
+                if (orc.data_entrega === hojeIso && !ignoredIds.includes(idEntrega)) {
+                    store.radarSignalsData.push({
+                        id: idEntrega, protocolo: orc.protocolo || null, seller: nomeVendedor,
+                        type: 'alert', priority: 'high',
+                        message: 'Dia de entrega: confirme o recebimento!',
+                        leadName: nomeCliente, time: 'Hoje',
+                        justification: 'Entrega programada para hoje. Contate o cliente para confirmar que tudo chegou certo e registre o feedback.',
+                        actionText: 'Abrir Pedido', executed: false, ignored: false
+                    });
+                }
+
+                // Regra 5: Entrega próxima (1-3 dias) sem ligação de confirmação
+                const idEntregaProx = orc.id_orcamento + '-entrega-proximo';
+                if (orc.data_entrega && orc.data_entrega !== hojeIso && !orc.ligacao_confirmada && !ignoredIds.includes(idEntregaProx)) {
+                    const dataEntregaObj = new Date(`${orc.data_entrega}T00:00:00`);
+                    const diasParaEntrega = Math.floor((dataEntregaObj - hoje) / (1000 * 60 * 60 * 24));
+                    if (diasParaEntrega >= 1 && diasParaEntrega <= 3) {
+                        const qtdDias = diasParaEntrega === 1 ? 'amanhã' : `em ${diasParaEntrega} dias`;
+                        store.radarSignalsData.push({
+                            id: idEntregaProx, protocolo: orc.protocolo || null, seller: nomeVendedor,
+                            type: 'alert', priority: 'high',
+                            message: `Confirmar entrega ${qtdDias}.`,
+                            leadName: nomeCliente,
+                            time: dataEntregaObj.toLocaleDateString('pt-BR'),
+                            justification: `Entrega ${qtdDias} e a ligação de confirmação ainda não foi feita. Contate o cliente para garantir que está esperando.`,
+                            actionText: 'Confirmar Entrega', executed: false, ignored: false
+                        });
+                    }
+                }
+
+                // Regra 6: Pós-venda — verificar satisfação (3 a 7 dias após entrega)
+                const idPosVenda = orc.id_orcamento + '-pos-venda';
+                if (orc.data_entrega && !ignoredIds.includes(idPosVenda)) {
+                    const dataEntregaObj = new Date(`${orc.data_entrega}T00:00:00`);
+                    const diasDesdeEntrega = Math.floor((hoje - dataEntregaObj) / (1000 * 60 * 60 * 24));
+                    if (diasDesdeEntrega >= 3 && diasDesdeEntrega <= 7) {
+                        store.radarSignalsData.push({
+                            id: idPosVenda, protocolo: orc.protocolo || null, seller: nomeVendedor,
+                            type: 'suggestion', priority: 'low',
+                            message: 'Pós-venda: verificar satisfação.',
+                            leadName: nomeCliente,
+                            time: formatDateForDisplay(dataEntregaObj),
+                            justification: `Cliente recebeu há ${diasDesdeEntrega} dias. Ligue para verificar satisfação, resolver dúvidas e pedir indicações.`,
+                            actionText: 'Ligar para cliente', executed: false, ignored: false
+                        });
+                    }
+                }
+
+                return; // Nenhuma regra de funil ativo se aplica a fechados
+            }
+
+            // ────────────────────────────────────────────────────────────────
+            // REGRAS PARA FUNIL ATIVO (não Fechado, não Perdido)
+            // ────────────────────────────────────────────────────────────────
+            if (isPerdido) return;
+
+            const produtosStr = (orc.modelo_colchao || '').toLowerCase();
+
+            // Regra 2b: Retorno prometido vencido (data_contato passou, orçamento ativo)
+            // Esta é a regra mais crítica: o cliente estava esperando uma ligação.
+            const idRetorno = orc.id_orcamento + '-retorno';
+            if (diasRetornoVencido !== null && diasRetornoVencido > 0 && !ignoredIds.includes(idRetorno)) {
                 store.radarSignalsData.push({
-                    id: idEntrega,
-                    protocolo: orc.protocolo || null,
-                    seller: nomeVendedor,
-                    type: 'alert',
-                    priority: 'high',
-                    message: `Dia de Entrega: Confirme o recebimento!`,
+                    id: idRetorno, protocolo: orc.protocolo || null, seller: nomeVendedor,
+                    type: 'alert', priority: 'critical',
+                    message: `Retorno vencido há ${diasRetornoVencido} dia${diasRetornoVencido > 1 ? 's' : ''}.`,
                     leadName: nomeCliente,
-                    time: 'Hoje',
-                    justification: `Entrega programada para hoje. Garanta que o cliente recebeu tudo corretamente e registe o feedback.`,
-                    actionText: 'Abrir Pedido',
-                    executed: false,
-                    ignored: false
+                    time: formatDateForDisplay(dataContato),
+                    justification: `Contato estava agendado para ${dataContato.toLocaleDateString('pt-BR')} e não foi realizado. O cliente pode estar sendo abordado pela concorrência.`,
+                    actionText: 'Ligar agora', executed: false, ignored: false
                 });
             }
 
-            // Regras exclusivas para funil ativo (não fechado/perdido)
-            if (!isFechado && !isPerdido) {
-                
-                // Regra 3: Estagnado no Kanban (> 1.5x a média)
-                const idEstagnado = orc.id_orcamento + '-estagnado';
-                const slaFase = SLAs[statusNome] || 3;
-                if (diffDays > (slaFase * 1.5) && !ignoredIds.includes(idEstagnado)) {
-                    const valorFmt = parseFloat(orc.valor_orcado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+            // Regra 2c: Em Fechamento crítico sem data de retorno agendada
+            // (Se há data_contato vencida, a Regra 2b já cobre — evita duplicata)
+            const idFechamentoCritico = orc.id_orcamento + '-fechamento-critico';
+            if (statusNome === 'Em Fechamento' && diasRetornoVencido === null && diffCriacao > 2 && !ignoredIds.includes(idFechamentoCritico)) {
+                store.radarSignalsData.push({
+                    id: idFechamentoCritico, protocolo: orc.protocolo || null, seller: nomeVendedor,
+                    type: 'alert', priority: 'critical',
+                    message: `Em Fechamento há ${diffCriacao} dias sem contato.`,
+                    leadName: nomeCliente,
+                    time: formatDateForDisplay(dataCriacao),
+                    justification: `Estágio mais crítico do funil. Orçamento há ${diffCriacao} dias em Fechamento sem retorno agendado. Risco alto de perder a venda.`,
+                    actionText: 'Fechar Venda', executed: false, ignored: false
+                });
+            }
+
+            // Regra 3: Estagnado no funil
+            // Usa data_contato como referência quando disponível (mais preciso que data_criacao);
+            // Não dispara para "Em Fechamento" — a Regra 2c já é mais específica.
+            const idEstagnado = orc.id_orcamento + '-estagnado';
+            const slaFase = SLAs[statusNome] || 3;
+            // Referência: data mais recente entre contato agendado (se futuro/hoje) e criação
+            const diasEstagnado = (diasRetornoVencido !== null && diasRetornoVencido <= 0)
+                ? Math.abs(diasRetornoVencido)   // contato futuro: conta a partir da criação
+                : diffCriacao;
+            if (diasEstagnado > slaFase * 1.5 && statusNome !== 'Em Fechamento' && !ignoredIds.includes(idEstagnado)) {
+                const valorFmt = parseFloat(orc.valor_orcado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+                const refLabel = dataContato ? `contato agendado para ${dataContato.toLocaleDateString('pt-BR')}` : `criado há ${diffCriacao}d`;
+                store.radarSignalsData.push({
+                    id: idEstagnado, protocolo: orc.protocolo || null, seller: nomeVendedor,
+                    type: 'tip', priority: 'medium',
+                    message: `Oportunidade parada em ${statusNome}.`,
+                    leadName: nomeCliente,
+                    time: formatDateForDisplay(dataContato || dataCriacao),
+                    justification: `R$ ${valorFmt} sem avanço (SLA desta fase: ${slaFase}d; ${refLabel}). Faça contato ou reclassifique a oportunidade.`,
+                    actionText: 'Fazer Follow-up', executed: false, ignored: false
+                });
+            }
+
+            // Regra 4: Cross-sell — colchão/cama em Fechamento sem acessórios
+            const idCross = orc.id_orcamento + '-crosssell';
+            const temCamaColchao = produtosStr.includes('colchão') || produtosStr.includes('colchao')
+                || produtosStr.includes('cama') || produtosStr.includes('box');
+            const temAcessorios = produtosStr.includes('protetor') || produtosStr.includes('travesseiro');
+            if (temCamaColchao && !temAcessorios && statusNome === 'Em Fechamento' && !ignoredIds.includes(idCross)) {
+                store.radarSignalsData.push({
+                    id: idCross, protocolo: orc.protocolo || null, seller: nomeVendedor,
+                    type: 'suggestion', priority: 'low',
+                    message: 'Venda sem acessórios detectada.',
+                    leadName: nomeCliente, time: 'Hoje',
+                    justification: 'Cliente em fechamento de colchão/cama sem protetor ou travesseiro. Ofereça um combo para aumentar o ticket médio.',
+                    actionText: 'Oferecer Combo', executed: false, ignored: false
+                });
+            }
+
+            // Regra 7: Produto cotado com estoque crítico (1-2 unidades)
+            // Compara palavras do nome do produto cadastrado no estoque com modelo_colchao
+            const idEstoqueBaixo = orc.id_orcamento + '-estoque-baixo';
+            if (produtosStr && produtosBaixoEstoque.size > 0 && !ignoredIds.includes(idEstoqueBaixo)) {
+                let prodEncontrado = null;
+                for (const [nomeLower, info] of produtosBaixoEstoque.entries()) {
+                    // Usa palavras com ≥ 4 chars para evitar matches ruins (ex: "de", "com")
+                    const palavras = nomeLower.split(/\s+/).filter(p => p.length >= 4);
+                    if (palavras.length > 0 && palavras.some(p => produtosStr.includes(p))) {
+                        prodEncontrado = info;
+                        break;
+                    }
+                }
+                if (prodEncontrado) {
                     store.radarSignalsData.push({
-                        id: idEstagnado,
-                        protocolo: orc.protocolo || null,
-                        seller: nomeVendedor,
-                        type: 'tip',
-                        priority: 'medium',
-                        message: `Oportunidade estagnada em ${statusNome}.`,
-                        leadName: nomeCliente,
-                        time: formatDateForDisplay(dataCriacao),
-                        justification: `A oportunidade de R$ ${valorFmt} está há ${diffDays} dias nesta fase (média: ${slaFase} dias). Aja para destravá-la.`,
-                        actionText: 'Fazer Follow-up',
-                        executed: false,
-                        ignored: false
+                        id: idEstoqueBaixo, protocolo: orc.protocolo || null, seller: nomeVendedor,
+                        type: 'alert', priority: 'high',
+                        message: 'Estoque baixo do produto cotado.',
+                        leadName: nomeCliente, time: 'Hoje',
+                        justification: `"${prodEncontrado.nome}" tem apenas ${prodEncontrado.qtd} unidade(s) em estoque e consta nesta proposta. Feche antes que acabe.`,
+                        actionText: 'Ver Estoque', executed: false, ignored: false
                     });
                 }
+            }
 
-                // Regra 4: Cross-sell de Cama sem acessórios
-                const idCross = orc.id_orcamento + '-crosssell';
-                const produtosStr = (orc.modelo_colchao || '').toLowerCase();
-                const temCamaColchao = produtosStr.includes('colchão') || produtosStr.includes('colchao') || produtosStr.includes('cama') || produtosStr.includes('box');
-                const temAcessorios = produtosStr.includes('protetor') || produtosStr.includes('travesseiro');
-
-                if (temCamaColchao && !temAcessorios && statusNome === 'Em Fechamento' && !ignoredIds.includes(idCross)) {
-                    store.radarSignalsData.push({
-                        id: idCross,
-                        protocolo: orc.protocolo || null,
-                        seller: nomeVendedor,
-                        type: 'suggestion',
-                        priority: 'low',
-                        message: `Venda sem acessórios detetada.`,
-                        leadName: nomeCliente,
-                        time: 'Hoje',
-                        justification: `O cliente está a fechar um colchão/cama mas não incluiu acessórios. Ofereça um combo com protetor e travesseiros para aumentar o ticket médio.`,
-                        actionText: 'Oferecer Combo',
-                        executed: false,
-                        ignored: false
-                    });
-                }
+            // Regra 8: Orçamento sem valor definido (impossível calcular funil/meta)
+            const idSemValor = orc.id_orcamento + '-sem-valor';
+            const valorOrcado = parseFloat(orc.valor_orcado ?? 0);
+            if ((valorOrcado === 0 || isNaN(valorOrcado)) && !ignoredIds.includes(idSemValor)) {
+                store.radarSignalsData.push({
+                    id: idSemValor, protocolo: orc.protocolo || null, seller: nomeVendedor,
+                    type: 'tip', priority: 'low',
+                    message: 'Orçamento sem valor definido.',
+                    leadName: nomeCliente,
+                    time: formatDateForDisplay(dataCriacao),
+                    justification: 'Sem valor não é possível calcular o funil nem a meta com precisão. Edite o orçamento e adicione o ticket estimado.',
+                    actionText: 'Editar Orçamento', executed: false, ignored: false
+                });
             }
         });
     } catch (e) {
@@ -415,7 +573,11 @@ window.handleRadarAction = function(id) {
         // Os sinais usam o padrão "{uuid}-{sufixo}" (ex: "-estagnado", "-entrega", "-crosssell").
         // split('-')[0] retornava apenas o 1º segmento do UUID — bug.
         // Solução: remove o sufixo conhecido pelo final, preservando o UUID completo.
-        const sufixos = ['-estagnado', '-entrega', '-crosssell'];
+        const sufixos = [
+            '-estagnado', '-entrega', '-crosssell',
+            '-retorno', '-fechamento-critico', '-entrega-proximo',
+            '-pos-venda', '-sem-valor', '-estoque-baixo',
+        ];
         let orcamentoId = id;
         for (const s of sufixos) {
             if (id.endsWith(s)) { orcamentoId = id.slice(0, -s.length); break; }
