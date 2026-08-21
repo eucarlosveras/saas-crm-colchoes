@@ -935,21 +935,7 @@
             background: linear-gradient(90deg, var(--brand-blue), var(--accent-orange));
         }
 
-        .kpi-icon-badge {
-            position: absolute; top: 20px; right: 20px;
-            width: 34px; height: 34px; border-radius: var(--radius-sm);
-            display: flex; align-items: center; justify-content: center;
-        }
-        .kpi-badge-green  { background: rgba(16, 185, 129, 0.12); color: #059669; }
-        .kpi-badge-blue   { background: rgba(15, 118, 110, 0.12); color: var(--brand-blue-dark); }
-        .kpi-badge-orange { background: rgba(217, 119, 6, 0.12); color: #b45309; }
-        .kpi-badge-red    { background: rgba(220, 38, 38, 0.12); color: #b91c1c; }
-        body.dark .kpi-badge-green  { background: rgba(16, 185, 129, 0.16); color: #34d399; }
-        body.dark .kpi-badge-blue   { background: rgba(45, 212, 191, 0.16); color: #5eead4; }
-        body.dark .kpi-badge-orange { background: rgba(251, 146, 60, 0.16); color: #fdba74; }
-        body.dark .kpi-badge-red    { background: rgba(248, 113, 113, 0.16); color: #fca5a5; }
-
-        .kpi-label-row { display: flex; align-items: center; gap: 7px; margin-bottom: 12px; padding-right: 40px; }
+        .kpi-label-row { display: flex; align-items: center; gap: 7px; margin-bottom: 12px; }
         .kpi-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
         .kpi-dot.blue   { background: var(--brand-blue); }
         .kpi-dot.green  { background: var(--accent-green); }
@@ -964,7 +950,10 @@
             font-size: 1.75rem; font-weight: 800;
             line-height: 1.15; color: var(--text-primary); letter-spacing: -0.03em;
         }
-        .kpi-footer { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+        /* Valor + delta na mesma linha (baseline, pra não desalinhar o texto do
+           número maior com o número menor do badge) — ver .kpi-grid-compact mais
+           abaixo, onde isso é usado de verdade (cards compactos de Meu Desempenho). */
+        .kpi-value-row { display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; }
         .kpi-variacao {
             display: inline-flex; align-items: center; gap: 3px;
             font-size: var(--font-2xs); font-weight: 700; letter-spacing: 0.02em;
@@ -974,7 +963,7 @@
         .kpi-var-down { color: #dc2626; background: rgba(220, 38, 38, 0.1); }
         body.dark .kpi-var-up { color: #34d399; background: rgba(52, 211, 153, 0.14); }
         body.dark .kpi-var-down { color: #f87171; background: rgba(248, 113, 113, 0.14); }
-        .kpi-comparacao-label { font-size: var(--font-2xs); font-weight: 500; color: var(--text-muted); }
+        .kpi-comparacao-label { display: block; margin-top: 4px; font-size: var(--font-2xs); font-weight: 500; color: var(--text-muted); }
 
         /* .kpi-section-header/.kpi-section-title foram substituídos pelo padrão
            genérico .section-header/.section-title (ver MÓDULO MEU RADAR mais
@@ -990,8 +979,62 @@
             transition: all 0.15s ease; font-family: 'Inter', sans-serif;
         }
         .kpi-periodo-btn:hover:not(.active) { color: var(--text-primary); }
-        .kpi-periodo-btn.active { background: var(--card-bg); color: var(--brand-blue-dark); box-shadow: var(--shadow-xs); }
-        body.dark .kpi-periodo-btn.active { color: var(--brand-blue); }
+        /* Segmento ativo com a cor da marca (navy + texto branco) — precisa se
+           destacar de verdade, é o "estado atual" dos números logo abaixo. */
+        .kpi-periodo-btn.active { background: var(--brand-blue); color: #fff; box-shadow: var(--shadow-xs); }
+        .kpi-periodo-btn.active:hover { color: #fff; }
+
+        /* ── Painel "Meu Desempenho"/"Desempenho da Loja" ──
+           .kpi-inicio-section agrupa .section-header (título) + .kpi-panel
+           (toolbar + grid) num único <section>, pelo mesmo motivo do Radar: sem
+           isso, o gap:24px que .main-content dá entre filhos de topo entraria
+           também aqui, brigando com o respiro apertado que .section-header já
+           define via margin-bottom. */
+        .kpi-inicio-section { display: flex; flex-direction: column; }
+
+        /* O painel (background+border+radius) é o "enclosure" que faz a toolbar
+           de período e o grid de KPIs lerem como uma coisa só — o filtro deixa
+           de ser "um controle solto no header" e vira "o controle DESTES
+           números", porque literalmente mora dentro do mesmo container. */
+        .kpi-panel {
+            background: var(--card-bg); border: 1px solid var(--border-light);
+            border-radius: var(--radius-md); padding: 14px;
+            box-shadow: var(--shadow-sm);
+        }
+        .kpi-toolbar { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+        /* .kpi-grid-compact (não ".kpi-grid" — esse nome já existia pro grid de
+           métricas de Carteira/Estoque, ver MÓDULO DE ESTOQUE mais abaixo; usar o
+           mesmo nome faria os estilos compactos daqui vazarem pra lá). */
+        .kpi-grid-compact { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+
+        /* Cards compactos — só dentro de .kpi-grid-compact. Sobrescreve .kpi-card
+           (linha ~920) apenas aqui: Carteira/Estoque/Admin continuam com o
+           .kpi-card "cheio" de sempre, intocado. Densidade: altura final fica bem
+           abaixo dos ~170px originais (padding menor, sem ícone — o dot colorido
+           do label já identifica o KPI — e delta inline junto do valor). */
+        .kpi-grid-compact .kpi-card {
+            background: var(--surface-2); border: 1px solid transparent;
+            border-radius: var(--radius-sm); padding: 14px 14px 12px;
+            min-height: 0; box-shadow: none;
+        }
+        .kpi-grid-compact .kpi-card:hover { box-shadow: var(--shadow-xs); border-color: var(--border-light); transform: none; }
+        .kpi-grid-compact .kpi-card.vendido-highlight { border-top: 2px solid var(--accent-orange); }
+        .kpi-grid-compact .kpi-card.vendido-highlight::after { content: none; }
+        .kpi-grid-compact .kpi-label-row { margin-bottom: 6px; }
+        .kpi-grid-compact .kpi-label { font-size: var(--font-2xs); }
+        .kpi-grid-compact .kpi-value { font-size: 1.35rem; }
+
+        /* Micro-transição ao trocar de período: como selecionarPeriodoKpiVendedor
+           re-renderiza a Início inteira (ver dashboard.js), os cards são
+           recriados do zero a cada troca — o fade+slide roda automaticamente
+           nessa recriação, dando o feedback de causa→efeito entre o clique no
+           segmento e a mudança dos números, sem precisar de JS extra pra isso. */
+        @keyframes kpiValorEntrada { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+        .kpi-grid-compact .kpi-value-row { animation: kpiValorEntrada 150ms ease; }
+
+        @media (max-width: 1100px) { .kpi-grid-compact { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 768px)  { .kpi-grid-compact { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 480px)  { .kpi-grid-compact { grid-template-columns: 1fr; } }
 
         /* ── Toggle Visão Vendedor / Visão Gerencial (tela Início) ──
            Fica no seu próprio grupo, com respiro + linha divisória à direita,
