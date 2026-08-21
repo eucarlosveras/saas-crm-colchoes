@@ -2228,12 +2228,24 @@
            MÓDULO MEU RADAR
         ──────────────────────────────────────────────────────── */
 
-        /* Cabeçalho da página — mesmo tratamento de sublinhado do .dashboard-header
-           (ver comentário lá) pra ficar consistente entre todas as telas. */
+        /* .main-content já dá 24px de gap entre TODAS as seções da tela (KPIs,
+           gráficos, etc. — ver .main-content). Aqui soma-se +8px só nesta
+           transição específica (KPIs -> Meu Radar), totalizando 32px: o dobro
+           do respiro que o header do Radar tem pro próprio conteúdo (14px, ver
+           .radar-header) — é essa assimetria que faz o Radar ler como uma
+           seção nova, não um apêndice colado no "Meu Desempenho" de cima. */
+        .radar-inicio-section { margin-top: 8px; }
+
+        /* Cabeçalho do Meu Radar — de propósito SEM o sublinhado/divisor que
+           .dashboard-header usa (ver comentário lá): aqui o título precisa
+           "comandar" a lista de sinais logo abaixo como um único bloco coeso,
+           não ficar isolado numa faixa própria. Regra de proximidade: o espaço
+           daqui pro conteúdo (margin-bottom) é bem menor que o espaço que
+           separa o bloco inteiro da seção anterior (ver .radar-inicio-section
+           em style.css, junto de .kpi-row). */
         .radar-header {
             display: flex; align-items: center; justify-content: space-between;
-            margin-bottom: 24px; gap: 16px; flex-wrap: wrap;
-            padding-bottom: 18px; border-bottom: 1px solid var(--divider);
+            margin-bottom: 14px; gap: 16px; flex-wrap: wrap;
         }
         .radar-header .page-title {
             font-size: var(--font-xl); font-weight: 800; letter-spacing: -0.03em;
@@ -2277,13 +2289,15 @@
         .radar-chip[data-tipo="suggestion"] { background: var(--accent-green-subtle); color: var(--accent-green-dark); }
         .radar-chip[data-tipo="suggestion"].active { border-color: var(--accent-green); }
 
-        /* Título de cada seção (Ação Imediata / Dicas / Oportunidades) */
+        /* Título de cada seção (Ação Imediata / Dicas / Oportunidades) — sub-elemento
+           do Radar, não um cabeçalho próprio: fonte menor que antes e sem a linha
+           divisória que tinha à direita (::after removido), pra não competir
+           visualmente com o título "Meu Radar" logo acima. */
         .signal-section-title {
-            font-size: var(--font-xs); font-weight: 700; color: var(--text-muted);
-            text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px;
+            font-size: var(--font-2xs); font-weight: 700; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px;
             display: flex; align-items: center; gap: 8px;
         }
-        .signal-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border-light); }
 
         /* Lista de sinais */
         .signal-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
