@@ -311,9 +311,14 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
         // Guardamos o pacote completo dentro do Cofre!
         setClienteAtual(orcamento);
         
+        // Esconde o FAB (botão +) — abrirDetalhesCliente não passa pelo navigateTo,
+        // então o bloco do router que o oculta nunca é executado sem este hide explícito.
+        const fab = document.getElementById('fabButton');
+        if (fab) fab.style.display = 'none';
+
         // Renderiza com itens e movimentações
         renderDetalhesClientePage(orcamento, itens, movimentacoes);
-        
+
         store.previousView = store.currentView; store.currentView = 'detalhes_cliente'; setUltimaVisita(id);
     } catch (e) { 
         showToast('Erro ao carregar cliente.', 'error'); 

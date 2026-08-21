@@ -43,6 +43,7 @@ import { renderAdminInicio, renderAdminUsuarios } from './usuarios.js';
                atualizarFab('inicio');
  	   }
  	   else if (view === 'carteira') {
+        	atualizarFab('carteira');         // Oculta o FAB (só aparece em 'inicio' e 'estoque')
   	      await carregarKpisEDashboard(); // Garante que os dados mais novos venham do banco
         	renderCarteiraPage();           // Chama a nova página do Kanban que criamos
     	}
