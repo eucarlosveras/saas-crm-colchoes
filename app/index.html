@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CV CRM · Gestão Comercial</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+    <div id="globalLoader"><div class="loader-fill"></div></div>
+    <div id="toast-container"></div>
+
+    <button class="hamburger" id="hamburgerBtn" aria-label="Abrir menu">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+    </button>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-card">
+            <div class="login-icon" aria-hidden="true">CV</div>
+            <h2>CV CRM</h2>
+            <p class="subtitle">Acesso ao Sistema</p>
+            <div class="login-form">
+                <input type="email" id="loginEmail" placeholder="Seu e-mail">
+                <input type="password" id="loginSenha" placeholder="Sua senha">
+            </div>
+            <button class="login-btn" id="btnLogin" onclick="handleLogin()">
+                <span class="spinner"></span>
+                <span class="btn-text">Entrar no Sistema</span>
+            </button>
+            <div class="login-msg" id="loginMsg" role="alert"></div>
+        </div>
+    </div>
+
+    <aside class="sidebar" id="sidebar" style="display:none;" role="navigation" aria-label="Menu principal">
+        <button class="sidebar-collapse-btn" id="btnSidebarCollapse" onclick="toggleSidebarCollapse()" title="Recolher/expandir menu" aria-label="Recolher ou expandir menu">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="sidebar-greeting"><div class="greeting-text" id="sidebarGreeting">Bom dia!</div><div class="greeting-sub" id="sidebarSub">Sua meta está próxima!</div></div>
+        <nav class="sidebar-nav">
+            <button class="nav-item" data-nav="admin_inicio" id="navAdmin" style="display:none;" onclick="navigateTo('admin_inicio')" title="Administração"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg></span> <span class="nav-label">Administração</span></button>
+            <button class="nav-item active" data-nav="inicio" id="navInicioVendas" onclick="navigateTo('inicio')" aria-current="page" title="Início"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1h-5v-7a1 1 0 00-1-1h-4a1 1 0 00-1 1v7H4a1 1 0 01-1-1V9.5z"/></svg></span> <span id="textNavInicio" class="nav-label">Início</span></button>
+<button class="nav-item" data-nav="carteira" onclick="navigateTo('carteira')" title="Carteira">
+    <span class="nav-icon">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="3" width="5" height="18" rx="1"/>
+            <rect x="10" y="3" width="5" height="12" rx="1"/>
+            <rect x="17" y="3" width="5" height="15" rx="1"/>
+        </svg>
+    </span>
+    <span class="nav-label">Carteira</span>
+</button>
+            <button class="nav-item" data-nav="agenda_dia" onclick="navigateTo('agenda_dia')" title="Agenda do Dia"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="badge-dot" id="badgeAgendaDia"></span></span> <span class="nav-label">Agenda do Dia</span></button>
+            <button class="nav-item" data-nav="clientes_lista" onclick="navigateTo('clientes_lista')" title="Clientes"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="7" r="4"/><path d="M1 21v-2a4 4 0 014-4h8a4 4 0 014 4v2"/><circle cx="17" cy="9" r="3"/><path d="M23 21v-2a3 3 0 00-2-2.7"/></svg></span> <span class="nav-label">Clientes</span></button>
+            <button class="nav-item" data-nav="estoque" onclick="navigateTo('estoque')" title="Estoque"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span> <span class="nav-label">Estoque</span></button>
+            <button class="nav-item" data-nav="metas" id="navMetas" style="display:none;" onclick="navigateTo('metas')" title="Metas"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg></span> <span class="nav-label">Metas</span></button>
+        </nav>
+        <div class="sidebar-footer"><div class="avatar-small" id="sidebarAvatar">C</div><div class="user-info"><strong id="sidebarNome">Carlos</strong><span id="sidebarPerfil">Admin</span></div></div>
+        <div class="sidebar-actions"><button class="theme-toggle" onclick="toggleTheme()">Alternar tema</button><button class="btn-logout-sidebar" onclick="logout()" title="Sair do sistema"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> <span class="nav-label">Sair do sistema</span></button></div>
+    </aside>
+
+    <main class="main-content" id="mainContent" style="display:none;">
+        <!-- As telas (Início, Meu Radar, Clientes, Estoque, etc.) são renderizadas
+             dinamicamente aqui dentro por src/router.js via navigateTo(). -->
+    </main>
+    <button class="fab" id="fabButton" style="display:none;" onclick="abrirNovoOrcamento()" aria-label="Novo orçamento" title="Novo orçamento">+</button>
+
+    <div class="modal-overlay" id="modalMotivoPerda" onclick="if(event.target === this) closeModal('modalMotivoPerda')">
+        <div class="modal-card" style="max-width:420px;">
+            <h3>Motivo da Perda</h3>
+            <label for="motivoPerdaSelect">Selecione o motivo principal *</label>
+            <select id="motivoPerdaSelect" class="form-input" style="margin-bottom: 12px;">
+                <option value="">Selecione...</option>
+                <option value="Achou caro">Achou caro</option>
+                <option value="Comprou no concorrente">Comprou no concorrente</option>
+                <option value="Desistiu da compra">Desistiu da compra</option>
+                <option value="Falta de limite/crédito">Falta de limite/crédito</option>
+                <option value="Outros">Outros</option>
+            </select>
+            <label for="motivoPerda">Detalhes adicionais</label>
+            <textarea id="motivoPerda" rows="3" class="form-input" placeholder="Detalhe um pouco mais (opcional)..."></textarea>
+            <div class="field-error" id="errMotivo"></div>
+            <div class="modal-btns">
+                <button class="btn-cancelar-modal" onclick="closeModal('modalMotivoPerda')">Cancelar</button>
+                <button class="btn-salvar-modal" onclick="confirmarPerda(event)">Confirmar Perda</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal-overlay" id="modalConfirmaFechamento" onclick="if(event.target === this) closeModal('modalConfirmaFechamento')">
+        <div class="modal-card" style="max-width:480px;">
+            <h3>&#x1F389; Confirmar Fechamento de Venda</h3>
+            <p style="margin-bottom:20px; color:var(--text-secondary); font-size:var(--font-sm);">O produto será entregue ou retirado na loja?</p>
+
+            <!-- Passo 1: escolha entrega ou retirada -->
+            <div id="fechamentoStep1">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
+                    <button id="btnOpcaoEntrega" onclick="selecionarModoFechamento('entrega')"
+                        style="padding:18px 12px; border-radius:var(--radius-md); border:2px solid var(--border-light); background:var(--card-bg); cursor:pointer; font-family:'Inter',sans-serif; font-size:var(--font-sm); font-weight:600; color:var(--text-primary); transition:all .2s; display:flex; flex-direction:column; align-items:center; gap:8px;">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                        Entrega
+                    </button>
+                    <button id="btnOpcaoRetirada" onclick="selecionarModoFechamento('retirada')"
+                        style="padding:18px 12px; border-radius:var(--radius-md); border:2px solid var(--border-light); background:var(--card-bg); cursor:pointer; font-family:'Inter',sans-serif; font-size:var(--font-sm); font-weight:600; color:var(--text-primary); transition:all .2s; display:flex; flex-direction:column; align-items:center; gap:8px;">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                        Retirada na Loja
+                    </button>
+                </div>
+                <div class="field-error" id="errModoFechamento"></div>
+            </div>
+
+            <!-- Passo 2: data de entrega (só aparece se "Entrega" for selecionado) -->
+            <div id="fechamentoStep2" style="display:none; margin-top:4px;">
+                <label for="fechamentoDataEntrega">Data de Entrega *</label>
+                <input type="date" id="fechamentoDataEntrega" class="form-input" style="margin-bottom:4px;">
+                <div class="field-error" id="errDataEntrega"></div>
+                <div style="background:var(--accent-green-subtle); border:1px solid rgba(5, 150, 105, 0.3); border-radius:var(--radius-sm); padding:10px 14px; margin-top:12px; font-size:var(--font-xs); color:var(--accent-green-dark); display:flex; align-items:flex-start; gap:8px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; margin-top:1px;"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    <span>Um agendamento de <strong>confirmação de recebimento</strong> será criado automaticamente na data de entrega.</span>
+                </div>
+            </div>
+
+            <div class="modal-btns">
+                <button class="btn-cancelar-modal" onclick="closeModal('modalConfirmaFechamento')">Cancelar</button>
+                <button class="btn-salvar-modal" id="btnConfirmaFechar">
+                    <span class="btn-spinner"></span>
+                    <span class="btn-text">Confirmar Fechamento</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="modal-overlay" id="modalEditarMeta" onclick="if(event.target === this) closeModal('modalEditarMeta')"><div class="modal-card" style="max-width:420px;"><h3>Editar Meta</h3><label for="inputMetaValor">Nova meta (R$)</label><input type="text" id="inputMetaValor" placeholder="R$ 50.000,00" inputmode="decimal"><div class="field-error" id="errMeta"></div><div class="modal-btns"><button class="btn-cancelar-modal" onclick="closeModal('modalEditarMeta')">Cancelar</button><button class="btn-salvar-modal" id="btnSalvarMeta" onclick="salvarNovaMeta()"><span class="btn-spinner"></span><span class="btn-text">Salvar</span></button></div></div></div>
+    <div class="modal-overlay" id="modalExcluirComentario" onclick="if(event.target === this) closeModal('modalExcluirComentario')"><div class="modal-card" style="max-width:420px;"><h3>Excluir comentário</h3><p style="margin-bottom:16px;">Tem certeza que deseja excluir este comentário?</p><div class="modal-btns"><button class="btn-cancelar-modal" onclick="closeModal('modalExcluirComentario')">Cancelar</button><button class="btn-salvar-modal" id="btnConfirmarExclusao" style="background:#ef4444;" onclick="confirmarExclusaoComentario()"><span class="btn-spinner"></span><span class="btn-text">Excluir</span></button></div></div></div>
+
+    <div class="modal-overlay" id="modalUsuarioAdmin" onclick="if(event.target === this) closeModal('modalUsuarioAdmin')">
+        <div class="modal-card" style="max-width:420px;">
+            <h3 id="modalUsuarioTitle">Novo Usuário</h3>
+            <label for="adminModNome">Nome Completo</label><input type="text" id="adminModNome" placeholder="Ex: João da Silva">
+            <label for="adminModEmail">E-mail</label><input type="email" id="adminModEmail" placeholder="vendedor@loja.com.br">
+            
+            <label for="adminModLoja">Loja Base</label>
+            <select id="adminModLoja" class="form-input" style="margin-bottom:4px;">
+            </select>
+            
+            <div class="modal-row" style="margin-top: 8px;">
+                <div><label for="adminModPerfil">Perfil do Sistema</label><select id="adminModPerfil" onchange="toggleCampoLojasMultiplas()"><option value="Vendedor">Vendedor</option><option value="Gerente">Gerente</option><option value="Administrador">Administrador (TI)</option></select></div>
+                <div><label for="adminModStatus">Status de Acesso</label><select id="adminModStatus"><option value="Ativo">Ativo</option><option value="Inativo">Inativo</option></select></div>
+            </div>
+
+            <div id="campoLojasMultiplas" style="display:none; margin-top: 8px;">
+                <label for="adminModLojasMultiplas">Lojas Adicionais (Gerente Multiloja)</label>
+                <select id="adminModLojasMultiplas" class="form-input" multiple size="4" style="height:auto;"></select>
+                <small style="display:block; color:var(--text-muted); font-size:12px; margin-top:4px;">Segure Ctrl/Cmd para selecionar mais de uma loja. A "Loja Base" acima é sempre incluída automaticamente.</small>
+            </div>
+
+            <div style="margin-top: 12px;">
+                <label for="adminModSenha">Definir Senha Inicial</label>
+                <div style="position:relative; display:flex; align-items:center;">
+                    <input type="password" id="adminModSenha" placeholder="********" style="padding-right:44px; width:100%;">
+                    <button type="button" onclick="toggleSenhaAdmin()" title="Mostrar/ocultar senha" style="position:absolute; right:12px; background:none; border:none; cursor:pointer; color:var(--text-muted); padding:0; display:flex; align-items:center;">
+                        <svg id="eyeIconAdmin" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="field-error" id="errAdminUsuario"></div>
+            <div class="modal-btns"><button class="btn-cancelar-modal" onclick="closeModal('modalUsuarioAdmin')">Cancelar</button><button class="btn-salvar-modal" id="btnSalvarUsuarioAdmin" onclick="salvarUsuarioAdmin()"><span class="btn-spinner"></span><span class="btn-text">Salvar Usuário</span></button></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modalExcluirUsuarioAdmin" onclick="if(event.target === this) closeModal('modalExcluirUsuarioAdmin')">
+        <div class="modal-card" style="max-width:420px;">
+            <h3>Excluir Usuário</h3>
+            <p style="margin-bottom:16px;">Tem certeza que deseja excluir <strong><span id="nomeUsuarioExcluir"></span></strong>?</p>
+            <p style="margin-bottom:16px; font-size:var(--font-xs); color:var(--danger-text); background:var(--danger-light-bg); padding:10px; border-radius:var(--radius-sm); border:1px solid var(--danger-border);"><strong>Confirmação Destrutiva:</strong> Se este usuário tiver orçamentos registrados, a exclusão poderá falhar ou gerar inconsistência no histórico de vendas da equipe. Recomendamos a <strong>Inativação</strong> através da edição de perfil.</p>
+            <div class="field-error" id="errExcluirUsuario"></div>
+            <div class="modal-btns"><button class="btn-cancelar-modal" onclick="closeModal('modalExcluirUsuarioAdmin')">Cancelar</button><button class="btn-salvar-modal" id="btnConfirmarExclusaoUsuario" style="background:#ef4444;" onclick="confirmarExclusaoUsuario()">Excluir Definitivamente</button></div>
+        </div>
+    </div>
+
+    <!-- ── MODAL AGENDAR PRÓXIMO CONTATO ──────────────────────────────────── -->
+    <div class="modal-overlay" id="modalAgendarContato" onclick="if(event.target===this)closeModal('modalAgendarContato')">
+        <div class="modal-card" style="max-width:480px; width:96%;">
+
+            <h3 style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gold-dark)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Agendar Próximo Contato
+            </h3>
+
+            <div style="margin:16px 0;">
+                <div style="font-size:10px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px;">Acesso rápido</div>
+                <div class="det-quick-dates">
+                    <button class="btn-quick-date" onclick="setQuickDate(1)">Amanhã</button>
+                    <button class="btn-quick-date" onclick="setQuickDate(3)">Em 3 dias</button>
+                    <button class="btn-quick-date" onclick="setQuickDate(7)">Semana que vem</button>
+                    <button class="btn-quick-date" onclick="setQuickDate(15)">Em 15 dias</button>
+                </div>
+            </div>
+
+            <div class="schedule-form-grid" style="margin-bottom:16px;">
+                <div class="form-group">
+                    <label>Data *</label>
+                    <input type="date" id="agendarData" class="form-input" style="height:40px; padding:0 12px; font-family:'JetBrains Mono',monospace; font-size:13px;">
+                </div>
+                <div class="form-group">
+                    <label>Horário</label>
+                    <input type="time" id="agendarHora" class="form-input" style="height:40px; padding:0 12px; font-family:'JetBrains Mono',monospace; font-size:13px;">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom:16px;">
+                <label>Tipo de Contato *</label>
+                <select id="agendarTipo" class="form-input" style="height:40px; padding:0 12px; font-size:13px;">
+                    <option value="">Selecionar...</option>
+                    <optgroup label="Vendas">
+                        <option value="Apresentação de Campanha/Promoção">Apresentação de Campanha/Promoção</option>
+                        <option value="Reativação de Contato Antigo">Reativação de Contato Antigo</option>
+                        <option value="Acompanhamento de Orçamento">Acompanhamento de Orçamento</option>
+                        <option value="Virada de Tabela">Virada de Tabela</option>
+                        <option value="Quebra de Objeção">Quebra de Objeção</option>
+                        <option value="Cross-sell (Venda Cruzada)">Cross-sell (Venda Cruzada)</option>
+                    </optgroup>
+                    <optgroup label="Pós-Venda">
+                        <option value="Alinhamento Logístico">Alinhamento Logístico</option>
+                        <option value="Acompanhamento de Adaptação (Pós-Entrega)">Acompanhamento de Adaptação (Pós-Entrega)</option>
+                        <option value="Assistência Técnica">Assistência Técnica</option>
+                    </optgroup>
+                </select>
+                <div class="field-error" id="agendarTipoErro"></div>
+            </div>
+
+            <div class="form-group" style="margin-bottom:16px;">
+                <label>Observações / Lembrete</label>
+                <textarea id="agendarObservacao" class="form-input" style="resize:none; font-size:13px; min-height:90px;" placeholder="Detalhes contextuais para o próximo contato..."></textarea>
+            </div>
+
+            <div class="modal-btns">
+                <button class="btn-cancelar-modal" onclick="closeModal('modalAgendarContato')">Cancelar</button>
+                <button class="btn-agendar-full" id="btnConfirmarAgendamento" onclick="agendarContato()" style="margin-top:0;">
+                    <span class="btn-spinner" style="display:none; width:16px; height:16px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin 1s linear infinite;"></span>
+                    <span class="btn-text" style="display:flex; align-items:center; gap:6px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        Confirmar Agendamento
+                    </span>
+                </button>
+            </div>
+            <div class="field-error" id="agendarMsg" style="text-align:center; margin-top:8px;"></div>
+        </div>
+    </div>
+
+    <!-- ── MODAL AJUSTAR PROPOSTA ─────────────────────────────────────────── -->
+    <div class="modal-overlay" id="modalAjusteProposta" onclick="if(event.target===this)closeModal('modalAjusteProposta')">
+        <div class="modal-card" style="max-width:540px; width:96%;">
+
+            <h3 style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Ajustar Proposta
+            </h3>
+            <p id="ajustePropostaSubtitle" style="font-size:var(--font-xs);color:var(--text-muted);margin-bottom:18px;"></p>
+
+            <!-- container de linhas de produto (reutiliza .produto-row do novo orçamento) -->
+            <div id="ajusteProdutosContainer" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;"></div>
+
+            <!-- botão adicionar linha -->
+            <button type="button" class="btn-add-item-premium" style="margin-bottom:12px;" onclick="ajusteAdicionarLinha()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Adicionar linha de produto
+            </button>
+
+            <!-- total -->
+            <div class="total-modal-box" style="margin-bottom:14px;">
+                <span>Total</span>
+                <span class="valor-total" id="ajusteDisplayTotal">R$ 0,00</span>
+            </div>
+
+            <!-- motivo (opcional) -->
+            <div class="form-group" style="margin-bottom:6px;">
+                <label style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;">
+                    Motivo da Alteração
+                    <span style="font-weight:400;text-transform:none;">(opcional)</span>
+                </label>
+                <input type="text" id="ajusteMotivo" class="form-input" style="margin-top:6px;font-size:13px;"
+                    placeholder="Ex: Cliente trocou o modelo, desconto negociado...">
+            </div>
+
+            <div class="field-error" id="ajustePropostaMsg" style="margin-top:8px;"></div>
+
+            <div class="modal-btns">
+                <button class="btn-cancelar-modal" onclick="closeModal('modalAjusteProposta')">Cancelar</button>
+                <button class="btn-salvar-modal" id="btnSalvarAjuste" onclick="salvarAjusteProposta()">
+                    <span class="btn-spinner"></span>
+                    <span class="btn-text">Salvar Alteração</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- ── FIM MODAL AJUSTAR PROPOSTA ──────────────────────────────────────── -->
+
+    <!-- ── MODAL GERAR ORÇAMENTO (TEXTO PARA ENVIAR AO CLIENTE) ────────────── -->
+    <div class="modal-overlay" id="modalGerarOrcamento" onclick="if(event.target===this)closeModal('modalGerarOrcamento')">
+        <div class="modal-card" style="max-width:520px; width:96%;">
+
+            <h3 style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                Orçamento para o cliente
+            </h3>
+            <p style="font-size:var(--font-xs);color:var(--text-muted);margin-bottom:14px;">Revise ou ajuste o texto abaixo e copie para enviar pelo WhatsApp.</p>
+
+            <div class="form-group" style="margin-bottom:12px;">
+                <label style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;">
+                    Desconto aplicado <span style="font-weight:400;text-transform:none;">(opcional — atualiza o texto abaixo)</span>
+                </label>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:6px;">
+                    <input type="number" id="gerarOrcamentoDesconto" class="form-input" style="max-width:110px;height:38px;padding:0 12px;" min="0" max="95" step="0.5" placeholder="0" oninput="atualizarTextoOrcamentoComDesconto()">
+                    <span style="font-weight:600;color:var(--text-muted);">%</span>
+                </div>
+            </div>
+
+            <textarea id="textoOrcamentoGerado" class="form-input" style="min-height:280px; font-size:13px; line-height:1.6; resize:vertical; font-family:inherit;" oninput="marcarTextoOrcamentoEditadoManualmente()"></textarea>
+
+            <div class="modal-btns">
+                <button class="btn-cancelar-modal" onclick="closeModal('modalGerarOrcamento')">Fechar</button>
+                <button class="btn-salvar-modal" id="btnCopiarOrcamento" onclick="copiarTextoOrcamento()" style="margin-top:0;">
+                    <span class="btn-text" style="display:flex; align-items:center; gap:6px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                        Copiar texto
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- ── FIM MODAL GERAR ORÇAMENTO ───────────────────────────────────────── -->
+
+    <div class="notification-dropdown" id="notificationDropdown"></div>
+
+    <!-- Modal: Editar Cliente -->
+
+    <!-- Modal Chat IA - Destravar Vendas -->
+    <div class="modal-overlay" id="modalChatIA" onclick="if(event.target===this)fecharModalChatIA()">
+        <div class="modal-card modal-chat-card" style="max-width:600px; width:95%; height:80vh; display:flex; flex-direction:column; padding:0; overflow:hidden;">
+            <!-- Header -->
+            <div class="modal-chat-header" style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid var(--border-light); background:linear-gradient(135deg, var(--brand-blue), var(--brand-blue-dark));">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                    </svg>
+                    <h3 style="color:white; margin:0; font-size:16px; font-weight:700;">Destravar Vendas</h3>
+                </div>
+                <button onclick="fecharModalChatIA()" style="background:none; border:none; cursor:pointer; padding:4px; border-radius:4px; transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='transparent'">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Messages Area -->
+            <div id="chatMessagesContainer" style="flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:16px; background:var(--bg-body);">
+                <!-- Messages will be injected here -->
+            </div>
+            
+            <!-- Input Area -->
+            <div class="modal-chat-input" style="padding:16px 20px; border-top:1px solid var(--border-light); background:var(--card-bg);">
+                <div style="display:flex; gap:10px; align-items:flex-end;">
+                    <textarea 
+                        id="chatInputIA" 
+                        placeholder="Digite sua pergunta ou solicitação..." 
+                        rows="2"
+                        style="flex:1; resize:none; border:1px solid var(--border-medium); border-radius:var(--radius-sm); padding:10px 12px; font-family:'Inter', sans-serif; font-size:14px; line-height:1.5; outline:none; transition:border-color 0.2s; background:var(--card-bg); color:var(--text-primary);"
+                        onfocus="this.style.borderColor='var(--brand-blue)'"
+                        onblur="this.style.borderColor='var(--border-medium)'"
+                        onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); enviarMensagemChatIA();}"
+                    ></textarea>
+                    <button 
+                        id="btnEnviarChatIA"
+                        onclick="enviarMensagemChatIA()"
+                        style="background:linear-gradient(135deg, var(--brand-blue), var(--brand-blue-dark)); color:white; border:none; border-radius:var(--radius-sm); padding:10px 16px; font-weight:600; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:6px; transition:transform 0.2s, opacity 0.2s;"
+                        onmouseover="this.style.transform='translateY(-1px)'"
+                        onmouseout="this.style.transform='translateY(0)'"
+                    >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                        </svg>
+                        Enviar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modalEditarCliente" onclick="if(event.target===this)closeModal('modalEditarCliente')">
+        <div class="modal-card" style="max-width:500px;">
+            <h3 id="modalEditarClienteTitle">Editar Cliente</h3>
+            <input type="hidden" id="editClienteId">
+            <label>Nome / Razão Social *</label>
+            <input type="text" id="editClienteNome" class="form-input" placeholder="Nome completo">
+            <div class="field-error" id="errEditNome"></div>
+            <div class="modal-row" style="margin-top:8px;">
+                <div><label>CPF / CNPJ *</label><input type="text" id="editClienteCpf" class="form-input" placeholder="000.000.000-00"><div class="field-error" id="errEditCpf"></div></div>
+                <div><label>WhatsApp / Telefone *</label><input type="text" id="editClienteTel" class="form-input" placeholder="(XX) XXXXX-XXXX"><div class="field-error" id="errEditTel"></div></div>
+            </div>
+            <label style="margin-top:8px;">E-mail</label>
+            <input type="email" id="editClienteEmail" class="form-input" placeholder="cliente@email.com">
+            <div class="field-error" id="errEditEmail"></div>
+            <!-- Campo de Transferência de Carteira: visível só para Gerente/Admin -->
+            <div id="campoTransferenciaCarteira" style="display:none; margin-top:12px;">
+                <label>Transferir Carteira para</label>
+                <select id="editClienteVendedor" class="form-input" style="margin-bottom:4px;">
+                    <option value="">— Manter vendedor atual —</option>
+                </select>
+                <div style="font-size:var(--font-xs); color:var(--text-muted); margin-top:3px;">
+                    Todos os orçamentos deste cliente serão transferidos para o vendedor selecionado.
+                </div>
+            </div>
+            <div class="modal-btns">
+                <button class="btn-cancelar-modal" onclick="closeModal('modalEditarCliente')">Cancelar</button>
+                <button class="btn-salvar-modal" id="btnSalvarEditCliente" onclick="salvarEdicaoCliente()">
+                    <span class="btn-spinner"></span><span class="btn-text">Salvar Alterações</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Excluir Cliente -->
+    <div class="modal-overlay" id="modalExcluirCliente" onclick="if(event.target===this)closeModal('modalExcluirCliente')">
+        <div class="modal-card" style="max-width:420px;">
+            <h3>Excluir Cliente</h3>
+            <p style="margin-bottom:12px;">Tem certeza que deseja excluir <strong id="nomeClienteExcluir"></strong>?</p>
+            <p style="font-size:var(--font-xs); color:var(--danger-text); background:var(--danger-light-bg); padding:10px; border-radius:var(--radius-sm); border:1px solid var(--danger-border); margin-bottom:4px;" id="avisoExcluirCliente"></p>
+            <div class="field-error" id="errExcluirCliente"></div>
+            <div class="modal-btns">
+                <button class="btn-cancelar-modal" onclick="closeModal('modalExcluirCliente')">Cancelar</button>
+                <button class="btn-salvar-modal" id="btnConfirmarExcluirCliente" style="background:#ef4444;" onclick="confirmarExcluirCliente()">
+                    <span class="btn-spinner"></span><span class="btn-text">Excluir Definitivamente</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Modal: Novo Produto Estoque -->
+    <div class="modal-overlay" id="modalNovoProduto" onclick="if(event.target===this)closeModal('modalNovoProduto')">
+        <div class="modal-card">
+            <h3>Adicionar Produto ao Estoque</h3>
+            
+            <form id="formNovoProduto" onsubmit="salvarNovoProdutoEstoque(event)">
+                <div>
+                    <label class="form-label" style="font-size: 13px; font-weight: 600; text-transform: uppercase; color: var(--text-muted);">Selecionar Produto Base *</label>
+                    <select id="novoProdSelecaoBase" class="form-input" required>
+                        <option value="" disabled selected>Selecione um produto...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Categoria *</label>
+                    <select id="novoProdCategoria" class="form-input" required>
+                        <option value="" disabled selected>Selecione uma categoria...</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="campoNovoProdLoja">
+                    <label class="form-label">Loja *</label>
+                    <select id="novoProdLoja" class="form-input" required>
+                        <option value="" disabled selected>Selecione a loja...</option>
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Qualidade</label>
+                        <select id="novoProdQualidade" class="form-input" required>
+                            <option value="" disabled selected>Selecione a qualidade...</option>
+                            <option value="novo">Novo</option>
+                            <option value="mostruario">Mostruário</option>
+                            <option value="avaria">Avaria</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Qtd. Inicial</label>
+                        <input type="number" id="novoProdQuantidade" class="form-input" min="0" value="0">
+                    </div>
+                </div>
+
+                <div class="modal-btns">
+                    <button type="button" class="btn-cancelar-modal" onclick="fecharModalNovoProduto()">Cancelar</button>
+                    <button type="submit" class="btn-salvar-modal">
+                        <span class="btn-spinner"></span>
+                        <span class="btn-text">Salvar Produto</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>

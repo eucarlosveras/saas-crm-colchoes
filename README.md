@@ -39,7 +39,14 @@ O front-end é dividido em módulos ES6 dentro de `src/`, um por área de domín
 | `radar.js` | Meu Radar + assistente de IA |
 | `main.js` | Ponto de entrada: bootstrap e exposição de funções em `window` para os `onclick` inline do HTML |
 
-`index.html`/`style.css` continuam como HTML/CSS "puros"; as telas internas são strings de template renderizadas dinamicamente em `#mainContent` pelas funções `render*` de cada módulo.
+`app/index.html`/`style.css` continuam como HTML/CSS "puros"; as telas internas são strings de template renderizadas dinamicamente em `#mainContent` pelas funções `render*` de cada módulo.
+
+## Estrutura de páginas (multi-page build via Vite)
+
+- `index.html` (raiz) — landing page de marketing, pública, sem dependência do Supabase.
+- `app/index.html` — o CRM propriamente dito (login + sistema).
+
+O `vite.config.js` builda os dois entry points; o resultado fica em `dist/index.html` e `dist/app/index.html`. Em produção: `https://<domínio>/` mostra a landing e `https://<domínio>/app/` abre o sistema.
 
 ## Banco de dados
 

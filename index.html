@@ -1,501 +1,961 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CV CRM · Gestão Comercial</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ColchãoCRM — CRM para lojas de colchões</title>
+<meta name="description" content="O CRM feito para quem vende colchões no Brasil. Pipeline visual, orçamentos automáticos e Radar IA para identificar quem está pronto para comprar. Teste 14 dias grátis.">
+<meta property="og:title" content="ColchãoCRM — CRM para lojas de colchões">
+<meta property="og:description" content="Pipeline visual, orçamentos automáticos e Radar IA para lojas de colchões. Teste 14 dias grátis, sem cartão.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap">
+
+<style>
+/* ── TOKENS ─────────────────────────────────────────────── */
+:root {
+  --bg:        #FAFAF8;
+  --bg-alt:    #F2EDE4;
+  --bg-dark:   #0D1F35;
+  --surface:   #FFFFFF;
+  --txt:       #0D1F35;
+  --txt-muted: #6B7685;
+  --border:    #E3DDD5;
+  --accent:    #F4A418;
+  --accent-dk: #D48E0A;
+  --green:     #1B7A4D;
+  --green-bg:  #E8F5EE;
+  --shadow:    0 2px 12px rgba(13,31,53,.08);
+  --shadow-lg: 0 8px 48px rgba(13,31,53,.14);
+  --r:         12px;
+  --r-sm:      8px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:        #080F1A;
+    --bg-alt:    #0D1A2C;
+    --bg-dark:   #04090F;
+    --surface:   #0F1E32;
+    --txt:       #EDE9E1;
+    --txt-muted: #8596A8;
+    --border:    #172334;
+    --accent:    #F4A418;
+    --accent-dk: #FFB82E;
+    --green:     #2AAA6A;
+    --green-bg:  #0B2318;
+    --shadow:    0 2px 16px rgba(0,0,0,.4);
+    --shadow-lg: 0 8px 48px rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"] {
+  --bg:        #080F1A;
+  --bg-alt:    #0D1A2C;
+  --bg-dark:   #04090F;
+  --surface:   #0F1E32;
+  --txt:       #EDE9E1;
+  --txt-muted: #8596A8;
+  --border:    #172334;
+  --accent:    #F4A418;
+  --accent-dk: #FFB82E;
+  --green:     #2AAA6A;
+  --green-bg:  #0B2318;
+  --shadow:    0 2px 16px rgba(0,0,0,.4);
+  --shadow-lg: 0 8px 48px rgba(0,0,0,.5);
+}
+
+/* ── RESET ──────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'DM Sans',sans-serif;
+  background:var(--bg);
+  color:var(--txt);
+  line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+img{max-width:100%}
+
+/* ── TYPE ───────────────────────────────────────────────── */
+h1,h2,h3,h4{font-family:'Syne',sans-serif;line-height:1.12;text-wrap:balance}
+h1{font-size:clamp(2.2rem,5vw,3.8rem);font-weight:800;letter-spacing:-.025em}
+h2{font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:700;letter-spacing:-.015em}
+h3{font-size:1.15rem;font-weight:700}
+p{color:var(--txt-muted);line-height:1.72}
+
+/* ── LAYOUT ─────────────────────────────────────────────── */
+.wrap{max-width:1140px;margin:0 auto;padding:0 24px}
+section{padding:96px 0}
+
+/* ── BUTTONS ────────────────────────────────────────────── */
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:14px 28px;border-radius:var(--r-sm);
+  font-family:'DM Sans',sans-serif;font-weight:600;font-size:.97rem;
+  cursor:pointer;text-decoration:none;transition:all .18s;border:none;
+}
+.btn-primary{background:var(--accent);color:#0D1F35}
+.btn-primary:hover{background:var(--accent-dk);transform:translateY(-1px);box-shadow:0 4px 22px rgba(244,164,24,.38)}
+.btn-outline{background:transparent;color:var(--txt);border:1.5px solid var(--border)}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-white{background:#fff;color:#0D1F35;font-weight:700}
+.btn-white:hover{background:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
+
+/* ── NAV ────────────────────────────────────────────────── */
+nav{
+  position:sticky;top:0;z-index:200;
+  background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+}
+.nav-in{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:15px 24px;max-width:1140px;margin:0 auto;
+}
+.logo{
+  font-family:'Syne',sans-serif;font-size:1.35rem;font-weight:800;
+  color:var(--txt);text-decoration:none;
+}
+.logo em{color:var(--accent);font-style:normal}
+.nav-links{display:flex;align-items:center;gap:30px;list-style:none}
+.nav-links a{text-decoration:none;color:var(--txt-muted);font-size:.9rem;font-weight:500;transition:color .18s}
+.nav-links a:hover{color:var(--txt)}
+.nav-cta{display:flex;align-items:center;gap:10px}
+
+/* ── HERO ───────────────────────────────────────────────── */
+.hero{padding:76px 0 72px;overflow:hidden}
+.hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+.eyebrow{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--green-bg);color:var(--green);
+  padding:5px 14px;border-radius:100px;font-size:.82rem;font-weight:600;
+  margin-bottom:22px;
+}
+.hero h1{margin-bottom:20px}
+.hero .lead{font-size:1.1rem;margin-bottom:36px;max-width:460px}
+.hero-acts{display:flex;gap:14px;flex-wrap:wrap}
+.hero-stats{
+  display:flex;gap:28px;margin-top:44px;padding-top:28px;
+  border-top:1px solid var(--border);
+}
+.hero-stats strong{
+  display:block;font-family:'DM Mono',monospace;
+  font-size:1.45rem;font-weight:500;color:var(--txt);
+}
+.hero-stats span{font-size:.82rem;color:var(--txt-muted)}
+
+/* ── MOCKUP ─────────────────────────────────────────────── */
+.mockup-wrap{position:relative}
+.mockup-wrap::before{
+  content:'';position:absolute;top:-40px;right:-40px;
+  width:300px;height:300px;
+  background:radial-gradient(circle,rgba(244,164,24,.18) 0%,transparent 65%);
+  pointer-events:none;border-radius:50%;
+}
+.mock-win{
+  background:var(--surface);border-radius:16px;
+  box-shadow:var(--shadow-lg);overflow:hidden;
+  border:1px solid var(--border);position:relative;z-index:1;
+}
+.mock-bar{
+  background:var(--bg-alt);padding:11px 14px;
+  display:flex;align-items:center;gap:7px;
+  border-bottom:1px solid var(--border);
+}
+.dot{width:10px;height:10px;border-radius:50%}
+.dot.r{background:#FF5F57}.dot.y{background:#FFBD2E}.dot.g{background:#28CA41}
+.mock-url{
+  flex:1;background:var(--bg);border:1px solid var(--border);
+  border-radius:5px;padding:3px 10px;margin:0 8px;
+  font-family:'DM Mono',monospace;font-size:.7rem;color:var(--txt-muted);
+}
+.mock-body{display:grid;grid-template-columns:46px 1fr;height:310px}
+.mock-side{
+  background:var(--bg-dark);padding:14px 0;
+  display:flex;flex-direction:column;align-items:center;gap:18px;
+}
+.si{width:22px;height:22px;border-radius:5px;background:rgba(255,255,255,.09)}
+.si.on{background:var(--accent)}
+.mock-main{padding:14px;background:var(--surface);overflow:hidden}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:10px}
+.kpi{background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:9px 10px}
+.kpi .kl{font-size:.58rem;color:var(--txt-muted);margin-bottom:3px}
+.kpi .kv{font-family:'DM Mono',monospace;font-size:.9rem;font-weight:500;color:var(--txt)}
+.kpi .kd{font-size:.58rem;color:var(--green)}
+.chart-area{
+  background:var(--bg);border:1px solid var(--border);border-radius:7px;
+  padding:10px;margin-bottom:10px;display:flex;align-items:flex-end;
+  gap:5px;height:82px;
+}
+.bar{flex:1;border-radius:3px 3px 0 0;background:var(--border)}
+.bar.hi{background:var(--accent)}
+.bar.md{background:rgba(244,164,24,.42)}
+.pipe{display:flex;gap:6px}
+.pcol{
+  flex:1;background:var(--bg);border:1px solid var(--border);
+  border-radius:6px;padding:6px;
+}
+.pcol .ph{font-size:.52rem;font-weight:700;color:var(--txt-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.pcard{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:4px;padding:5px;margin-bottom:4px;
+}
+.pcard .pn{font-size:.58rem;font-weight:600;color:var(--txt)}
+.pcard .pv{font-size:.55rem;color:var(--green);font-family:'DM Mono',monospace}
+
+/* ── PROBLEM SECTION ────────────────────────────────────── */
+.problem{background:var(--bg-dark)}
+.problem h2{color:#fff;margin-bottom:12px}
+.problem>.wrap>p{color:rgba(255,255,255,.55);max-width:500px;margin-bottom:48px}
+.prb-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.prb-card{
+  background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);
+  border-radius:var(--r);padding:28px;
+}
+.prb-icon{font-size:1.8rem;margin-bottom:14px}
+.prb-card h3{color:#fff;font-size:1rem;margin-bottom:8px}
+.prb-card p{font-size:.88rem;color:rgba(255,255,255,.5)}
+.vs{
+  text-align:center;margin:40px 0 0;
+  font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;
+  color:var(--accent);letter-spacing:.04em;
+}
+
+/* ── FEATURES ───────────────────────────────────────────── */
+.feat-hd{text-align:center;margin-bottom:60px}
+.feat-hd p{max-width:520px;margin:14px auto 0;font-size:1rem}
+.feat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:28px}
+.feat-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:32px;
+  transition:box-shadow .2s,transform .2s;
+}
+.feat-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px)}
+.ficon{
+  width:50px;height:50px;border-radius:11px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.4rem;margin-bottom:18px;
+}
+.ia{background:rgba(244,164,24,.12)}
+.ig{background:var(--green-bg)}
+.ib{background:rgba(59,130,246,.1)}
+.ip{background:rgba(139,92,246,.1)}
+.feat-card h3{margin-bottom:10px}
+.feat-card p{font-size:.9rem}
+.feat-tag{
+  display:inline-block;margin-top:14px;padding:3px 11px;
+  border-radius:100px;font-size:.74rem;font-weight:600;
+  background:var(--bg-alt);color:var(--txt-muted);
+}
+
+/* ── AI SECTION ─────────────────────────────────────────── */
+.ai-sec{background:var(--bg-dark);position:relative;overflow:hidden}
+.ai-sec::before{
+  content:'';position:absolute;top:-40%;right:-10%;
+  width:560px;height:560px;
+  background:radial-gradient(circle,rgba(244,164,24,.1) 0%,transparent 65%);
+  pointer-events:none;border-radius:50%;
+}
+.ai-grid{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center;position:relative;z-index:1}
+.ai-grid h2{color:#fff;margin-bottom:16px}
+.ai-grid>div>p{color:rgba(255,255,255,.55);margin-bottom:28px}
+.ai-bullets{list-style:none;display:flex;flex-direction:column;gap:14px}
+.ai-bullets li{display:flex;align-items:flex-start;gap:10px;color:rgba(255,255,255,.78);font-size:.92rem}
+.ai-bullets li::before{content:'▸';color:var(--accent);flex-shrink:0;margin-top:3px;font-size:.78rem}
+.radar-card{
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);
+  border-radius:var(--r);padding:24px;
+}
+.radar-title{
+  color:rgba(255,255,255,.4);font-size:.72rem;
+  text-transform:uppercase;letter-spacing:.09em;margin-bottom:18px;
+}
+.rc{
+  display:flex;align-items:center;gap:11px;
+  padding:11px 0;border-bottom:1px solid rgba(255,255,255,.06);
+}
+.rc:last-child{border-bottom:none}
+.av{
+  width:34px;height:34px;border-radius:50%;flex-shrink:0;
+  background:rgba(244,164,24,.18);color:var(--accent);
+  font-size:.72rem;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+}
+.ri{flex:1}
+.rn{color:#fff;font-size:.88rem;font-weight:500}
+.rs{color:rgba(255,255,255,.38);font-size:.72rem}
+.score{text-align:right}
+.sbar{width:72px;height:3px;border-radius:2px;background:rgba(255,255,255,.1);margin-bottom:3px;position:relative;overflow:hidden}
+.sfill{position:absolute;top:0;left:0;height:100%;border-radius:2px;background:linear-gradient(90deg,#F4A418,#FFD166)}
+.spct{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--accent)}
+
+/* ── STEPS ──────────────────────────────────────────────── */
+.steps{background:var(--bg-alt)}
+.steps-hd{text-align:center;margin-bottom:60px}
+.steps-hd p{max-width:480px;margin:14px auto 0}
+.steps-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:36px;
+  position:relative;
+}
+.steps-grid::before{
+  content:'';position:absolute;top:40px;
+  left:calc(16.66% + 16px);right:calc(16.66% + 16px);
+  height:1.5px;background:var(--accent);opacity:.25;
+}
+.step{text-align:center}
+.step-num{
+  width:80px;height:80px;border-radius:50%;
+  background:var(--accent);color:#0D1F35;
+  font-family:'DM Mono',monospace;font-size:1.35rem;font-weight:500;
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 22px;position:relative;z-index:1;
+}
+.step h3{margin-bottom:8px}
+.step p{font-size:.88rem}
+
+/* ── PRICING ────────────────────────────────────────────── */
+.price-hd{text-align:center;margin-bottom:44px}
+.price-hd p{max-width:440px;margin:14px auto 0}
+.toggle-row{
+  display:flex;align-items:center;justify-content:center;
+  gap:14px;margin-bottom:44px;
+}
+.tl{font-size:.92rem;font-weight:500}
+.sw{position:relative;display:inline-block;width:50px;height:26px}
+.sw input{opacity:0;width:0;height:0}
+.sl{
+  position:absolute;inset:0;background:var(--border);
+  border-radius:13px;cursor:pointer;transition:.28s;
+}
+.sl::before{
+  content:'';position:absolute;width:18px;height:18px;
+  left:4px;top:4px;background:#fff;border-radius:50%;transition:.28s;
+}
+.sw input:checked+.sl{background:var(--accent)}
+.sw input:checked+.sl::before{transform:translateX(24px)}
+.badge-a{
+  background:var(--green-bg);color:var(--green);
+  padding:3px 10px;border-radius:100px;font-size:.73rem;font-weight:700;
+}
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.plan{
+  background:var(--surface);border:1.5px solid var(--border);
+  border-radius:var(--r);padding:34px 26px;position:relative;
+}
+.plan.pop{border-color:var(--accent);box-shadow:0 0 0 4px rgba(244,164,24,.1)}
+.pop-badge{
+  position:absolute;top:-13px;left:50%;transform:translateX(-50%);
+  background:var(--accent);color:#0D1F35;padding:4px 16px;
+  border-radius:100px;font-size:.73rem;font-weight:700;white-space:nowrap;
+}
+.plan-name{
+  font-family:'Syne',sans-serif;font-size:.88rem;font-weight:700;
+  text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;
+}
+.plan-desc{font-size:.83rem;margin-bottom:22px;min-height:38px}
+.p-from{font-size:.75rem;color:var(--txt-muted)}
+.p-val{
+  font-family:'DM Mono',monospace;font-size:2.3rem;
+  font-weight:500;color:var(--txt);line-height:1;
+}
+.p-period{font-size:.82rem;color:var(--txt-muted)}
+.p-anual-txt{font-size:.72rem;color:var(--green);margin:6px 0 24px;min-height:16px}
+.pf{list-style:none;display:flex;flex-direction:column;gap:11px;margin-bottom:28px}
+.pf li{display:flex;align-items:center;gap:9px;font-size:.88rem}
+.pf li::before{content:'✓';color:var(--green);font-weight:700;flex-shrink:0}
+.pf li.no{opacity:.3}
+.pf li.no::before{content:'×';color:var(--txt-muted)}
+.plan-btn{width:100%;justify-content:center;padding:13px}
+/* price switching */
+.pm{display:block}.pa{display:none}
+
+/* ── FAQ ────────────────────────────────────────────────── */
+.faq-hd{text-align:center;margin-bottom:56px}
+.faq-list{max-width:700px;margin:0 auto}
+.faq-item{border-bottom:1px solid var(--border)}
+.faq-q{
+  width:100%;background:none;border:none;text-align:left;
+  padding:18px 0;font-family:'DM Sans',sans-serif;
+  font-size:.97rem;font-weight:600;color:var(--txt);
+  cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:16px;
+}
+.faq-ico{flex-shrink:0;color:var(--accent);font-size:1.2rem;line-height:1;transition:transform .28s}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .3s ease}
+.faq-a p{padding-bottom:18px;font-size:.9rem}
+.faq-item.open .faq-ico{transform:rotate(45deg)}
+.faq-item.open .faq-a{max-height:260px}
+
+/* ── CTA FINAL ──────────────────────────────────────────── */
+.cta-final{
+  background:var(--bg-dark);text-align:center;
+  position:relative;overflow:hidden;
+}
+.cta-final::after{
+  content:'';position:absolute;bottom:-60%;left:50%;transform:translateX(-50%);
+  width:700px;height:700px;
+  background:radial-gradient(circle,rgba(244,164,24,.07) 0%,transparent 60%);
+  pointer-events:none;border-radius:50%;
+}
+.cta-final h2{color:#fff;margin-bottom:14px;position:relative;z-index:1}
+.cta-final>.wrap>p{color:rgba(255,255,255,.55);margin-bottom:36px;font-size:1.05rem;position:relative;z-index:1}
+.cta-acts{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;position:relative;z-index:1}
+.cta-note{color:rgba(255,255,255,.3);font-size:.78rem;margin-top:18px;position:relative;z-index:1}
+
+/* ── FOOTER ─────────────────────────────────────────────── */
+footer{
+  background:var(--bg-dark);
+  border-top:1px solid rgba(255,255,255,.06);
+  padding:48px 0 28px;
+}
+.footer-in{
+  display:grid;grid-template-columns:2fr 1fr 1fr 1fr;
+  gap:36px;margin-bottom:36px;
+}
+.f-brand p{font-size:.83rem;color:rgba(255,255,255,.4);margin-top:10px;max-width:220px}
+.f-col h4{
+  font-family:'Syne',sans-serif;font-size:.8rem;font-weight:700;
+  text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.5);margin-bottom:14px;
+}
+.f-col ul{list-style:none;display:flex;flex-direction:column;gap:9px}
+.f-col a{text-decoration:none;color:rgba(255,255,255,.4);font-size:.87rem;transition:color .18s}
+.f-col a:hover{color:var(--accent)}
+.footer-btm{
+  border-top:1px solid rgba(255,255,255,.06);padding-top:22px;
+  display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;
+}
+.footer-btm p{font-size:.78rem;color:rgba(255,255,255,.28)}
+.f-links{display:flex;gap:18px}
+.f-links a{font-size:.78rem;color:rgba(255,255,255,.28);text-decoration:none}
+.f-links a:hover{color:rgba(255,255,255,.6)}
+
+/* ── RESPONSIVE ─────────────────────────────────────────── */
+@media(max-width:900px){
+  .hero-grid{grid-template-columns:1fr;gap:40px}
+  .mockup-wrap{display:none}
+  .prb-grid{grid-template-columns:1fr}
+  .feat-grid{grid-template-columns:1fr}
+  .ai-grid{grid-template-columns:1fr;gap:40px}
+  .steps-grid{grid-template-columns:1fr}
+  .steps-grid::before{display:none}
+  .plans{grid-template-columns:1fr;max-width:380px;margin:0 auto}
+  .footer-in{grid-template-columns:1fr 1fr}
+  nav .nav-links,.nav-cta .btn-outline{display:none}
+}
+@media(max-width:600px){
+  section{padding:64px 0}
+  .hero-stats{flex-direction:column;gap:14px}
+  .footer-in{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+</style>
 </head>
 <body>
-    <div id="globalLoader"><div class="loader-fill"></div></div>
-    <div id="toast-container"></div>
 
-    <button class="hamburger" id="hamburgerBtn" aria-label="Abrir menu">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-        </svg>
-    </button>
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-    <div class="login-overlay" id="loginOverlay">
-        <div class="login-card">
-            <div class="login-icon" aria-hidden="true">CV</div>
-            <h2>CV CRM</h2>
-            <p class="subtitle">Acesso ao Sistema</p>
-            <div class="login-form">
-                <input type="email" id="loginEmail" placeholder="Seu e-mail">
-                <input type="password" id="loginSenha" placeholder="Sua senha">
-            </div>
-            <button class="login-btn" id="btnLogin" onclick="handleLogin()">
-                <span class="spinner"></span>
-                <span class="btn-text">Entrar no Sistema</span>
-            </button>
-            <div class="login-msg" id="loginMsg" role="alert"></div>
-        </div>
+<!-- ═══════════════════════════════════════════════
+     NAV
+═══════════════════════════════════════════════ -->
+<nav>
+  <div class="nav-in">
+    <a href="#" class="logo">Colchão<em>CRM</em></a>
+    <ul class="nav-links">
+      <li><a href="#funcionalidades">Funcionalidades</a></li>
+      <li><a href="#radar-ia">Radar IA</a></li>
+      <li><a href="#planos">Planos</a></li>
+      <li><a href="#faq">FAQ</a></li>
+    </ul>
+    <div class="nav-cta">
+      <a href="#planos" class="btn btn-outline" style="padding:9px 18px;font-size:.88rem">Ver planos</a>
+      <a href="app/" class="btn btn-primary" style="padding:9px 18px;font-size:.88rem">Começar grátis</a>
     </div>
+  </div>
+</nav>
 
-    <aside class="sidebar" id="sidebar" style="display:none;" role="navigation" aria-label="Menu principal">
-        <button class="sidebar-collapse-btn" id="btnSidebarCollapse" onclick="toggleSidebarCollapse()" title="Recolher/expandir menu" aria-label="Recolher ou expandir menu">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+<!-- ═══════════════════════════════════════════════
+     HERO
+═══════════════════════════════════════════════ -->
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-grid">
+      <!-- texto -->
+      <div>
+        <div class="eyebrow">✦ CRM especializado em lojas de colchões</div>
+        <h1>Venda mais.<br>Gerencie tudo.<br>Cresça com<br>inteligência.</h1>
+        <p class="lead">Do primeiro contato ao fechamento, em um painel só. Pipeline visual, orçamentos automáticos e Radar IA para identificar quem está pronto para comprar.</p>
+        <div class="hero-acts">
+          <a href="app/" class="btn btn-primary" id="trial">Começar 14 dias grátis →</a>
+          <a href="#funcionalidades" class="btn btn-outline">Ver funcionalidades</a>
+        </div>
+        <!-- Stats de tração real (nº de lojas, GMV, retenção) só entram aqui quando
+             existirem clientes pagantes de verdade — não fabricar números. -->
+        <div class="hero-stats">
+          <div>
+            <strong>14 dias</strong>
+            <span>trial grátis, sem cartão</span>
+          </div>
+          <div>
+            <strong>100%</strong>
+            <span>focado em lojas de colchão</span>
+          </div>
+          <div>
+            <strong>Radar IA</strong>
+            <span>prioriza quem vai comprar</span>
+          </div>
+        </div>
+      </div>
+      <!-- mockup -->
+      <div class="mockup-wrap">
+        <div class="mock-win">
+          <div class="mock-bar">
+            <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+            <div class="mock-url">app.colchaocrm.com.br/dashboard</div>
+          </div>
+          <div class="mock-body">
+            <div class="mock-side">
+              <div class="si on"></div>
+              <div class="si"></div>
+              <div class="si"></div>
+              <div class="si"></div>
+              <div class="si"></div>
+            </div>
+            <div class="mock-main">
+              <div class="kpis">
+                <div class="kpi">
+                  <div class="kl">Vendas do mês</div>
+                  <div class="kv">R$&nbsp;47k</div>
+                  <div class="kd">↑ 18%</div>
+                </div>
+                <div class="kpi">
+                  <div class="kl">Orçamentos</div>
+                  <div class="kv">23</div>
+                  <div class="kd">↑ 5</div>
+                </div>
+                <div class="kpi">
+                  <div class="kl">Conversão</div>
+                  <div class="kv">62%</div>
+                  <div class="kd">↑ 4pp</div>
+                </div>
+              </div>
+              <div class="chart-area">
+                <div class="bar" style="height:38%"></div>
+                <div class="bar md" style="height:58%"></div>
+                <div class="bar" style="height:44%"></div>
+                <div class="bar md" style="height:72%"></div>
+                <div class="bar hi" style="height:92%"></div>
+                <div class="bar md" style="height:68%"></div>
+                <div class="bar" style="height:52%"></div>
+              </div>
+              <div class="pipe">
+                <div class="pcol">
+                  <div class="ph">Contato</div>
+                  <div class="pcard"><div class="pn">Maria S.</div><div class="pv">R$&nbsp;2.800</div></div>
+                  <div class="pcard"><div class="pn">João P.</div><div class="pv">R$&nbsp;1.400</div></div>
+                </div>
+                <div class="pcol">
+                  <div class="ph">Proposta</div>
+                  <div class="pcard"><div class="pn">Ana C.</div><div class="pv">R$&nbsp;4.200</div></div>
+                </div>
+                <div class="pcol">
+                  <div class="ph">Fechamento</div>
+                  <div class="pcard"><div class="pn">Pedro R.</div><div class="pv">R$&nbsp;3.600</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     PROBLEMA
+═══════════════════════════════════════════════ -->
+<section class="problem">
+  <div class="wrap">
+    <h2>Sua loja ainda depende<br>de planilha e caderno?</h2>
+    <p>Lojas de colchão perdem vendas todos os dias por falta de acompanhamento. Não é culpa sua — é falta da ferramenta certa.</p>
+    <div class="prb-grid">
+      <div class="prb-card">
+        <div class="prb-icon">📋</div>
+        <h3>Orçamentos perdidos</h3>
+        <p>O cliente pediu proposta, saiu "pra pensar" e você nem lembrou de ligar de volta. Aquela venda foi para o concorrente.</p>
+      </div>
+      <div class="prb-card">
+        <div class="prb-icon">📊</div>
+        <h3>Sem visibilidade de vendas</h3>
+        <p>Você só descobre o resultado do mês quando pede para o financeiro. Decisões são tomadas no escuro.</p>
+      </div>
+      <div class="prb-card">
+        <div class="prb-icon">🏪</div>
+        <h3>Multi-loja impossível</h3>
+        <p>Com 2 lojas ou mais, controlar vendas, estoque e metas de forma consolidada vira um pesadelo.</p>
+      </div>
+    </div>
+    <p class="vs">↓ &nbsp;ColchãoCRM resolve cada um desses problemas</p>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     FUNCIONALIDADES
+═══════════════════════════════════════════════ -->
+<section id="funcionalidades">
+  <div class="wrap">
+    <div class="feat-hd">
+      <h2>Tudo que sua loja precisa,<br>em um lugar só</h2>
+      <p>Desenvolvido especificamente para o varejo de colchões — não é um CRM genérico adaptado.</p>
+    </div>
+    <div class="feat-grid">
+      <div class="feat-card">
+        <div class="ficon ia">📈</div>
+        <h3>Pipeline Visual de Vendas</h3>
+        <p>Acompanhe cada cliente do primeiro contato ao fechamento. Saiba exatamente em que etapa está cada negociação e quais precisam de atenção agora.</p>
+        <span class="feat-tag">Drag &amp; drop</span>
+      </div>
+      <div class="feat-card">
+        <div class="ficon ig">📄</div>
+        <h3>Orçamentos em Segundos</h3>
+        <p>Gere propostas profissionais diretamente do sistema e envie por WhatsApp com um clique. Sem planilha, sem Word, sem retrabalho.</p>
+        <span class="feat-tag">Texto pronto p/ WhatsApp</span>
+      </div>
+      <div class="feat-card">
+        <div class="ficon ib">🏪</div>
+        <h3>Gestão Multi-loja</h3>
+        <p>Visualize vendas, metas e estoque de todas as suas lojas em um painel unificado. Compare performance entre unidades com um clique.</p>
+        <span class="feat-tag">Painel centralizado</span>
+      </div>
+      <div class="feat-card">
+        <div class="ficon ip">📦</div>
+        <h3>Controle de Estoque</h3>
+        <p>Alertas automáticos de estoque mínimo, histórico de movimentação e visibilidade por loja. Nunca mais perca uma venda por falta de produto.</p>
+        <span class="feat-tag">Alertas automáticos</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     RADAR IA
+═══════════════════════════════════════════════ -->
+<section class="ai-sec" id="radar-ia">
+  <div class="wrap">
+    <div class="ai-grid">
+      <div>
+        <div class="eyebrow" style="margin-bottom:18px">✦ Inteligência Artificial</div>
+        <h2>Radar IA: saiba quem está pronto para comprar</h2>
+        <p>O Radar IA analisa o comportamento de cada cliente — visitas, orçamentos, interesse demonstrado — e gera um score de probabilidade de compra. Seus vendedores focam em quem realmente vai fechar.</p>
+        <ul class="ai-bullets">
+          <li>Score de probabilidade de fechamento por cliente</li>
+          <li>Alertas de orçamentos que estão esfriando</li>
+          <li>Identificação automática dos melhores produtos por perfil</li>
+          <li>Insights sobre sazonalidade e picos de demanda</li>
+        </ul>
+      </div>
+      <div class="radar-card">
+        <div class="radar-title">🎯 Radar IA — Oportunidades do dia</div>
+        <div class="rc">
+          <div class="av">MS</div>
+          <div class="ri">
+            <div class="rn">Maria Silva</div>
+            <div class="rs">3ª visita · Orçamento R$&nbsp;4.200</div>
+          </div>
+          <div class="score">
+            <div class="sbar"><div class="sfill" style="width:92%"></div></div>
+            <div class="spct">92%</div>
+          </div>
+        </div>
+        <div class="rc">
+          <div class="av">JP</div>
+          <div class="ri">
+            <div class="rn">João Pereira</div>
+            <div class="rs">2ª visita · Viu Box Queen</div>
+          </div>
+          <div class="score">
+            <div class="sbar"><div class="sfill" style="width:78%"></div></div>
+            <div class="spct">78%</div>
+          </div>
+        </div>
+        <div class="rc">
+          <div class="av">AC</div>
+          <div class="ri">
+            <div class="rn">Ana Carvalho</div>
+            <div class="rs">Orçamento frio há 8 dias</div>
+          </div>
+          <div class="score">
+            <div class="sbar"><div class="sfill" style="width:55%"></div></div>
+            <div class="spct">55%</div>
+          </div>
+        </div>
+        <div class="rc">
+          <div class="av">PR</div>
+          <div class="ri">
+            <div class="rn">Pedro Rocha</div>
+            <div class="rs">1ª visita · Alto interesse</div>
+          </div>
+          <div class="score">
+            <div class="sbar"><div class="sfill" style="width:40%"></div></div>
+            <div class="spct">40%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     COMO FUNCIONA
+═══════════════════════════════════════════════ -->
+<section class="steps">
+  <div class="wrap">
+    <div class="steps-hd">
+      <h2>Configure em 15 minutos</h2>
+      <p>Sem TI, sem integração complicada. Você mesmo coloca no ar.</p>
+    </div>
+    <div class="steps-grid">
+      <div class="step">
+        <div class="step-num">01</div>
+        <h3>Crie sua conta</h3>
+        <p>Cadastre-se com e-mail, configure o nome da loja e adicione os vendedores. Menos de 5 minutos.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <h3>Cadastre produtos e clientes</h3>
+        <p>Registre seu catálogo e comece a lançar clientes direto no sistema, sem planilha intermediária.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <h3>Comece a vender</h3>
+        <p>Crie orçamentos, mova clientes no pipeline e acompanhe metas em tempo real. Simples assim.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     PLANOS
+═══════════════════════════════════════════════ -->
+<section id="planos">
+  <div class="wrap">
+    <div class="price-hd">
+      <h2>Planos para toda loja</h2>
+      <p>Comece grátis por 14 dias. Sem cartão de crédito.</p>
+    </div>
+    <div class="toggle-row">
+      <span class="tl">Mensal</span>
+      <label class="sw">
+        <input type="checkbox" id="bt">
+        <span class="sl"></span>
+      </label>
+      <span class="tl">Anual <span class="badge-a">−20%</span></span>
+    </div>
+    <div class="plans">
+      <!-- ESSENCIAL -->
+      <div class="plan">
+        <div class="plan-name">Essencial</div>
+        <p class="plan-desc">Para quem está começando ou tem uma loja pequena.</p>
+        <div class="p-from">a partir de</div>
+        <div>
+          <span class="pm"><span class="p-val">97</span><span class="p-period">&nbsp;R$/mês</span></span>
+          <span class="pa"><span class="p-val">77</span><span class="p-period">&nbsp;R$/mês</span></span>
+        </div>
+        <p class="p-anual-txt" id="an1"></p>
+        <ul class="pf">
+          <li>1 loja</li>
+          <li>Até 3 vendedores</li>
+          <li>Clientes e orçamentos ilimitados</li>
+          <li>Pipeline de vendas</li>
+          <li>Agenda e comentários</li>
+          <li class="no">Radar IA</li>
+          <li class="no">Controle de estoque</li>
+          <li class="no">Multi-loja</li>
+        </ul>
+        <a href="app/" class="btn btn-outline plan-btn">Começar grátis</a>
+      </div>
+      <!-- PROFISSIONAL -->
+      <div class="plan pop">
+        <div class="pop-badge">⭐ Mais escolhido</div>
+        <div class="plan-name" style="color:var(--accent)">Profissional</div>
+        <p class="plan-desc">Para lojas em crescimento com múltiplas unidades.</p>
+        <div class="p-from">a partir de</div>
+        <div>
+          <span class="pm"><span class="p-val">247</span><span class="p-period">&nbsp;R$/mês</span></span>
+          <span class="pa"><span class="p-val">197</span><span class="p-period">&nbsp;R$/mês</span></span>
+        </div>
+        <p class="p-anual-txt" id="an2"></p>
+        <ul class="pf">
+          <li>Até 3 lojas</li>
+          <li>Até 10 vendedores</li>
+          <li>Tudo do Essencial</li>
+          <li>Radar IA incluído</li>
+          <li>Controle de estoque completo</li>
+          <li>Metas e KPIs por vendedor</li>
+          <li>Relatórios exportáveis (PDF/Excel)</li>
+          <li class="no">White-label</li>
+        </ul>
+        <a href="app/" class="btn btn-primary plan-btn">Começar grátis</a>
+      </div>
+      <!-- EMPRESARIAL -->
+      <div class="plan">
+        <div class="plan-name">Empresarial</div>
+        <p class="plan-desc">Para redes regionais e franquias que precisam de escala.</p>
+        <div class="p-from">a partir de</div>
+        <div>
+          <span class="pm"><span class="p-val">597</span><span class="p-period">&nbsp;R$/mês</span></span>
+          <span class="pa"><span class="p-val">477</span><span class="p-period">&nbsp;R$/mês</span></span>
+        </div>
+        <p class="p-anual-txt" id="an3"></p>
+        <ul class="pf">
+          <li>Lojas ilimitadas</li>
+          <li>Usuários ilimitados</li>
+          <li>Tudo do Profissional</li>
+          <li>White-label completo</li>
+          <li>Log de auditoria + 2FA</li>
+          <li>Painel administrativo SaaS</li>
+          <li>Onboarding dedicado</li>
+          <li>Gerente de conta exclusivo</li>
+        </ul>
+        <a href="#" class="btn btn-outline plan-btn">Falar com consultor</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     FAQ
+═══════════════════════════════════════════════ -->
+<section id="faq">
+  <div class="wrap">
+    <div class="faq-hd">
+      <h2>Perguntas frequentes</h2>
+    </div>
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-q" onclick="faq(this)">
+          Preciso de conhecimento técnico para configurar?
+          <span class="faq-ico">+</span>
         </button>
-        <div class="sidebar-greeting"><div class="greeting-text" id="sidebarGreeting">Bom dia!</div><div class="greeting-sub" id="sidebarSub">Sua meta está próxima!</div></div>
-        <nav class="sidebar-nav">
-            <button class="nav-item" data-nav="admin_inicio" id="navAdmin" style="display:none;" onclick="navigateTo('admin_inicio')" title="Administração"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg></span> <span class="nav-label">Administração</span></button>
-            <button class="nav-item active" data-nav="inicio" id="navInicioVendas" onclick="navigateTo('inicio')" aria-current="page" title="Início"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1h-5v-7a1 1 0 00-1-1h-4a1 1 0 00-1 1v7H4a1 1 0 01-1-1V9.5z"/></svg></span> <span id="textNavInicio" class="nav-label">Início</span></button>
-<button class="nav-item" data-nav="carteira" onclick="navigateTo('carteira')" title="Carteira">
-    <span class="nav-icon">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-            <rect x="3" y="3" width="5" height="18" rx="1"/>
-            <rect x="10" y="3" width="5" height="12" rx="1"/>
-            <rect x="17" y="3" width="5" height="15" rx="1"/>
-        </svg>
-    </span>
-    <span class="nav-label">Carteira</span>
-</button>
-            <button class="nav-item" data-nav="agenda_dia" onclick="navigateTo('agenda_dia')" title="Agenda do Dia"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="badge-dot" id="badgeAgendaDia"></span></span> <span class="nav-label">Agenda do Dia</span></button>
-            <button class="nav-item" data-nav="clientes_lista" onclick="navigateTo('clientes_lista')" title="Clientes"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="7" r="4"/><path d="M1 21v-2a4 4 0 014-4h8a4 4 0 014 4v2"/><circle cx="17" cy="9" r="3"/><path d="M23 21v-2a3 3 0 00-2-2.7"/></svg></span> <span class="nav-label">Clientes</span></button>
-            <button class="nav-item" data-nav="estoque" onclick="navigateTo('estoque')" title="Estoque"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span> <span class="nav-label">Estoque</span></button>
-            <button class="nav-item" data-nav="metas" id="navMetas" style="display:none;" onclick="navigateTo('metas')" title="Metas"><span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg></span> <span class="nav-label">Metas</span></button>
-        </nav>
-        <div class="sidebar-footer"><div class="avatar-small" id="sidebarAvatar">C</div><div class="user-info"><strong id="sidebarNome">Carlos</strong><span id="sidebarPerfil">Admin</span></div></div>
-        <div class="sidebar-actions"><button class="theme-toggle" onclick="toggleTheme()">Alternar tema</button><button class="btn-logout-sidebar" onclick="logout()" title="Sair do sistema"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> <span class="nav-label">Sair do sistema</span></button></div>
-    </aside>
-
-    <main class="main-content" id="mainContent" style="display:none;">
-        <!-- As telas (Início, Meu Radar, Clientes, Estoque, etc.) são renderizadas
-             dinamicamente aqui dentro por src/router.js via navigateTo(). -->
-    </main>
-    <button class="fab" id="fabButton" style="display:none;" onclick="abrirNovoOrcamento()" aria-label="Novo orçamento" title="Novo orçamento">+</button>
-
-    <div class="modal-overlay" id="modalMotivoPerda" onclick="if(event.target === this) closeModal('modalMotivoPerda')">
-        <div class="modal-card" style="max-width:420px;">
-            <h3>Motivo da Perda</h3>
-            <label for="motivoPerdaSelect">Selecione o motivo principal *</label>
-            <select id="motivoPerdaSelect" class="form-input" style="margin-bottom: 12px;">
-                <option value="">Selecione...</option>
-                <option value="Achou caro">Achou caro</option>
-                <option value="Comprou no concorrente">Comprou no concorrente</option>
-                <option value="Desistiu da compra">Desistiu da compra</option>
-                <option value="Falta de limite/crédito">Falta de limite/crédito</option>
-                <option value="Outros">Outros</option>
-            </select>
-            <label for="motivoPerda">Detalhes adicionais</label>
-            <textarea id="motivoPerda" rows="3" class="form-input" placeholder="Detalhe um pouco mais (opcional)..."></textarea>
-            <div class="field-error" id="errMotivo"></div>
-            <div class="modal-btns">
-                <button class="btn-cancelar-modal" onclick="closeModal('modalMotivoPerda')">Cancelar</button>
-                <button class="btn-salvar-modal" onclick="confirmarPerda(event)">Confirmar Perda</button>
-            </div>
+        <div class="faq-a">
+          <p>Não. O ColchãoCRM foi desenhado para que o próprio dono ou gerente configure sem precisar de TI. O cadastro inicial leva poucos minutos.</p>
         </div>
-    </div>
-    
-    <div class="modal-overlay" id="modalConfirmaFechamento" onclick="if(event.target === this) closeModal('modalConfirmaFechamento')">
-        <div class="modal-card" style="max-width:480px;">
-            <h3>&#x1F389; Confirmar Fechamento de Venda</h3>
-            <p style="margin-bottom:20px; color:var(--text-secondary); font-size:var(--font-sm);">O produto será entregue ou retirado na loja?</p>
-
-            <!-- Passo 1: escolha entrega ou retirada -->
-            <div id="fechamentoStep1">
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
-                    <button id="btnOpcaoEntrega" onclick="selecionarModoFechamento('entrega')"
-                        style="padding:18px 12px; border-radius:var(--radius-md); border:2px solid var(--border-light); background:var(--card-bg); cursor:pointer; font-family:'Inter',sans-serif; font-size:var(--font-sm); font-weight:600; color:var(--text-primary); transition:all .2s; display:flex; flex-direction:column; align-items:center; gap:8px;">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-                        Entrega
-                    </button>
-                    <button id="btnOpcaoRetirada" onclick="selecionarModoFechamento('retirada')"
-                        style="padding:18px 12px; border-radius:var(--radius-md); border:2px solid var(--border-light); background:var(--card-bg); cursor:pointer; font-family:'Inter',sans-serif; font-size:var(--font-sm); font-weight:600; color:var(--text-primary); transition:all .2s; display:flex; flex-direction:column; align-items:center; gap:8px;">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                        Retirada na Loja
-                    </button>
-                </div>
-                <div class="field-error" id="errModoFechamento"></div>
-            </div>
-
-            <!-- Passo 2: data de entrega (só aparece se "Entrega" for selecionado) -->
-            <div id="fechamentoStep2" style="display:none; margin-top:4px;">
-                <label for="fechamentoDataEntrega">Data de Entrega *</label>
-                <input type="date" id="fechamentoDataEntrega" class="form-input" style="margin-bottom:4px;">
-                <div class="field-error" id="errDataEntrega"></div>
-                <div style="background:var(--accent-green-subtle); border:1px solid rgba(5, 150, 105, 0.3); border-radius:var(--radius-sm); padding:10px 14px; margin-top:12px; font-size:var(--font-xs); color:var(--accent-green-dark); display:flex; align-items:flex-start; gap:8px;">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; margin-top:1px;"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                    <span>Um agendamento de <strong>confirmação de recebimento</strong> será criado automaticamente na data de entrega.</span>
-                </div>
-            </div>
-
-            <div class="modal-btns">
-                <button class="btn-cancelar-modal" onclick="closeModal('modalConfirmaFechamento')">Cancelar</button>
-                <button class="btn-salvar-modal" id="btnConfirmaFechar">
-                    <span class="btn-spinner"></span>
-                    <span class="btn-text">Confirmar Fechamento</span>
-                </button>
-            </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="faq(this)">
+          Posso cancelar quando quiser?
+          <span class="faq-ico">+</span>
+        </button>
+        <div class="faq-a">
+          <p>Sim, sem multa e sem burocracia. Planos mensais podem ser cancelados a qualquer momento. Planos anuais têm acesso garantido até o fim do período contratado.</p>
         </div>
-    </div>
-    <div class="modal-overlay" id="modalEditarMeta" onclick="if(event.target === this) closeModal('modalEditarMeta')"><div class="modal-card" style="max-width:420px;"><h3>Editar Meta</h3><label for="inputMetaValor">Nova meta (R$)</label><input type="text" id="inputMetaValor" placeholder="R$ 50.000,00" inputmode="decimal"><div class="field-error" id="errMeta"></div><div class="modal-btns"><button class="btn-cancelar-modal" onclick="closeModal('modalEditarMeta')">Cancelar</button><button class="btn-salvar-modal" id="btnSalvarMeta" onclick="salvarNovaMeta()"><span class="btn-spinner"></span><span class="btn-text">Salvar</span></button></div></div></div>
-    <div class="modal-overlay" id="modalExcluirComentario" onclick="if(event.target === this) closeModal('modalExcluirComentario')"><div class="modal-card" style="max-width:420px;"><h3>Excluir comentário</h3><p style="margin-bottom:16px;">Tem certeza que deseja excluir este comentário?</p><div class="modal-btns"><button class="btn-cancelar-modal" onclick="closeModal('modalExcluirComentario')">Cancelar</button><button class="btn-salvar-modal" id="btnConfirmarExclusao" style="background:#ef4444;" onclick="confirmarExclusaoComentario()"><span class="btn-spinner"></span><span class="btn-text">Excluir</span></button></div></div></div>
-
-    <div class="modal-overlay" id="modalUsuarioAdmin" onclick="if(event.target === this) closeModal('modalUsuarioAdmin')">
-        <div class="modal-card" style="max-width:420px;">
-            <h3 id="modalUsuarioTitle">Novo Usuário</h3>
-            <label for="adminModNome">Nome Completo</label><input type="text" id="adminModNome" placeholder="Ex: João da Silva">
-            <label for="adminModEmail">E-mail</label><input type="email" id="adminModEmail" placeholder="vendedor@loja.com.br">
-            
-            <label for="adminModLoja">Loja Base</label>
-            <select id="adminModLoja" class="form-input" style="margin-bottom:4px;">
-            </select>
-            
-            <div class="modal-row" style="margin-top: 8px;">
-                <div><label for="adminModPerfil">Perfil do Sistema</label><select id="adminModPerfil" onchange="toggleCampoLojasMultiplas()"><option value="Vendedor">Vendedor</option><option value="Gerente">Gerente</option><option value="Administrador">Administrador (TI)</option></select></div>
-                <div><label for="adminModStatus">Status de Acesso</label><select id="adminModStatus"><option value="Ativo">Ativo</option><option value="Inativo">Inativo</option></select></div>
-            </div>
-
-            <div id="campoLojasMultiplas" style="display:none; margin-top: 8px;">
-                <label for="adminModLojasMultiplas">Lojas Adicionais (Gerente Multiloja)</label>
-                <select id="adminModLojasMultiplas" class="form-input" multiple size="4" style="height:auto;"></select>
-                <small style="display:block; color:var(--text-muted); font-size:12px; margin-top:4px;">Segure Ctrl/Cmd para selecionar mais de uma loja. A "Loja Base" acima é sempre incluída automaticamente.</small>
-            </div>
-
-            <div style="margin-top: 12px;">
-                <label for="adminModSenha">Definir Senha Inicial</label>
-                <div style="position:relative; display:flex; align-items:center;">
-                    <input type="password" id="adminModSenha" placeholder="********" style="padding-right:44px; width:100%;">
-                    <button type="button" onclick="toggleSenhaAdmin()" title="Mostrar/ocultar senha" style="position:absolute; right:12px; background:none; border:none; cursor:pointer; color:var(--text-muted); padding:0; display:flex; align-items:center;">
-                        <svg id="eyeIconAdmin" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-
-            <div class="field-error" id="errAdminUsuario"></div>
-            <div class="modal-btns"><button class="btn-cancelar-modal" onclick="closeModal('modalUsuarioAdmin')">Cancelar</button><button class="btn-salvar-modal" id="btnSalvarUsuarioAdmin" onclick="salvarUsuarioAdmin()"><span class="btn-spinner"></span><span class="btn-text">Salvar Usuário</span></button></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="faq(this)">
+          Meus dados ficam seguros?
+          <span class="faq-ico">+</span>
+        </button>
+        <div class="faq-a">
+          <p>Os dados ficam em infraestrutura PostgreSQL (Supabase), com controle de acesso por perfil e criptografia em trânsito. Dados sensíveis de clientes já são criptografados em repouso. Estamos formalizando a documentação de conformidade com a LGPD.</p>
         </div>
-    </div>
-
-    <div class="modal-overlay" id="modalExcluirUsuarioAdmin" onclick="if(event.target === this) closeModal('modalExcluirUsuarioAdmin')">
-        <div class="modal-card" style="max-width:420px;">
-            <h3>Excluir Usuário</h3>
-            <p style="margin-bottom:16px;">Tem certeza que deseja excluir <strong><span id="nomeUsuarioExcluir"></span></strong>?</p>
-            <p style="margin-bottom:16px; font-size:var(--font-xs); color:var(--danger-text); background:var(--danger-light-bg); padding:10px; border-radius:var(--radius-sm); border:1px solid var(--danger-border);"><strong>Confirmação Destrutiva:</strong> Se este usuário tiver orçamentos registrados, a exclusão poderá falhar ou gerar inconsistência no histórico de vendas da equipe. Recomendamos a <strong>Inativação</strong> através da edição de perfil.</p>
-            <div class="field-error" id="errExcluirUsuario"></div>
-            <div class="modal-btns"><button class="btn-cancelar-modal" onclick="closeModal('modalExcluirUsuarioAdmin')">Cancelar</button><button class="btn-salvar-modal" id="btnConfirmarExclusaoUsuario" style="background:#ef4444;" onclick="confirmarExclusaoUsuario()">Excluir Definitivamente</button></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="faq(this)">
+          O sistema funciona no celular?
+          <span class="faq-ico">+</span>
+        </button>
+        <div class="faq-a">
+          <p>Sim. O ColchãoCRM é totalmente responsivo e funciona em qualquer dispositivo — celular, tablet ou computador.</p>
         </div>
+      </div>
     </div>
+  </div>
+</section>
 
-    <!-- ── MODAL AGENDAR PRÓXIMO CONTATO ──────────────────────────────────── -->
-    <div class="modal-overlay" id="modalAgendarContato" onclick="if(event.target===this)closeModal('modalAgendarContato')">
-        <div class="modal-card" style="max-width:480px; width:96%;">
-
-            <h3 style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gold-dark)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                Agendar Próximo Contato
-            </h3>
-
-            <div style="margin:16px 0;">
-                <div style="font-size:10px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px;">Acesso rápido</div>
-                <div class="det-quick-dates">
-                    <button class="btn-quick-date" onclick="setQuickDate(1)">Amanhã</button>
-                    <button class="btn-quick-date" onclick="setQuickDate(3)">Em 3 dias</button>
-                    <button class="btn-quick-date" onclick="setQuickDate(7)">Semana que vem</button>
-                    <button class="btn-quick-date" onclick="setQuickDate(15)">Em 15 dias</button>
-                </div>
-            </div>
-
-            <div class="schedule-form-grid" style="margin-bottom:16px;">
-                <div class="form-group">
-                    <label>Data *</label>
-                    <input type="date" id="agendarData" class="form-input" style="height:40px; padding:0 12px; font-family:'JetBrains Mono',monospace; font-size:13px;">
-                </div>
-                <div class="form-group">
-                    <label>Horário</label>
-                    <input type="time" id="agendarHora" class="form-input" style="height:40px; padding:0 12px; font-family:'JetBrains Mono',monospace; font-size:13px;">
-                </div>
-            </div>
-
-            <div class="form-group" style="margin-bottom:16px;">
-                <label>Tipo de Contato *</label>
-                <select id="agendarTipo" class="form-input" style="height:40px; padding:0 12px; font-size:13px;">
-                    <option value="">Selecionar...</option>
-                    <optgroup label="Vendas">
-                        <option value="Apresentação de Campanha/Promoção">Apresentação de Campanha/Promoção</option>
-                        <option value="Reativação de Contato Antigo">Reativação de Contato Antigo</option>
-                        <option value="Acompanhamento de Orçamento">Acompanhamento de Orçamento</option>
-                        <option value="Virada de Tabela">Virada de Tabela</option>
-                        <option value="Quebra de Objeção">Quebra de Objeção</option>
-                        <option value="Cross-sell (Venda Cruzada)">Cross-sell (Venda Cruzada)</option>
-                    </optgroup>
-                    <optgroup label="Pós-Venda">
-                        <option value="Alinhamento Logístico">Alinhamento Logístico</option>
-                        <option value="Acompanhamento de Adaptação (Pós-Entrega)">Acompanhamento de Adaptação (Pós-Entrega)</option>
-                        <option value="Assistência Técnica">Assistência Técnica</option>
-                    </optgroup>
-                </select>
-                <div class="field-error" id="agendarTipoErro"></div>
-            </div>
-
-            <div class="form-group" style="margin-bottom:16px;">
-                <label>Observações / Lembrete</label>
-                <textarea id="agendarObservacao" class="form-input" style="resize:none; font-size:13px; min-height:90px;" placeholder="Detalhes contextuais para o próximo contato..."></textarea>
-            </div>
-
-            <div class="modal-btns">
-                <button class="btn-cancelar-modal" onclick="closeModal('modalAgendarContato')">Cancelar</button>
-                <button class="btn-agendar-full" id="btnConfirmarAgendamento" onclick="agendarContato()" style="margin-top:0;">
-                    <span class="btn-spinner" style="display:none; width:16px; height:16px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin 1s linear infinite;"></span>
-                    <span class="btn-text" style="display:flex; align-items:center; gap:6px;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                        Confirmar Agendamento
-                    </span>
-                </button>
-            </div>
-            <div class="field-error" id="agendarMsg" style="text-align:center; margin-top:8px;"></div>
-        </div>
+<!-- ═══════════════════════════════════════════════
+     CTA FINAL
+═══════════════════════════════════════════════ -->
+<section class="cta-final">
+  <div class="wrap">
+    <h2>Pronto para vender mais?</h2>
+    <p>14 dias grátis. Sem cartão. Cancele quando quiser.</p>
+    <div class="cta-acts">
+      <a href="app/" class="btn btn-primary" style="font-size:1.05rem;padding:16px 36px">Criar conta grátis →</a>
+      <a href="#" class="btn btn-white" style="font-size:1.05rem;padding:16px 36px">Agendar demonstração</a>
     </div>
+    <p class="cta-note">Sem compromisso &nbsp;·&nbsp; Suporte em português</p>
+  </div>
+</section>
 
-    <!-- ── MODAL AJUSTAR PROPOSTA ─────────────────────────────────────────── -->
-    <div class="modal-overlay" id="modalAjusteProposta" onclick="if(event.target===this)closeModal('modalAjusteProposta')">
-        <div class="modal-card" style="max-width:540px; width:96%;">
-
-            <h3 style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                Ajustar Proposta
-            </h3>
-            <p id="ajustePropostaSubtitle" style="font-size:var(--font-xs);color:var(--text-muted);margin-bottom:18px;"></p>
-
-            <!-- container de linhas de produto (reutiliza .produto-row do novo orçamento) -->
-            <div id="ajusteProdutosContainer" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;"></div>
-
-            <!-- botão adicionar linha -->
-            <button type="button" class="btn-add-item-premium" style="margin-bottom:12px;" onclick="ajusteAdicionarLinha()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Adicionar linha de produto
-            </button>
-
-            <!-- total -->
-            <div class="total-modal-box" style="margin-bottom:14px;">
-                <span>Total</span>
-                <span class="valor-total" id="ajusteDisplayTotal">R$ 0,00</span>
-            </div>
-
-            <!-- motivo (opcional) -->
-            <div class="form-group" style="margin-bottom:6px;">
-                <label style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;">
-                    Motivo da Alteração
-                    <span style="font-weight:400;text-transform:none;">(opcional)</span>
-                </label>
-                <input type="text" id="ajusteMotivo" class="form-input" style="margin-top:6px;font-size:13px;"
-                    placeholder="Ex: Cliente trocou o modelo, desconto negociado...">
-            </div>
-
-            <div class="field-error" id="ajustePropostaMsg" style="margin-top:8px;"></div>
-
-            <div class="modal-btns">
-                <button class="btn-cancelar-modal" onclick="closeModal('modalAjusteProposta')">Cancelar</button>
-                <button class="btn-salvar-modal" id="btnSalvarAjuste" onclick="salvarAjusteProposta()">
-                    <span class="btn-spinner"></span>
-                    <span class="btn-text">Salvar Alteração</span>
-                </button>
-            </div>
-        </div>
+<!-- ═══════════════════════════════════════════════
+     FOOTER
+═══════════════════════════════════════════════ -->
+<footer>
+  <div class="wrap">
+    <div class="footer-in">
+      <div class="f-brand">
+        <a href="#" class="logo">Colchão<em>CRM</em></a>
+        <p>O CRM feito para quem vende colchões no Brasil. Simples, poderoso e sem frescura.</p>
+      </div>
+      <div class="f-col">
+        <h4>Produto</h4>
+        <ul>
+          <li><a href="#funcionalidades">Funcionalidades</a></li>
+          <li><a href="#radar-ia">Radar IA</a></li>
+          <li><a href="#planos">Planos</a></li>
+        </ul>
+      </div>
+      <div class="f-col">
+        <h4>Empresa</h4>
+        <ul>
+          <li><a href="#">Sobre</a></li>
+          <li><a href="#">Contato</a></li>
+        </ul>
+      </div>
+      <div class="f-col">
+        <h4>Suporte</h4>
+        <ul>
+          <li><a href="#faq">FAQ</a></li>
+          <li><a href="#">Privacidade</a></li>
+          <li><a href="#">Termos de uso</a></li>
+        </ul>
+      </div>
     </div>
-    <!-- ── FIM MODAL AJUSTAR PROPOSTA ──────────────────────────────────────── -->
-
-    <!-- ── MODAL GERAR ORÇAMENTO (TEXTO PARA ENVIAR AO CLIENTE) ────────────── -->
-    <div class="modal-overlay" id="modalGerarOrcamento" onclick="if(event.target===this)closeModal('modalGerarOrcamento')">
-        <div class="modal-card" style="max-width:520px; width:96%;">
-
-            <h3 style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                Orçamento para o cliente
-            </h3>
-            <p style="font-size:var(--font-xs);color:var(--text-muted);margin-bottom:14px;">Revise ou ajuste o texto abaixo e copie para enviar pelo WhatsApp.</p>
-
-            <div class="form-group" style="margin-bottom:12px;">
-                <label style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;">
-                    Desconto aplicado <span style="font-weight:400;text-transform:none;">(opcional — atualiza o texto abaixo)</span>
-                </label>
-                <div style="display:flex;align-items:center;gap:6px;margin-top:6px;">
-                    <input type="number" id="gerarOrcamentoDesconto" class="form-input" style="max-width:110px;height:38px;padding:0 12px;" min="0" max="95" step="0.5" placeholder="0" oninput="atualizarTextoOrcamentoComDesconto()">
-                    <span style="font-weight:600;color:var(--text-muted);">%</span>
-                </div>
-            </div>
-
-            <textarea id="textoOrcamentoGerado" class="form-input" style="min-height:280px; font-size:13px; line-height:1.6; resize:vertical; font-family:inherit;" oninput="marcarTextoOrcamentoEditadoManualmente()"></textarea>
-
-            <div class="modal-btns">
-                <button class="btn-cancelar-modal" onclick="closeModal('modalGerarOrcamento')">Fechar</button>
-                <button class="btn-salvar-modal" id="btnCopiarOrcamento" onclick="copiarTextoOrcamento()" style="margin-top:0;">
-                    <span class="btn-text" style="display:flex; align-items:center; gap:6px;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                        Copiar texto
-                    </span>
-                </button>
-            </div>
-        </div>
+    <div class="footer-btm">
+      <p>© 2026 ColchãoCRM. Todos os direitos reservados.</p>
+      <div class="f-links">
+        <a href="#">Privacidade</a>
+        <a href="#">Termos</a>
+        <a href="#">LGPD</a>
+      </div>
     </div>
-    <!-- ── FIM MODAL GERAR ORÇAMENTO ───────────────────────────────────────── -->
+  </div>
+</footer>
 
-    <div class="notification-dropdown" id="notificationDropdown"></div>
+<script>
+/* FAQ accordion */
+function faq(btn){
+  const item=btn.closest('.faq-item');
+  const open=item.classList.contains('open');
+  document.querySelectorAll('.faq-item.open').forEach(el=>el.classList.remove('open'));
+  if(!open)item.classList.add('open');
+}
 
-    <!-- Modal: Editar Cliente -->
+/* Pricing toggle */
+const bt=document.getElementById('bt');
+bt.addEventListener('change',()=>{
+  const on=bt.checked;
+  document.querySelectorAll('.pm').forEach(el=>el.style.display=on?'none':'inline');
+  document.querySelectorAll('.pa').forEach(el=>el.style.display=on?'inline':'none');
+  const notes=[
+    {id:'an1',txt:'R$ 924/ano — economize R$ 240'},
+    {id:'an2',txt:'R$ 2.364/ano — economize R$ 600'},
+    {id:'an3',txt:'R$ 5.724/ano — economize R$ 1.440'},
+  ];
+  notes.forEach(n=>{
+    const el=document.getElementById(n.id);
+    if(el)el.textContent=on?n.txt:'';
+  });
+});
+</script>
 
-    <!-- Modal Chat IA - Destravar Vendas -->
-    <div class="modal-overlay" id="modalChatIA" onclick="if(event.target===this)fecharModalChatIA()">
-        <div class="modal-card modal-chat-card" style="max-width:600px; width:95%; height:80vh; display:flex; flex-direction:column; padding:0; overflow:hidden;">
-            <!-- Header -->
-            <div class="modal-chat-header" style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid var(--border-light); background:linear-gradient(135deg, var(--brand-blue), var(--brand-blue-dark));">
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-                    </svg>
-                    <h3 style="color:white; margin:0; font-size:16px; font-weight:700;">Destravar Vendas</h3>
-                </div>
-                <button onclick="fecharModalChatIA()" style="background:none; border:none; cursor:pointer; padding:4px; border-radius:4px; transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='transparent'">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                </button>
-            </div>
-            
-            <!-- Messages Area -->
-            <div id="chatMessagesContainer" style="flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:16px; background:var(--bg-body);">
-                <!-- Messages will be injected here -->
-            </div>
-            
-            <!-- Input Area -->
-            <div class="modal-chat-input" style="padding:16px 20px; border-top:1px solid var(--border-light); background:var(--card-bg);">
-                <div style="display:flex; gap:10px; align-items:flex-end;">
-                    <textarea 
-                        id="chatInputIA" 
-                        placeholder="Digite sua pergunta ou solicitação..." 
-                        rows="2"
-                        style="flex:1; resize:none; border:1px solid var(--border-medium); border-radius:var(--radius-sm); padding:10px 12px; font-family:'Inter', sans-serif; font-size:14px; line-height:1.5; outline:none; transition:border-color 0.2s; background:var(--card-bg); color:var(--text-primary);"
-                        onfocus="this.style.borderColor='var(--brand-blue)'"
-                        onblur="this.style.borderColor='var(--border-medium)'"
-                        onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); enviarMensagemChatIA();}"
-                    ></textarea>
-                    <button 
-                        id="btnEnviarChatIA"
-                        onclick="enviarMensagemChatIA()"
-                        style="background:linear-gradient(135deg, var(--brand-blue), var(--brand-blue-dark)); color:white; border:none; border-radius:var(--radius-sm); padding:10px 16px; font-weight:600; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:6px; transition:transform 0.2s, opacity 0.2s;"
-                        onmouseover="this.style.transform='translateY(-1px)'"
-                        onmouseout="this.style.transform='translateY(0)'"
-                    >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                        </svg>
-                        Enviar
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="modalEditarCliente" onclick="if(event.target===this)closeModal('modalEditarCliente')">
-        <div class="modal-card" style="max-width:500px;">
-            <h3 id="modalEditarClienteTitle">Editar Cliente</h3>
-            <input type="hidden" id="editClienteId">
-            <label>Nome / Razão Social *</label>
-            <input type="text" id="editClienteNome" class="form-input" placeholder="Nome completo">
-            <div class="field-error" id="errEditNome"></div>
-            <div class="modal-row" style="margin-top:8px;">
-                <div><label>CPF / CNPJ *</label><input type="text" id="editClienteCpf" class="form-input" placeholder="000.000.000-00"><div class="field-error" id="errEditCpf"></div></div>
-                <div><label>WhatsApp / Telefone *</label><input type="text" id="editClienteTel" class="form-input" placeholder="(XX) XXXXX-XXXX"><div class="field-error" id="errEditTel"></div></div>
-            </div>
-            <label style="margin-top:8px;">E-mail</label>
-            <input type="email" id="editClienteEmail" class="form-input" placeholder="cliente@email.com">
-            <div class="field-error" id="errEditEmail"></div>
-            <!-- Campo de Transferência de Carteira: visível só para Gerente/Admin -->
-            <div id="campoTransferenciaCarteira" style="display:none; margin-top:12px;">
-                <label>Transferir Carteira para</label>
-                <select id="editClienteVendedor" class="form-input" style="margin-bottom:4px;">
-                    <option value="">— Manter vendedor atual —</option>
-                </select>
-                <div style="font-size:var(--font-xs); color:var(--text-muted); margin-top:3px;">
-                    Todos os orçamentos deste cliente serão transferidos para o vendedor selecionado.
-                </div>
-            </div>
-            <div class="modal-btns">
-                <button class="btn-cancelar-modal" onclick="closeModal('modalEditarCliente')">Cancelar</button>
-                <button class="btn-salvar-modal" id="btnSalvarEditCliente" onclick="salvarEdicaoCliente()">
-                    <span class="btn-spinner"></span><span class="btn-text">Salvar Alterações</span>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal: Excluir Cliente -->
-    <div class="modal-overlay" id="modalExcluirCliente" onclick="if(event.target===this)closeModal('modalExcluirCliente')">
-        <div class="modal-card" style="max-width:420px;">
-            <h3>Excluir Cliente</h3>
-            <p style="margin-bottom:12px;">Tem certeza que deseja excluir <strong id="nomeClienteExcluir"></strong>?</p>
-            <p style="font-size:var(--font-xs); color:var(--danger-text); background:var(--danger-light-bg); padding:10px; border-radius:var(--radius-sm); border:1px solid var(--danger-border); margin-bottom:4px;" id="avisoExcluirCliente"></p>
-            <div class="field-error" id="errExcluirCliente"></div>
-            <div class="modal-btns">
-                <button class="btn-cancelar-modal" onclick="closeModal('modalExcluirCliente')">Cancelar</button>
-                <button class="btn-salvar-modal" id="btnConfirmarExcluirCliente" style="background:#ef4444;" onclick="confirmarExcluirCliente()">
-                    <span class="btn-spinner"></span><span class="btn-text">Excluir Definitivamente</span>
-                </button>
-            </div>
-        </div>
-    </div>
-
-
-    <!-- Modal: Novo Produto Estoque -->
-    <div class="modal-overlay" id="modalNovoProduto" onclick="if(event.target===this)closeModal('modalNovoProduto')">
-        <div class="modal-card">
-            <h3>Adicionar Produto ao Estoque</h3>
-            
-            <form id="formNovoProduto" onsubmit="salvarNovoProdutoEstoque(event)">
-                <div>
-                    <label class="form-label" style="font-size: 13px; font-weight: 600; text-transform: uppercase; color: var(--text-muted);">Selecionar Produto Base *</label>
-                    <select id="novoProdSelecaoBase" class="form-input" required>
-                        <option value="" disabled selected>Selecione um produto...</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Categoria *</label>
-                    <select id="novoProdCategoria" class="form-input" required>
-                        <option value="" disabled selected>Selecione uma categoria...</option>
-                    </select>
-                </div>
-
-                <div class="form-group" id="campoNovoProdLoja">
-                    <label class="form-label">Loja *</label>
-                    <select id="novoProdLoja" class="form-input" required>
-                        <option value="" disabled selected>Selecione a loja...</option>
-                    </select>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Qualidade</label>
-                        <select id="novoProdQualidade" class="form-input" required>
-                            <option value="" disabled selected>Selecione a qualidade...</option>
-                            <option value="novo">Novo</option>
-                            <option value="mostruario">Mostruário</option>
-                            <option value="avaria">Avaria</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Qtd. Inicial</label>
-                        <input type="number" id="novoProdQuantidade" class="form-input" min="0" value="0">
-                    </div>
-                </div>
-
-                <div class="modal-btns">
-                    <button type="button" class="btn-cancelar-modal" onclick="fecharModalNovoProduto()">Cancelar</button>
-                    <button type="submit" class="btn-salvar-modal">
-                        <span class="btn-spinner"></span>
-                        <span class="btn-text">Salvar Produto</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <script type="module" src="/src/main.js"></script>
 </body>
 </html>
