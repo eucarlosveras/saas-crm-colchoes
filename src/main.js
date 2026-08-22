@@ -14,7 +14,7 @@ import { fecharModalNovoProduto, filtrarEstoque, salvarNovoProdutoEstoque } from
 import { changeDay, changeMonth, filtrarPorLoja, filtrarPorVendedor } from './filtros.js';
 import { abrirModalMeta, salvarMetaLoja, salvarNovaMeta } from './metas.js';
 import { marcarNotificacaoBancoLida, marcarNotificacaoLida, toggleNotifications } from './notificacoes.js';
-import { _ajusteAtualizarLixeiras, abrirAjusteProposta, abrirConfirmaFechamento, abrirDetalhesCliente, abrirModalAgendamento, abrirModalAgendarNovoOrcamento, abrirModalGerarOrcamento, abrirMotivoPerda, abrirNovoOrcamento, adicionarProdutoRow, agendarContato, ajusteAdicionarLinha, ajusteRecalcularLinha, ajusteRecalcularTotal, ajusteValidarDesconto, atualizarTextoOrcamentoComDesconto, confirmarPerda, copiarTextoOrcamento, expandirComentario, fecharProdutoSugestoes, filtrarProdutoSugestoes, marcarTextoOrcamentoEditadoManualmente, prodNomeKeydown, recalcularLinhaNovoOrcamento, removerProdutoRow, salvarAjusteProposta, salvarOrcamento, selecionarModoFechamento, setQuickDate, validarCPF, voltarDetalhes } from './orcamentos.js';
+import { _ajusteAtualizarLixeiras, abrirAjusteProposta, abrirConfirmaFechamento, abrirDetalhesCliente, abrirModalAgendamento, abrirModalAgendarNovoOrcamento, abrirModalGerarOrcamento, abrirMotivoPerda, abrirNovoOrcamento, adicionarProdutoRow, agendarContato, ajusteAdicionarLinha, ajusteRecalcularLinha, ajusteRecalcularTotal, ajusteValidarDesconto, atualizarTextoOrcamentoComDesconto, confirmarPerda, copiarTextoOrcamento, enviarOrcamentoWhatsApp, expandirComentario, fecharProdutoSugestoes, filtrarProdutoSugestoes, marcarTextoOrcamentoEditadoManualmente, prodNomeKeydown, recalcularLinhaNovoOrcamento, removerProdutoRow, salvarAjusteProposta, salvarOrcamento, selecionarModoFechamento, setQuickDate, validarCPF, voltarDetalhes } from './orcamentos.js';
 import { analisarClienteComIA, enviarMensagemChatIA, fecharModalChatIA } from './radar.js';
 import { navigateTo } from './router.js';
 import { store } from './state.js';
@@ -57,6 +57,7 @@ window.confirmarExclusaoUsuario = confirmarExclusaoUsuario;
 window.confirmarPerda = confirmarPerda;
 window.copiarTextoOrcamento = copiarTextoOrcamento;
 window.enviarMensagemChatIA = enviarMensagemChatIA;
+window.enviarOrcamentoWhatsApp = enviarOrcamentoWhatsApp;
 window.escapeHtml = escapeHtml;
 window.expandirComentario = expandirComentario;
 window.fecharModalChatIA = fecharModalChatIA;

@@ -1998,6 +1998,18 @@
         .btn-cancelar-modal:hover { background: var(--surface-3); border-color: var(--border-medium); }
         body.dark .btn-cancelar-modal { background: var(--surface-3); color: #a1a1aa; }
 
+        /* Ação primária de envio por WhatsApp em modais (ex.: gerar orçamento) —
+           mesma forma do .btn-salvar-modal, cor consistente com .btn-whatsapp-full. */
+        .btn-whatsapp-modal {
+            background: #25d366; color: #fff; border: none;
+            padding: 11px 20px; border-radius: var(--radius-sm);
+            font-weight: 700; cursor: pointer; flex: 2;
+            font-size: var(--font-sm); font-family: 'Inter', sans-serif;
+            transition: all var(--transition); display: inline-flex;
+            align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-whatsapp-modal:hover { background: #128c7e; box-shadow: 0 4px 12px rgba(37,211,102,0.3); transform: translateY(-1px); }
+
         .field-error { font-size: var(--font-xs); color: #ef4444; margin-top: 3px; min-height: 17px; font-weight: 500; }
 
         .produtos-list {
