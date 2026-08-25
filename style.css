@@ -38,7 +38,7 @@
             --brand-accent-glow: var(--gold-glow);
 
             /* Surface */
-            --bg-body: #F4F6F9;
+            --bg-body: #E7EBF2;
             --card-bg: #ffffff;
             --card-bg-raised: #ffffff;
             --surface-2: #EAEDF2;
@@ -129,7 +129,7 @@
             --sidebar-text: #93A2BC;
             --sidebar-text-muted: #445068;
 
-            --bg-body: #0B1220;
+            --bg-body: #070C18;
             --card-bg: #131C2E;
             --card-bg-raised: #131C2E;
             --surface-2: #182238;
