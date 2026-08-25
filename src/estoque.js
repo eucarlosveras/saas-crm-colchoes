@@ -239,18 +239,22 @@ async function renderEstoque() {
 
         <div class="kpi-grid">
             <div class="kpi-card">
+                <span class="kpi-icon blue" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span>
                 <div class="kpi-label-row"><span class="kpi-dot blue"></span><span class="kpi-label">Total de Produtos</span></div>
                 <div class="kpi-value" id="estoqueKpiTotal">-</div>
             </div>
             <div class="kpi-card">
+                <span class="kpi-icon green" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>
                 <div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Disponível</span></div>
                 <div class="kpi-value" style="color: var(--status-success-text);" id="estoqueKpiDisponivel">-</div>
             </div>
             <div class="kpi-card">
+                <span class="kpi-icon orange" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></span>
                 <div class="kpi-label-row"><span class="kpi-dot orange"></span><span class="kpi-label">Reservado</span></div>
                 <div class="kpi-value" style="color: var(--status-warning-text);" id="estoqueKpiReservado">-</div>
             </div>
             <div class="kpi-card">
+                <span class="kpi-icon red" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
                 <div class="kpi-label-row"><span class="kpi-dot red"></span><span class="kpi-label">Baixo Estoque</span></div>
                 <div class="kpi-value" style="color: var(--danger-text);" id="estoqueKpiBaixo">-</div>
             </div>

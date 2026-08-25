@@ -382,18 +382,22 @@ function selectFilter(filter) {
 			
 			        <div class="kpi-grid" id="carteiraMetricsGrid">
 			            <div class="kpi-card">
+			                <span class="kpi-icon blue" aria-hidden="true"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span>
 			                <div class="kpi-label-row"><span class="kpi-dot blue"></span><span class="kpi-label">Total no Pipeline</span></div>
 			                <div class="kpi-value" id="carteiraTotalPipeline">R$ 0</div>
 			            </div>
 			            <div class="kpi-card">
+			                <span class="kpi-icon orange" aria-hidden="true"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span>
 			                <div class="kpi-label-row"><span class="kpi-dot orange"></span><span class="kpi-label">Previsão de Faturamento</span></div>
 			                <div class="kpi-value" id="carteiraPrevisao">R$ 0</div>
 			            </div>
 			            <div class="kpi-card">
+			                <span class="kpi-icon green" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20.59 13.41L13.42 20.58a2 2 0 01-2.83 0L2.83 12.83a2 2 0 010-2.83l7.17-7.17a2 2 0 012.83 0l7.76 7.76a2 2 0 010 2.83z"/><circle cx="7.5" cy="7.5" r="1" fill="currentColor" stroke="none"/></svg></span>
 			                <div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Ticket Médio</span></div>
 			                <div class="kpi-value" id="carteiraTicketMedio">R$ 0</div>
 			            </div>
 			            <div class="kpi-card vendido-highlight">
+			                <span class="kpi-icon green" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/></svg></span>
 			                <div class="kpi-label-row"><span class="kpi-dot green"></span><span class="kpi-label">Meta do Mês</span></div>
 			                <div class="kpi-value" id="carteiraMetaValor">R$ 0</div>
 			                <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">Coberta em <strong id="carteiraMetaPercentual">0%</strong></div>
