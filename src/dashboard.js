@@ -553,9 +553,12 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
 
     const headerHtml = `
     <header class="dashboard-header">
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-            <h1 style="margin: 0;">${verGerencial ? 'Dashboard Vendas' : 'Dashboard do Vendedor'}</h1>
-            <span style="font-size: 13px; color: var(--text-muted); font-weight: 500; text-transform: capitalize;">${labelPeriodo}</span>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span class="page-icon gold" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1h-5v-7a1 1 0 00-1-1h-4a1 1 0 00-1 1v7H4a1 1 0 01-1-1V9.5z"/></svg></span>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+                <h1 style="margin: 0;">${verGerencial ? 'Dashboard Vendas' : 'Dashboard do Vendedor'}</h1>
+                <span style="font-size: 13px; color: var(--text-muted); font-weight: 500; text-transform: capitalize;">${labelPeriodo}</span>
+            </div>
         </div>
         <div class="header-controls">
             ${toggleVisaoHtml}

@@ -362,9 +362,12 @@ function selectFilter(filter) {
 			
 			    main.innerHTML = `
 			        <header class="dashboard-header">
-			            <div style="display: flex; flex-direction: column; gap: 4px;">
-			                <h1 style="margin: 0;">Pipeline de Vendas</h1>
-			                <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Visão Geral do Funil</span>
+			            <div style="display: flex; align-items: center; gap: 12px;">
+			                <span class="page-icon blue" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="15" rx="1"/></svg></span>
+			                <div style="display: flex; flex-direction: column; gap: 4px;">
+			                    <h1 style="margin: 0;">Pipeline de Vendas</h1>
+			                    <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Visão Geral do Funil</span>
+			                </div>
 			            </div>
 			            <div class="header-controls">
 			                ${renderFiltrosData(isGerente)}

@@ -185,6 +185,7 @@ import { escapeHtml, formatCurrency, parseCurrency } from './utils.js';
             document.getElementById('mainContent').innerHTML = `
                 <header class="dashboard-header">
                     <div style="display:flex; align-items:center; gap:16px;">
+                        <span class="page-icon gold" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg></span>
                         ${btnVoltarHtml}
                         <h1>Gestão de Metas</h1>
                     </div>

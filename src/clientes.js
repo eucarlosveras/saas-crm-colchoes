@@ -113,7 +113,10 @@ import { classToFormatStatus, escapeHtml, formatarProdutos } from './utils.js';
 
             main.innerHTML = `
                 <header class="dashboard-header">
-                    <h1>Clientes</h1>
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <span class="page-icon green" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M1 21v-2a4 4 0 014-4h8a4 4 0 014 4v2"/><circle cx="17" cy="9" r="3"/><path d="M23 21v-2a3 3 0 00-2-2.7"/></svg></span>
+                        <h1 style="margin:0;">Clientes</h1>
+                    </div>
                     <div class="header-controls">
                         <div class="header-notification-area">
                             <button class="btn-notification" onclick="event.stopPropagation();toggleNotifications();" aria-label="Notificações">
