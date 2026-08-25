@@ -79,22 +79,20 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
             return ((atual - anterior) / anterior) * 100;
         }
 
-        // Card compacto de "Meu Desempenho"/"Desempenho da Loja" — sem ícone: o dot
-        // colorido ao lado do label já identifica o KPI, um ícone a mais seria
-        // redundância visual. Delta fica inline ao lado do valor (.kpi-value-row),
-        // não numa linha própria — ver .kpi-grid-compact .kpi-card em style.css pro
-        // dimensionamento compacto (essas regras não afetam .kpi-card em outras
-        // telas, como Carteira/Estoque/Admin, que também usam a classe base).
-        function buildKpiCard({ cor, label, valor, variacao, comparacaoLabel, destaque = false }) {
+        // Card compacto de "Meu Desempenho"/"Desempenho da Loja". Delta fica
+        // inline ao lado do valor (.kpi-value-row), não numa linha própria —
+        // ver .kpi-grid-compact .kpi-card em style.css pro dimensionamento
+        // compacto (essas regras não afetam .kpi-card em outras telas, como
+        // Carteira/Estoque/Admin, que também usam a classe base).
+        function buildKpiCard({ cor, icone, label, valor, variacao, comparacaoLabel, destaque = false }) {
             const temVariacao = variacao !== undefined && variacao !== null;
             const positivo = temVariacao && variacao >= 0;
             const deltaHtml = temVariacao
                 ? `<span class="kpi-variacao ${positivo ? 'kpi-var-up' : 'kpi-var-down'}">${positivo ? '▲' : '▼'} ${Math.abs(Math.round(variacao))}%</span>`
                 : '';
-            // Sem .kpi-dot aqui (modelo v2) — dentro de .kpi-grid-compact o dot
-            // colorido some (só fazia sentido ao lado do ícone que também não
-            // existe mais nesse contexto); label sozinho já basta.
+            const iconeHtml = icone ? `<span class="kpi-icon ${cor}" aria-hidden="true">${icone}</span>` : '';
             return `<div class="kpi-card${destaque ? ' vendido-highlight' : ''}">
+                ${iconeHtml}
                 <div class="kpi-label-row"><span class="kpi-label">${label}</span></div>
                 <div class="kpi-value-row"><span class="kpi-value">${valor}</span>${deltaHtml}</div>
                 ${comparacaoLabel ? `<span class="kpi-comparacao-label">${comparacaoLabel}</span>` : ''}
@@ -638,11 +636,16 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
         // Título muda conforme a visão atual
         const tituloKpi = verGerencial ? 'Desempenho da Loja' : 'Meu Desempenho';
 
+        const ICONE_KPI_DOLAR = '<svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>';
+        const ICONE_KPI_TAG = '<svg viewBox="0 0 24 24"><path d="M20.59 13.41L13.42 20.58a2 2 0 01-2.83 0L2.83 12.83a2 2 0 010-2.83l7.17-7.17a2 2 0 012.83 0l7.76 7.76a2 2 0 010 2.83z"/><circle cx="7.5" cy="7.5" r="1" fill="currentColor" stroke="none"/></svg>';
+        const ICONE_KPI_PESSOAS = '<svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M1 21v-2a4 4 0 014-4h8a4 4 0 014 4v2"/><circle cx="17" cy="9" r="3"/><path d="M23 21v-2a3 3 0 00-2-2.7"/></svg>';
+        const ICONE_KPI_CAIXA = '<svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>';
+
         const cardsKpiHtml = [
-            buildKpiCard({ cor: 'green', label: labelsKpi.vendas, valor: `R$ ${fmtMoeda(k.vendas.hoje)}`, variacao: calcularVariacaoPercentual(k.vendas.hoje, k.vendas.ontem), comparacaoLabel: k.labelComparacao }),
-            buildKpiCard({ cor: 'blue', label: labelsKpi.ticket, valor: `R$ ${fmtMoeda(k.ticket.hoje)}`, variacao: calcularVariacaoPercentual(k.ticket.hoje, k.ticket.ontem), comparacaoLabel: k.labelComparacao }),
-            buildKpiCard({ cor: 'orange', label: labelsKpi.clientes, valor: k.clientes.hoje, variacao: calcularVariacaoPercentual(k.clientes.hoje, k.clientes.ontem), comparacaoLabel: k.labelComparacao }),
-            buildKpiCard({ cor: 'green', label: labelsKpi.produtos, valor: k.produtos.hoje, variacao: calcularVariacaoPercentual(k.produtos.hoje, k.produtos.ontem), comparacaoLabel: k.labelComparacao, destaque: true })
+            buildKpiCard({ cor: 'green', icone: ICONE_KPI_DOLAR, label: labelsKpi.vendas, valor: `R$ ${fmtMoeda(k.vendas.hoje)}`, variacao: calcularVariacaoPercentual(k.vendas.hoje, k.vendas.ontem), comparacaoLabel: k.labelComparacao }),
+            buildKpiCard({ cor: 'blue', icone: ICONE_KPI_TAG, label: labelsKpi.ticket, valor: `R$ ${fmtMoeda(k.ticket.hoje)}`, variacao: calcularVariacaoPercentual(k.ticket.hoje, k.ticket.ontem), comparacaoLabel: k.labelComparacao }),
+            buildKpiCard({ cor: 'orange', icone: ICONE_KPI_PESSOAS, label: labelsKpi.clientes, valor: k.clientes.hoje, variacao: calcularVariacaoPercentual(k.clientes.hoje, k.clientes.ontem), comparacaoLabel: k.labelComparacao }),
+            buildKpiCard({ cor: 'green', icone: ICONE_KPI_CAIXA, label: labelsKpi.produtos, valor: k.produtos.hoje, variacao: calcularVariacaoPercentual(k.produtos.hoje, k.produtos.ontem), comparacaoLabel: k.labelComparacao, destaque: true })
         ].join('');
 
         // Mesmo padrão de "Meu Radar" (.section-header/.section-title/.section-icon-badge)

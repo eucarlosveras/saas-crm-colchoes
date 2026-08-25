@@ -994,7 +994,6 @@
         .kpi-icon.purple { background: rgba(91, 79, 207, 0.1);     color: var(--accent-purple); }
         .kpi-icon.red    { background: var(--danger-light-bg);     color: var(--danger-text); }
         body.dark .kpi-icon.gold { color: var(--gold); }
-        .kpi-grid-compact .kpi-icon { display: none; }
         /* Reserva espaço pro label não passar por baixo do ícone quando o
            card fica estreito (rótulos mais longos como "Previsão de
            Faturamento" em telas menores). */
@@ -1078,8 +1077,8 @@
         /* Cards compactos — só dentro de .kpi-grid-compact. Sobrescreve .kpi-card
            (linha ~920) apenas aqui: Carteira/Estoque/Admin continuam com o
            .kpi-card "cheio" de sempre, intocado. Densidade: altura final fica bem
-           abaixo dos ~170px originais (padding menor, sem ícone — o dot colorido
-           do label já identifica o KPI — e delta inline junto do valor). */
+           abaixo dos ~170px originais (padding menor, ícone reduzido — ver
+           .kpi-grid-compact .kpi-icon mais abaixo — e delta inline junto do valor). */
         .kpi-grid-compact .kpi-card {
             background: var(--card-bg); border: none; border-radius: 0;
             padding: 20px 22px 18px; min-height: 0;
@@ -1091,6 +1090,10 @@
         .kpi-grid-compact .kpi-label-row { margin-bottom: 6px; }
         .kpi-grid-compact .kpi-label { font-size: var(--font-xs); text-transform: none; letter-spacing: 0; }
         .kpi-grid-compact .kpi-dot { display: none; }
+        /* Ícone também aparece aqui, só que menor (o card compacto tem menos
+           espaço vertical que o .kpi-card "cheio" de Carteira/Estoque/Admin). */
+        .kpi-grid-compact .kpi-icon { top: 16px; right: 16px; width: 28px; height: 28px; }
+        .kpi-grid-compact .kpi-icon svg { width: 14px; height: 14px; }
         .kpi-grid-compact .kpi-value {
             font-size: 1.375rem; font-weight: 800; letter-spacing: -0.03em;
             font-family: 'JetBrains Mono', monospace;
