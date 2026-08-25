@@ -47,9 +47,6 @@ import { escapeHtml } from './utils.js';
                         await logout();
                         return;
                     }
-                    // 2.5 A loja está com a assinatura em dia? Administrador nunca é
-                    // bloqueado aqui — o bloqueio de verdade (RLS) já não o afeta.
-                    if (await estaComAssinaturaBloqueada(userProfile)) return;
                     // 3. Tudo em ordem: esconde o ecrã de login e arranca com a dashboard
                     setUsuarioLogado(userProfile);
                     document.getElementById('loginOverlay').classList.add('hidden');
@@ -63,49 +60,6 @@ import { escapeHtml } from './utils.js';
                 document.getElementById('loginMsg').innerHTML = 'Falha ao verificar o acesso seguro.';
                 document.getElementById('loginOverlay').classList.remove('hidden');
             }
-        }
-
-        // Checa se a loja do usuário está sem assinatura trialing/active. Se
-        // estiver bloqueada, já troca a tela pra o aviso e devolve true (quem
-        // chamou deve parar o fluxo de login ali). Isso é só UX — o bloqueio
-        // que realmente vale está no banco (current_lojas_permitidas(), ver
-        // migration 20260822120000_billing_subscriptions.sql); sem isso aqui
-        // o app só ficaria vazio/quebrado pro usuário, sem explicação.
-        async function estaComAssinaturaBloqueada(userProfile) {
-            if (userProfile.perfil === 'Administrador' || userProfile.perfil === 'Admin') return false;
-            if (!userProfile.id_loja) return false; // sem loja definida: deixa o resto do app tratar
-            try {
-                const { data: sub } = await db.from('subscriptions')
-                    .select('status')
-                    .eq('id_loja', userProfile.id_loja)
-                    .maybeSingle();
-                if (sub && ['trialing', 'active'].includes(sub.status)) return false;
-                mostrarBloqueioAssinatura(sub?.status);
-                return true;
-            } catch (e) {
-                console.error('Erro ao verificar assinatura da loja:', e);
-                return false; // falha na checagem não deve travar o login
-            }
-        }
-
-        function mostrarBloqueioAssinatura(status) {
-            const mensagens = {
-                past_due: 'O pagamento da assinatura está atrasado. Regularize para continuar usando o sistema.',
-                canceled: 'A assinatura desta loja foi cancelada.',
-            };
-            const mensagem = mensagens[status] || 'Esta loja ainda não tem uma assinatura ativa.';
-            const card = document.querySelector('#loginOverlay .login-card');
-            if (card) {
-                card.innerHTML = `
-                    <div class="login-icon" aria-hidden="true" style="background:linear-gradient(135deg, var(--brand-blue), var(--status-error-text));">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-                    </div>
-                    <h2>Assinatura pendente</h2>
-                    <p class="subtitle">${escapeHtml(mensagem)}</p>
-                    <button class="login-btn" onclick="logout()"><span class="btn-text">Sair</span></button>
-                `;
-            }
-            document.getElementById('loginOverlay').classList.remove('hidden');
         }
 
         async function handleLogin() {
@@ -137,8 +91,6 @@ import { escapeHtml } from './utils.js';
                     .single();
                 if (profileError || !userProfile) throw new Error("Perfil não encontrado no sistema.");
                 if (userProfile.status?.toLowerCase() !== 'ativo') throw new Error("Usuário inativo.");
-                // 3.5 Loja com assinatura em dia? (ver checkSession() para o mesmo fluxo)
-                if (await estaComAssinaturaBloqueada(userProfile)) return;
                 // 4. Libera o acesso e inicia a dashboard
                 setUsuarioLogado(userProfile);
                 document.getElementById('loginOverlay').classList.add('hidden');
@@ -225,4 +177,4 @@ import { escapeHtml } from './utils.js';
             location.reload();
         }
 
-export { carregarDadosIniciais, carregarLojasMultiplas, checkSession, configurarPermissoes, estaComAssinaturaBloqueada, handleLogin, initAppAfterLogin, logout, mostrarBloqueioAssinatura };
+export { carregarDadosIniciais, carregarLojasMultiplas, checkSession, configurarPermissoes, handleLogin, initAppAfterLogin, logout };
