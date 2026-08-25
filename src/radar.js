@@ -497,11 +497,14 @@ function renderRadarSignals() {
         ? 'Filtro ativo — alguns sinais estão ocultos'
         : 'Sinais gerados automaticamente a partir dos seus orçamentos';
 
-    // Mapeamento tipo → badge visual (label, cores e dot)
+    // Mapeamento tipo → badge visual (label, classe de cor e dot). Cor do
+    // badge vem de classe (.tipo-alert/.tipo-tip/.tipo-suggestion em
+    // style.css), não de style inline — inline sempre venceria a regra
+    // body.dark, deixando o badge sempre "claro" mesmo no tema escuro.
     const tipoInfo = {
-        alert:      { label: 'Alerta',   bg: 'rgba(251,238,238,1)',   fg: '#A93A3A', catColor: '#D65C5C' },
-        tip:        { label: 'Dica',     bg: 'rgba(30,58,95,0.06)',   fg: '#1E3A5F', catColor: '#2C5282' },
-        suggestion: { label: 'Sugestão', bg: 'rgba(30,158,110,0.08)', fg: '#167A56', catColor: '#1E9E6E' }
+        alert:      { label: 'Alerta',   cls: 'tipo-alert',      catColor: '#D65C5C' },
+        tip:        { label: 'Dica',     cls: 'tipo-tip',        catColor: '#2C5282' },
+        suggestion: { label: 'Sugestão', cls: 'tipo-suggestion', catColor: '#1E9E6E' }
     };
 
     let html = '<ul class="radar-list">';
@@ -528,7 +531,7 @@ function renderRadarSignals() {
                     </div>
                     <span class="radar-desc-truncated" title="${tituloCompleto}">${escapeHtml(descInline)}</span>
                 </div>
-                <span class="radar-tipo-badge" style="background:${info.bg}; color:${info.fg};">
+                <span class="radar-tipo-badge ${info.cls}">
                     <span class="radar-tipo-dot" style="background:${info.catColor};"></span>${info.label}
                 </span>
                 <span class="radar-protocolo">${signal.protocolo ? escapeHtml(signal.protocolo) : ''}</span>

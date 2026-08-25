@@ -2577,6 +2577,7 @@
         .radar-row:last-child { border-bottom: none; }
         /* Só critical ganha tint + stripe esquerda (aplicada via inline style no JS) */
         .radar-row[data-prioridade="critical"] { background: #FDF6F6; }
+        body.dark .radar-row[data-prioridade="critical"] { background: rgba(224, 108, 108, 0.08); }
         .radar-row[data-prioridade="high"] { background: var(--card-bg); }
         .radar-row:hover { background: var(--surface-2); }
 
@@ -2602,18 +2603,27 @@
             text-transform: uppercase; color: #A93A3A; border: 1px solid #E8BEBE;
             border-radius: 4px; padding: 2px 5px; line-height: 1;
         }
+        body.dark .radar-urgente-badge { color: var(--status-error-text); border-color: var(--status-error-border); }
         .radar-desc-truncated {
             font-size: 12px; color: var(--text-muted);
             overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
 
-        /* Tipo-badge colorido (Alerta / Dica / Sugestão) */
+        /* Tipo-badge colorido (Alerta / Dica / Sugestão). Cor por classe (não
+           inline) de propósito — só assim o dark mode consegue sobrescrever;
+           inline style (como era antes) sempre vence qualquer regra do CSS. */
         .radar-tipo-badge {
             display: inline-flex; align-items: center; gap: 6px;
             font-size: 11px; font-weight: 700;
             padding: 4px 9px; border-radius: 6px; white-space: nowrap;
             flex-shrink: 0;
         }
+        .radar-tipo-badge.tipo-alert      { background: rgba(251,238,238,1);   color: #A93A3A; }
+        .radar-tipo-badge.tipo-tip        { background: rgba(30,58,95,0.06);   color: #1E3A5F; }
+        .radar-tipo-badge.tipo-suggestion { background: rgba(30,158,110,0.08); color: #167A56; }
+        body.dark .radar-tipo-badge.tipo-alert      { background: rgba(169,58,58,0.22);  color: #f3a5a5; }
+        body.dark .radar-tipo-badge.tipo-tip        { background: rgba(74,130,209,0.18); color: #9dc2f0; }
+        body.dark .radar-tipo-badge.tipo-suggestion { background: rgba(46,189,133,0.18); color: #7fe0b8; }
         .radar-tipo-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
 
         /* Protocolo — coluna ORC-xxxx */
