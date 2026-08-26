@@ -36,6 +36,12 @@ import { escapeHtml } from './utils.js';
                 const { data: { session }, error: sessionError } = await db.auth.getSession();
                 if (sessionError) throw sessionError;
                 if (session && session.user) {
+                    // 1.5 Mesma trava do handleLogin(): sessão restaurada de
+                    // e-mail não confirmado nunca entra.
+                    if (!session.user.email_confirmed_at) {
+                        await logout();
+                        return;
+                    }
                     // 2. Se o passe for válido, vamos buscar o perfil correspondente
                     const { data: userProfile, error: profileError } = await db
                         .from('usuarios')
@@ -133,6 +139,14 @@ import { escapeHtml } from './utils.js';
                     password: senha
                 });
                 if (authError) throw new Error("E-mail ou senha incorretos.");
+                // 2.5 Trava extra no nosso próprio código, não só na config do
+                // Supabase (que não temos como auditar por aqui): e-mail não
+                // confirmado nunca entra, mesmo que o Supabase por algum
+                // motivo tenha devolvido uma sessão válida.
+                if (!authData.user.email_confirmed_at) {
+                    await db.auth.signOut();
+                    throw new Error("Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada.");
+                }
                 // 3. Busca o papel (perfil) do usuário na tabela do banco
                 const { data: userProfile, error: profileError } = await db
                     .from('usuarios')
