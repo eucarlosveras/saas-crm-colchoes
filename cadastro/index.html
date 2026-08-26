@@ -31,11 +31,20 @@
   <div class="login-card">
     <div class="login-icon" aria-hidden="true">CV</div>
     <h2>Criar sua conta</h2>
-    <p class="subtitle">14 dias grátis, sem cartão de crédito</p>
+    <p class="subtitle" id="cadastroSubtitle">Sua loja, sua equipe, seu ritmo.</p>
+
+    <!-- Escolha de perfil — muda os campos pedidos e pra qual fluxo o
+         cadastro vai (ver alternarPerfilCadastro() em cadastro.js). -->
+    <div class="segment-control" id="segmentoPerfil">
+      <div class="segment-btn active" data-perfil="Gerente" onclick="alternarPerfilCadastro('Gerente')">Sou Gerente</div>
+      <div class="segment-btn" data-perfil="Vendedor" onclick="alternarPerfilCadastro('Vendedor')">Sou Vendedor</div>
+    </div>
 
     <form class="login-form" id="formCadastro" novalidate>
-      <input type="text" id="campoNomeLoja" placeholder="Nome da loja" autocomplete="organization" required>
+      <input type="text" id="campoNomeLoja" placeholder="Nome da loja" autocomplete="organization">
+      <input type="text" id="campoCodigoLoja" placeholder="Código da loja (peça ao seu gerente)" autocomplete="off" style="display:none; text-transform:uppercase;">
       <input type="text" id="campoNomeResponsavel" placeholder="Seu nome" autocomplete="name" required>
+      <input type="tel" id="campoTelefone" placeholder="Seu telefone/WhatsApp" autocomplete="tel">
       <input type="email" id="campoEmail" placeholder="Seu e-mail" autocomplete="email" required>
       <input type="password" id="campoSenha" placeholder="Crie uma senha (mín. 8 caracteres)" autocomplete="new-password" minlength="8" required>
       <input type="password" id="campoConfirmarSenha" placeholder="Confirme a senha" autocomplete="new-password" minlength="8" required>

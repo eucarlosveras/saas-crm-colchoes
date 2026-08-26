@@ -1,6 +1,7 @@
 // ═══════════════════════════════════════════════════════════════
 // Módulo: usuarios.js — extraído automaticamente do antigo app.js monolítico
 // ═══════════════════════════════════════════════════════════════
+import { chipStatus, decidirAcesso } from './aprovacoes.js';
 import { carregarLojasMultiplas } from './auth.js';
 import { navigateTo } from './router.js';
 import { getLojasPermitidas, store } from './state.js';
@@ -213,27 +214,92 @@ import { escapeHtml } from './utils.js';
             </div>`;
         }
 
+        // Administrador aprova/rejeita só Gerente pendente (Vendedor é
+        // decisão exclusiva do Gerente da loja dele, na tela própria de
+        // Gerenciamento de Acessos — aqui é só visualização pra Vendedor).
         function renderAdminUsuarios(main) {
-            let html = `<header class="dashboard-header"><div style="display:flex; align-items:center; gap:16px;"><span class="page-icon blue" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75"/></svg></span><button class="btn-voltar" onclick="navigateTo('admin_inicio')">← Voltar</button><h1>Gerenciar Usuários</h1></div><button class="btn-primary-action" onclick="abrirModalUsuarioAdmin()"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Novo Usuário</button></header><div class="table-card"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Status</th><th>Ações</th></tr></thead><tbody>`;
-            if (store.todosUsuarios.length === 0) {
-                html += `<tr><td colspan="5" style="text-align:center; padding:24px;">Nenhum usuário encontrado.</td></tr>`;
-            } else {
-                store.todosUsuarios.forEach(u => {
-                    const statusClass = u.status === 'Ativo' ? 'status-tag vendido' : 'status-tag perdido';
-                    html += `<tr>
-                        <td><strong>${escapeHtml(u.nome)}</strong></td>
-                        <td>${escapeHtml(u.email || '-')}</td>
-                        <td>${escapeHtml(u.perfil)}</td>
-                        <td><span class="${statusClass}">${escapeHtml(u.status || 'Ativo')}</span></td>
-                        <td><div style="display:flex; gap:8px;">
-                            <button class="btn-salvar-modal" style="padding:6px 12px; font-size:11px; background:var(--card-bg); border:1px solid var(--border-light); color:var(--text-primary);" onclick="abrirModalUsuarioAdmin('${u.id_usuario}')">Editar</button>
-                            ${u.id_usuario !== store.currentUser.id_usuario ? `<button class="btn-danger-ghost" style="padding:6px 12px; font-size:11px;" onclick="abrirModalExcluirUsuarioAdmin('${u.id_usuario}', '${escapeHtml(u.nome)}')">Excluir</button>` : ''}
-                        </div></td>
-                    </tr>`;
-                });
-            }
-            html += `</tbody></table></div>`;
+            const souAdministrador = store.currentUser.perfil === 'Administrador' || store.currentUser.perfil === 'Admin';
+            let html = `<header class="dashboard-header"><div style="display:flex; align-items:center; gap:16px;"><span class="page-icon blue" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75"/></svg></span><button class="btn-voltar" onclick="navigateTo('admin_inicio')">← Voltar</button><h1>Gerenciar Usuários</h1></div><button class="btn-primary-action" onclick="abrirModalUsuarioAdmin()"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Novo Usuário</button></header>
+            <div class="table-card">
+                <div style="display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
+                    <input type="text" id="buscaUsuariosAdmin" class="form-input" placeholder="Buscar por nome ou e-mail..." style="flex:1; min-width:200px;" oninput="filtrarUsuariosAdmin()">
+                    <select id="filtroPerfilAdmin" class="form-input" style="width:160px;" onchange="filtrarUsuariosAdmin()">
+                        <option value="todos">Todos os perfis</option>
+                        <option value="Gerente">Gerente</option>
+                        <option value="Vendedor">Vendedor</option>
+                        <option value="Administrador">Administrador</option>
+                    </select>
+                    <select id="filtroStatusAdmin" class="form-input" style="width:160px;" onchange="filtrarUsuariosAdmin()">
+                        <option value="todos">Todos os status</option>
+                        <option value="Pendente">Pendente</option>
+                        <option value="Ativo">Ativo</option>
+                        <option value="Rejeitado">Rejeitado</option>
+                        <option value="Inativo">Inativo</option>
+                    </select>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table><thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Status</th><th>Ações</th></tr></thead><tbody id="tabelaUsuariosAdmin"></tbody></table>
+                </div>
+            </div>`;
             main.innerHTML = html;
+            window._souAdministradorAdmin = souAdministrador; // lido por filtrarUsuariosAdmin/renderLinhasUsuariosAdmin
+            filtrarUsuariosAdmin();
+        }
+
+        function filtrarUsuariosAdmin() {
+            const busca = (document.getElementById('buscaUsuariosAdmin')?.value || '').trim().toLowerCase();
+            const perfil = document.getElementById('filtroPerfilAdmin')?.value || 'todos';
+            const status = document.getElementById('filtroStatusAdmin')?.value || 'todos';
+
+            let lista = store.todosUsuarios;
+            if (perfil !== 'todos') lista = lista.filter(u => u.perfil === perfil);
+            if (status !== 'todos') lista = lista.filter(u => (u.status || 'Ativo') === status);
+            if (busca) {
+                lista = lista.filter(u =>
+                    (u.nome || '').toLowerCase().includes(busca) ||
+                    (u.email || '').toLowerCase().includes(busca)
+                );
+            }
+            renderLinhasUsuariosAdmin(lista);
+        }
+
+        function renderLinhasUsuariosAdmin(lista) {
+            const tbody = document.getElementById('tabelaUsuariosAdmin');
+            if (!tbody) return;
+            const souAdministrador = window._souAdministradorAdmin;
+
+            if (lista.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:24px;">Nenhum usuário encontrado.</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = lista.map(u => {
+                const podeAprovar = souAdministrador && u.perfil === 'Gerente' && u.status === 'Pendente';
+                const acaoAprovacao = podeAprovar ? `
+                    <button class="btn-salvar-modal" style="margin-top:0; padding:6px 12px; font-size:11px;" onclick="decidirAcessoAdmin('${u.id_usuario}', 'aprovar')">Aprovar</button>
+                    <button class="btn-cancelar-modal" style="padding:6px 12px; font-size:11px; color:var(--danger-text);" onclick="decidirAcessoAdmin('${u.id_usuario}', 'rejeitar')">Rejeitar</button>
+                ` : '';
+                return `<tr>
+                    <td><strong>${escapeHtml(u.nome)}</strong></td>
+                    <td>${escapeHtml(u.email || '-')}</td>
+                    <td>${escapeHtml(u.perfil)}</td>
+                    <td>${chipStatus(u.status || 'Ativo')}${u.status === 'Rejeitado' && u.motivo_rejeicao ? `<div style="font-size:11px; color:var(--text-muted); margin-top:4px;">${escapeHtml(u.motivo_rejeicao)}</div>` : ''}</td>
+                    <td><div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        ${acaoAprovacao}
+                        <button class="btn-salvar-modal" style="padding:6px 12px; font-size:11px; background:var(--card-bg); border:1px solid var(--border-light); color:var(--text-primary);" onclick="abrirModalUsuarioAdmin('${u.id_usuario}')">Editar</button>
+                        ${u.id_usuario !== store.currentUser.id_usuario ? `<button class="btn-danger-ghost" style="padding:6px 12px; font-size:11px;" onclick="abrirModalExcluirUsuarioAdmin('${u.id_usuario}', '${escapeHtml(u.nome)}')">Excluir</button>` : ''}
+                    </div></td>
+                </tr>`;
+            }).join('');
+        }
+
+        // Aprovação de Gerente pela tela de Admin — recarrega a lista de
+        // usuários (RLS já limita ao que o Administrador pode ver) depois.
+        async function decidirAcessoAdmin(idUsuarioAlvo, decisao) {
+            await decidirAcesso(idUsuarioAlvo, decisao, async () => {
+                const { data: all } = await db.from('usuarios').select('*').order('nome');
+                store.todosUsuarios = all || [];
+                filtrarUsuariosAdmin();
+            });
         }
 
         function abrirModalExcluirUsuarioAdmin(id, nome) {
@@ -272,4 +338,4 @@ import { escapeHtml } from './utils.js';
             }
         }
 
-export { abrirModalExcluirUsuarioAdmin, abrirModalUsuarioAdmin, confirmarExclusaoUsuario, renderAdminInicio, renderAdminUsuarios, salvarUsuarioAdmin, toggleCampoLojasMultiplas, toggleSenhaAdmin };
+export { abrirModalExcluirUsuarioAdmin, abrirModalUsuarioAdmin, confirmarExclusaoUsuario, decidirAcessoAdmin, filtrarUsuariosAdmin, renderAdminInicio, renderAdminUsuarios, salvarUsuarioAdmin, toggleCampoLojasMultiplas, toggleSenhaAdmin };

@@ -492,7 +492,8 @@
         .login-form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
         .login-form input[type="email"],
         .login-form input[type="password"],
-        .login-form input[type="text"] {
+        .login-form input[type="text"],
+        .login-form input[type="tel"] {
             width: 100%; padding: 13px 15px;
             border-radius: var(--radius-sm);
             border: 1.5px solid var(--border-light);
@@ -501,7 +502,8 @@
         }
         body.dark .login-form input[type="email"],
         body.dark .login-form input[type="password"],
-        body.dark .login-form input[type="text"] {
+        body.dark .login-form input[type="text"],
+        body.dark .login-form input[type="tel"] {
             background: rgba(0,0,0,0.2); border-color: var(--border-medium);
         }
         /* Checkbox de aceite de termos — usado no cadastro self-service. */

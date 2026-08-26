@@ -1,6 +1,7 @@
 // ═══════════════════════════════════════════════════════════════
 // Módulo: auth.js — extraído automaticamente do antigo app.js monolítico
 // ═══════════════════════════════════════════════════════════════
+import { atualizarBadgeAcessosPendentes } from './aprovacoes.js';
 import { carregarHistoricoFaturamento, carregarKpisEDashboard } from './dashboard.js';
 import { verificarAlertasEstoque } from './estoque.js';
 import { carregarNotificacoesLidas, iniciarSubscriptionNotificacoes } from './notificacoes.js';
@@ -10,6 +11,16 @@ import { AppState, getLojasPermitidas, setUsuarioLogado, store } from './state.j
 import { db } from './supabaseClient.js';
 import { hideLoader, showLoader, showToast } from './ui.js';
 import { escapeHtml } from './utils.js';
+
+        // Mensagem específica por status de bloqueio — antes era sempre
+        // "Usuário inativo.", o que confundia quem só estava aguardando
+        // aprovação (Pendente) com quem tinha sido rejeitado ou desativado.
+        function mensagemStatusBloqueado(status) {
+            const s = (status || '').toLowerCase();
+            if (s === 'pendente') return 'Seu cadastro está aguardando aprovação. Você será avisado assim que for liberado.';
+            if (s === 'rejeitado') return 'Sua solicitação de acesso foi rejeitada. Fale com quem administra sua loja pra mais detalhes.';
+            return 'Usuário inativo.';
+        }
 
         async function carregarLojasMultiplas(usuarioId) {
             try {
@@ -49,8 +60,13 @@ import { escapeHtml } from './utils.js';
                         .eq('email', session.user.email)
                         .single();
                     if (profileError || !userProfile || userProfile.status?.toLowerCase() !== 'ativo') {
-                        // Se a conta foi desativada ou não existe mais na tabela, forçamos a saída
-                        await logout();
+                        // Sessão restaurada de conta pendente/rejeitada/inativa: sai sem
+                        // recarregar a página (senão a mensagem se perde no reload de
+                        // logout()) e mostra por que não entrou.
+                        const mensagem = (!profileError && userProfile) ? mensagemStatusBloqueado(userProfile.status) : null;
+                        await db.auth.signOut();
+                        document.getElementById('loginOverlay').classList.remove('hidden');
+                        if (mensagem) document.getElementById('loginMsg').innerHTML = `<span class="error-message">${escapeHtml(mensagem)}</span>`;
                         return;
                     }
                     // 3. Tudo em ordem: esconde o ecrã de login e arranca com a dashboard
@@ -154,7 +170,7 @@ import { escapeHtml } from './utils.js';
                     .eq('email', authData.user.email)
                     .single();
                 if (profileError || !userProfile) throw new Error("Perfil não encontrado no sistema.");
-                if (userProfile.status?.toLowerCase() !== 'ativo') throw new Error("Usuário inativo.");
+                if (userProfile.status?.toLowerCase() !== 'ativo') throw new Error(mensagemStatusBloqueado(userProfile.status));
                 // 4. Libera o acesso e inicia a dashboard
                 setUsuarioLogado(userProfile);
                 document.getElementById('loginOverlay').classList.add('hidden');
@@ -202,8 +218,13 @@ import { escapeHtml } from './utils.js';
             // o item de menu pra ele alcançar a tela).
             document.getElementById('navAdmin').style.display = (isAdministrador || isGerente) ? 'flex' : 'none';
             document.getElementById('navMetas').style.display = (isAdministrador || isGerente) ? 'flex' : 'none';
+            // "Gerenciamento de Acessos" é só do Gerente — Administrador
+            // aprova Gerente pela própria tela (Admin > Usuários), não aqui.
+            document.getElementById('navAcessos').style.display = isGerente ? 'flex' : 'none';
             document.getElementById('textNavInicio').textContent = (isAdministrador || isGerente) ? 'Dashboard Vendas' : 'Início';
             document.getElementById('fabButton').style.display = (!isAdministrador && !isGerente) ? 'flex' : 'none';
+
+            if (isGerente) atualizarBadgeAcessosPendentes();
 
             try {
                 const { data: all } = await db.from('usuarios').select('*').order('nome');

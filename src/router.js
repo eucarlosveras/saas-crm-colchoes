@@ -2,6 +2,7 @@
 // Módulo: router.js — extraído automaticamente do antigo app.js monolítico
 // ═══════════════════════════════════════════════════════════════
 import { renderAgendaDia } from './agenda.js';
+import { renderGerenciamentoAcessos } from './aprovacoes.js';
 import { renderCarteiraPage } from './carteira.js';
 import { _clientes, renderClientes, renderClientesLista, renderFichaCliente } from './clientes.js';
 import { carregarKpisDiariosVendedor, carregarKpisEDashboard, renderInicio } from './dashboard.js';
@@ -69,6 +70,7 @@ import { renderAdminInicio, renderAdminUsuarios } from './usuarios.js';
         atualizarFab('estoque');
         await renderEstoque();
     }
+    else if (view === 'gerenciamento_acessos') await renderGerenciamentoAcessos();
 }
 
 export { navigateTo };

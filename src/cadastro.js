@@ -1,9 +1,15 @@
 // ═══════════════════════════════════════════════════════════════
 // Módulo: cadastro.js — página pública de cadastro self-service (cadastro/).
-// Chama a Edge Function `criar-loja` (a única do projeto sem authGuard —
-// ver comentário no início dela) e mostra o estado de "confirme seu e-mail".
+// Dois fluxos, duas Edge Functions (nenhuma com authGuard — ver comentário
+// no início de cada uma pra saber por quê):
+//   - Gerente → criar-loja: cria a loja + o Gerente, status 'Pendente' até
+//     o Administrador aprovar.
+//   - Vendedor → cadastrar-vendedor: entra numa loja JÁ EXISTENTE via
+//     código, status 'Pendente' até o Gerente daquela loja aprovar.
 // ═══════════════════════════════════════════════════════════════
 import { db } from './supabaseClient.js';
+
+let perfilAtual = 'Gerente';
 
 function escapeHtml(str) {
     const div = document.createElement('div');
@@ -13,21 +19,42 @@ function escapeHtml(str) {
 
 function mostrarErro(msg) {
     const el = document.getElementById('cadastroMsg');
-    if (el) el.innerHTML = `<span class="error-message">${escapeHtml(msg)}</span>`;
+    if (el) el.innerHTML = msg ? `<span class="error-message">${escapeHtml(msg)}</span>` : '';
+}
+
+// Troca os campos visíveis do form conforme o perfil escolhido — Gerente
+// pede nome da loja (vai criar uma), Vendedor pede o código de uma loja
+// já existente (vai se vincular a ela, nunca cria nada).
+function alternarPerfilCadastro(perfil) {
+    perfilAtual = perfil;
+    document.querySelectorAll('#segmentoPerfil .segment-btn').forEach(el => {
+        el.classList.toggle('active', el.dataset.perfil === perfil);
+    });
+    const ehGerente = perfil === 'Gerente';
+    document.getElementById('campoNomeLoja').style.display = ehGerente ? 'block' : 'none';
+    document.getElementById('campoCodigoLoja').style.display = ehGerente ? 'none' : 'block';
+    document.getElementById('cadastroSubtitle').textContent = ehGerente
+        ? 'Cadastre sua loja e comece a montar sua equipe.'
+        : 'Peça o código da loja pro seu gerente pra se cadastrar.';
+    mostrarErro('');
 }
 
 // Troca o conteúdo do card pra tela de "confirme seu e-mail" — mesma
-// técnica usada em auth.js pra tela de assinatura bloqueada: reaproveita o
+// técnica usada em auth.js pra tela de status bloqueado: reaproveita o
 // próprio .login-card em vez de duplicar overlay/markup.
-function mostrarTelaConfirmacao(email) {
+function mostrarTelaConfirmacao(email, perfil) {
     const card = document.querySelector('#cadastroOverlay .login-card');
     if (!card) return;
+    const avisoAprovacao = perfil === 'Gerente'
+        ? 'Depois de confirmar, sua conta ainda passa por uma aprovação do administrador antes de liberar o acesso.'
+        : 'Depois de confirmar, sua conta ainda passa por uma aprovação do gerente da loja antes de liberar o acesso.';
     card.innerHTML = `
         <div class="login-icon" aria-hidden="true" style="background:linear-gradient(135deg, var(--brand-blue), var(--accent-green));">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22 6 12 13 2 6"/></svg>
         </div>
         <h2>Confirme seu e-mail</h2>
         <p class="subtitle">Enviamos um link de confirmação pra <strong>${escapeHtml(email)}</strong>. Clique nele pra ativar sua conta.</p>
+        <p class="subtitle" style="font-size:12.5px;">${avisoAprovacao}</p>
         <button class="login-btn" id="btnReenviar" type="button"><span class="btn-text">Reenviar e-mail</span></button>
         <div class="login-msg" id="reenviarMsg" role="alert"></div>
     `;
@@ -48,13 +75,30 @@ function mostrarTelaConfirmacao(email) {
     });
 }
 
+// Lê a mensagem de erro específica que a Edge Function devolveu, mesmo
+// quando ela responde com status de erro (400 etc) — nesse caso o
+// supabase-js joga um FunctionsHttpError em `error` com o Response cru em
+// `error.context`, e NÃO popula `data`. Sem isso, todo erro de negócio
+// (e-mail duplicado, código de loja inválido...) virava a mensagem
+// genérica de "tente novamente".
+async function extrairMensagemErro(data, error) {
+    if (data?.error) return data.error;
+    if (error?.context?.json) {
+        try {
+            const corpo = await error.context.json();
+            return corpo?.error;
+        } catch (_) { /* corpo não era JSON */ }
+    }
+    return null;
+}
+
 async function handleCadastro(e) {
     e.preventDefault();
     const btn = document.getElementById('btnCadastrar');
     if (btn.disabled) return;
 
-    const nomeLoja = document.getElementById('campoNomeLoja').value.trim();
     const nomeResponsavel = document.getElementById('campoNomeResponsavel').value.trim();
+    const telefone = document.getElementById('campoTelefone').value.trim();
     const email = document.getElementById('campoEmail').value.trim();
     const senha = document.getElementById('campoSenha').value;
     const confirmarSenha = document.getElementById('campoConfirmarSenha').value;
@@ -63,7 +107,7 @@ async function handleCadastro(e) {
 
     mostrarErro('');
 
-    if (!nomeLoja || !nomeResponsavel || !email || !senha) {
+    if (!nomeResponsavel || !email || !senha) {
         mostrarErro('Preencha todos os campos.');
         return;
     }
@@ -80,27 +124,25 @@ async function handleCadastro(e) {
         return;
     }
 
+    let nomeFunction, payload;
+    if (perfilAtual === 'Gerente') {
+        const nomeLoja = document.getElementById('campoNomeLoja').value.trim();
+        if (!nomeLoja) { mostrarErro('Informe o nome da loja.'); return; }
+        nomeFunction = 'criar-loja';
+        payload = { nomeLoja, nomeResponsavel, telefone, email, senha, aceiteTermos, website };
+    } else {
+        const codigoLoja = document.getElementById('campoCodigoLoja').value.trim();
+        if (!codigoLoja) { mostrarErro('Informe o código da loja (peça ao seu gerente).'); return; }
+        nomeFunction = 'cadastrar-vendedor';
+        payload = { codigoLoja, nome: nomeResponsavel, telefone, email, senha, aceiteTermos, website };
+    }
+
     btn.classList.add('loading');
     btn.disabled = true;
     try {
-        const { data, error } = await db.functions.invoke('criar-loja', {
-            body: { nomeLoja, nomeResponsavel, email, senha, aceiteTermos, website },
-        });
+        const { data, error } = await db.functions.invoke(nomeFunction, { body: payload });
         if (error || data?.error) {
-            // Quando a Edge Function responde com status de erro (400 etc), o
-            // supabase-js NÃO popula `data` com o corpo — ele joga um
-            // FunctionsHttpError em `error`, com o Response cru em
-            // `error.context`. É preciso ler o corpo manualmente pra pegar a
-            // mensagem específica (ex: "e-mail já cadastrado"); sem isso, todo
-            // erro de negócio virava a mensagem genérica de "tente novamente",
-            // mesmo quando a function já sabia exatamente o que tinha dado errado.
-            let mensagem = data?.error;
-            if (!mensagem && error?.context?.json) {
-                try {
-                    const corpo = await error.context.json();
-                    mensagem = corpo?.error;
-                } catch (_) { /* corpo não era JSON — segue com a mensagem genérica abaixo */ }
-            }
+            const mensagem = await extrairMensagemErro(data, error);
             mostrarErro(mensagem || 'Não foi possível criar a conta. Tente novamente.');
             return;
         }
@@ -112,7 +154,7 @@ async function handleCadastro(e) {
         // código; localStorage sobrevive ao redirect contanto que caia no
         // mesmo domínio, o que já é o comportamento padrão.
         try { localStorage.setItem('cvcrm_onboarding_pendente', '1'); } catch (_) { /* Safari privado etc — sem essa, só não mostra o toast */ }
-        mostrarTelaConfirmacao(email);
+        mostrarTelaConfirmacao(email, perfilAtual);
     } catch (err) {
         mostrarErro('Não foi possível criar a conta: ' + err.message);
     } finally {
@@ -122,3 +164,4 @@ async function handleCadastro(e) {
 }
 
 document.getElementById('formCadastro')?.addEventListener('submit', handleCadastro);
+window.alternarPerfilCadastro = alternarPerfilCadastro;
