@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
       user_metadata: { nome },
     });
     if (authError) {
-      const msg = /already registered|already exists/i.test(authError.message || '')
+      const msg = /already.*registered|already exists/i.test(authError.message || '')
         ? 'Este e-mail já está cadastrado.'
         : 'Não foi possível criar a conta: ' + authError.message;
       return json({ error: msg }, 400);

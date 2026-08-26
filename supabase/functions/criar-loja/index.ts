@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
 
     if (authError) {
       // E-mail já cadastrado é o erro mais comum aqui — devolve mensagem clara.
-      const msg = /already registered|already exists/i.test(authError.message || '')
+      const msg = /already.*registered|already exists/i.test(authError.message || '')
         ? 'Este e-mail já está cadastrado.'
         : 'Não foi possível criar a conta: ' + authError.message;
       return json({ error: msg }, 400);
