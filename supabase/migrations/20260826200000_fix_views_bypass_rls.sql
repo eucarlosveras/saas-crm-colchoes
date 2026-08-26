@@ -1,0 +1,25 @@
+-- Corrige vazamento de dados entre lojas nos KPIs (Total no Pipeline, Previsão
+-- de Faturamento, Ticket Médio, Meta do Mês) e no dashboard.
+--
+-- Causa raiz: vw_funil_vendas e vw_vendas_mensais são views comuns (não
+-- SECURITY DEFINER, não têm policy própria — RLS não se aplica a views em
+-- si). Por padrão (security_invoker = false), uma view roda a consulta
+-- interna com o privilégio do DONO da view, não de quem está consultando.
+-- Neste banco o dono é `postgres`, que tem BYPASSRLS. Resultado: a policy
+-- "orcamentos_select" (que restringe por loja/vendedor) nunca era avaliada
+-- quando o acesso vinha por essas views — qualquer Vendedor ou Gerente via
+-- essas views enxergava o pipeline agregado de TODAS as lojas da plataforma,
+-- não só a(s) sua(s). As telas que consultam `orcamentos` diretamente (Kanban,
+-- tabela, exportação CSV) já filtravam certo — só essas duas views ficaram de
+-- fora por terem sido criadas fora desse cuidado.
+--
+-- Fix: liga security_invoker (PostgreSQL 15+, este projeto roda 17). Isso faz
+-- a view executar com os privilégios E as policies de RLS de quem está
+-- efetivamente consultando — exatamente o mesmo comportamento de já consultar
+-- `orcamentos` direto. `authenticated` já tem SELECT direto em orcamentos e
+-- status_orcamento (confirmado antes de aplicar), então nada quebra por falta
+-- de grant; status_orcamento tem policy aberta de leitura (é só tabela de
+-- rótulo), então a agregação por etapa continua funcionando normalmente, só
+-- que agora contando apenas os orçamentos que o usuário logado pode ver.
+ALTER VIEW public.vw_funil_vendas SET (security_invoker = true);
+ALTER VIEW public.vw_vendas_mensais SET (security_invoker = true);
