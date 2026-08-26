@@ -86,10 +86,22 @@ async function handleCadastro(e) {
         const { data, error } = await db.functions.invoke('criar-loja', {
             body: { nomeLoja, nomeResponsavel, email, senha, aceiteTermos, website },
         });
-        // supabase-js só popula `error` pra falha de rede/HTTP — erro de
-        // negócio (ex: e-mail duplicado) vem no corpo com `data.error`.
         if (error || data?.error) {
-            mostrarErro(data?.error || 'Não foi possível criar a conta. Tente novamente.');
+            // Quando a Edge Function responde com status de erro (400 etc), o
+            // supabase-js NÃO popula `data` com o corpo — ele joga um
+            // FunctionsHttpError em `error`, com o Response cru em
+            // `error.context`. É preciso ler o corpo manualmente pra pegar a
+            // mensagem específica (ex: "e-mail já cadastrado"); sem isso, todo
+            // erro de negócio virava a mensagem genérica de "tente novamente",
+            // mesmo quando a function já sabia exatamente o que tinha dado errado.
+            let mensagem = data?.error;
+            if (!mensagem && error?.context?.json) {
+                try {
+                    const corpo = await error.context.json();
+                    mensagem = corpo?.error;
+                } catch (_) { /* corpo não era JSON — segue com a mensagem genérica abaixo */ }
+            }
+            mostrarErro(mensagem || 'Não foi possível criar a conta. Tente novamente.');
             return;
         }
         // Sinaliza pro app mostrar o aviso de boas-vindas no primeiro login
