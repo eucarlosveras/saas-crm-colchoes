@@ -308,22 +308,25 @@ import { escapeHtml } from './utils.js';
             openModal('modalExcluirUsuarioAdmin');
         }
 
+        // Chama a Edge Function excluir-usuario — um delete direto da tabela
+        // (como era antes) nunca consegue apagar o login em auth.users
+        // (exige service role), deixando o e-mail preso pra sempre mesmo
+        // com o usuário sumindo da tela. Ver comentário no topo da function.
         async function confirmarExclusaoUsuario() {
             if (!store.idUsuarioEmEdicao) return;
             const btn = document.getElementById('btnConfirmarExclusaoUsuario');
             btn.classList.add('saving'); btn.disabled = true;
             try {
-                const { count, error: countError } = await db.from('orcamentos')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('id_usuario', store.idUsuarioEmEdicao);
-                if (countError) throw countError;
-                if (count > 0) {
-                    showToast(`Não é possível excluir: usuário possui ${count} orçamento(s). Inative-o em vez disso.`, 'error');
-                    closeModal('modalExcluirUsuarioAdmin');
-                    return;
+                const { data, error } = await db.functions.invoke('excluir-usuario', {
+                    body: { idUsuarioAlvo: store.idUsuarioEmEdicao },
+                });
+                if (error || data?.error) {
+                    let mensagem = data?.error;
+                    if (!mensagem && error?.context?.json) {
+                        try { mensagem = (await error.context.json())?.error; } catch (_) { /* ignora */ }
+                    }
+                    throw new Error(mensagem || 'Não foi possível excluir o usuário.');
                 }
-                const { error } = await db.from('usuarios').delete().eq('id_usuario', store.idUsuarioEmEdicao);
-                if (error) throw error;
                 showToast('Usuário excluído com sucesso.', 'success');
                 closeModal('modalExcluirUsuarioAdmin');
                 const { data: usuarios } = await db.from('usuarios').select('*').order('nome');
