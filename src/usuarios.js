@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════
 import { carregarLojasMultiplas } from './auth.js';
 import { navigateTo } from './router.js';
-import { store } from './state.js';
+import { getLojasPermitidas, store } from './state.js';
 import { db } from './supabaseClient.js';
 import { closeModal, openModal, showToast } from './ui.js';
 import { escapeHtml } from './utils.js';
@@ -131,19 +131,34 @@ import { escapeHtml } from './utils.js';
             const senhaInput = document.getElementById('adminModSenha');
             const lojasMultiSel = document.getElementById('adminModLojasMultiplas');
 
+            // Administrador vê/atribui qualquer loja da plataforma; Gerente só
+            // enxerga a(s) própria(s) — mesmo escopo que getLojasPermitidas()
+            // já aplica no resto do app, e o que a Edge Function criar-usuario
+            // agora reforça do lado do servidor (não é só cosmético aqui).
+            const lojasPermitidas = getLojasPermitidas(); // null = Administrador, sem restrição
+            const lojasVisiveis = lojasPermitidas === null
+                ? store.listaLojas
+                : store.listaLojas.filter(l => lojasPermitidas.includes(l.id_loja));
+
             lojaSel.innerHTML = '<option value="">Selecione a loja...</option>';
-            store.listaLojas.forEach(l => { lojaSel.innerHTML += `<option value="${l.id_loja}">${escapeHtml(l.nome_loja)}</option>`; });
+            lojasVisiveis.forEach(l => { lojaSel.innerHTML += `<option value="${l.id_loja}">${escapeHtml(l.nome_loja)}</option>`; });
 
             // Popula o multiselect de lojas adicionais (usado só quando perfil = Gerente)
             if (lojasMultiSel) {
                 lojasMultiSel.innerHTML = '';
-                store.listaLojas.slice().sort((a, b) => a.nome_loja.localeCompare(b.nome_loja)).forEach(l => {
+                lojasVisiveis.slice().sort((a, b) => a.nome_loja.localeCompare(b.nome_loja)).forEach(l => {
                     const opt = document.createElement('option');
                     opt.value = l.id_loja;
                     opt.textContent = l.nome_loja;
                     lojasMultiSel.appendChild(opt);
                 });
             }
+
+            // Só Administrador de verdade pode atribuir o perfil Administrador
+            // (reservado ao operador da plataforma) — Gerente nem vê a opção.
+            const souAdministrador = store.currentUser.perfil === 'Administrador' || store.currentUser.perfil === 'Admin';
+            const optAdmin = perfilSel.querySelector('option[value="Administrador"]');
+            if (optAdmin) optAdmin.style.display = souAdministrador ? '' : 'none';
 
             if (id) {
                 const user = store.todosUsuarios.find(u => u.id_usuario === id);

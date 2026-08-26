@@ -196,7 +196,11 @@ import { escapeHtml } from './utils.js';
             const isAdministrador = store.currentUser.perfil === 'Administrador' || store.currentUser.perfil === 'Admin';
             const isGerente = store.currentUser.perfil === 'Gerente';
 
-            document.getElementById('navAdmin').style.display = isAdministrador ? 'flex' : 'none';
+            // Gerente também precisa chegar em "Administração" pra conseguir
+            // convidar Vendedor/outro Gerente pra própria loja (renderAdminInicio
+            // e a Edge Function criar-usuario já aceitam Gerente — só faltava
+            // o item de menu pra ele alcançar a tela).
+            document.getElementById('navAdmin').style.display = (isAdministrador || isGerente) ? 'flex' : 'none';
             document.getElementById('navMetas').style.display = (isAdministrador || isGerente) ? 'flex' : 'none';
             document.getElementById('textNavInicio').textContent = (isAdministrador || isGerente) ? 'Dashboard Vendas' : 'Início';
             document.getElementById('fabButton').style.display = (!isAdministrador && !isGerente) ? 'flex' : 'none';

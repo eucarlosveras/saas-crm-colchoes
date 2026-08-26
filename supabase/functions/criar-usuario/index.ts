@@ -21,8 +21,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 2) Só Administrador pode criar novos usuários — authGuard garante "logado",
-    //    não garante "é admin", então essa checagem é feita à parte.
+    // 2) Quem pode criar usuário: Administrador (qualquer loja) ou Gerente
+    //    (só dentro da própria loja — checado mais abaixo, depois de saber
+    //    pra qual `loja` o corpo da requisição está pedindo). Gerente nunca
+    //    pode criar outro Administrador — esse perfil é exclusivo do
+    //    operador da plataforma, nunca atribuído por um fluxo de loja.
     // auth.getUser() sempre devolve o e-mail em minúsculas; a tabela usuarios não
     // normaliza o e-mail ao salvar, então a comparação precisa ser case-insensitive
     // (ilike, com escape de % e _ para não virarem curinga por acidente).
@@ -30,12 +33,22 @@ Deno.serve(async (req) => {
     const guardClient = getAdminClient();
     const { data: chamador, error: chamadorError } = await guardClient
       .from('usuarios')
-      .select('perfil, status')
+      .select('id_usuario, perfil, status, id_loja')
       .ilike('email', emailChamadorEscapado)
       .single();
 
-    if (chamadorError || !chamador || chamador.perfil !== 'Administrador' || chamador.status !== 'Ativo') {
-      return new Response(JSON.stringify({ error: 'Apenas administradores ativos podem criar usuários.' }), {
+    if (chamadorError || !chamador || chamador.status !== 'Ativo') {
+      return new Response(JSON.stringify({ error: 'Usuário não encontrado ou inativo.' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403,
+      });
+    }
+
+    const isAdmin = chamador.perfil === 'Administrador' || chamador.perfil === 'Admin';
+    const isGerente = chamador.perfil === 'Gerente';
+
+    if (!isAdmin && !isGerente) {
+      return new Response(JSON.stringify({ error: 'Sem permissão para criar usuários.' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 403,
       });
@@ -51,6 +64,34 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       });
+    }
+
+    if (!isAdmin) {
+      // Gerente nunca cria Administrador.
+      if (perfil === 'Administrador' || perfil === 'Admin') {
+        return new Response(JSON.stringify({ error: 'Gerente não pode criar um usuário Administrador.' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 403,
+        });
+      }
+      // Gerente só cria dentro de uma loja à qual está vinculado (própria
+      // loja ou, se multiloja, alguma em usuario_lojas) — nunca em loja alheia.
+      let autorizadoNaLoja = chamador.id_loja === loja;
+      if (!autorizadoNaLoja) {
+        const { data: vinculo } = await guardClient
+          .from('usuario_lojas')
+          .select('id_loja')
+          .eq('id_usuario', chamador.id_usuario)
+          .eq('id_loja', loja)
+          .maybeSingle();
+        autorizadoNaLoja = !!vinculo;
+      }
+      if (!autorizadoNaLoja) {
+        return new Response(JSON.stringify({ error: 'Você só pode criar usuários na(s) sua(s) própria(s) loja(s).' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 403,
+        });
+      }
     }
 
     const adminClient = createClient(
