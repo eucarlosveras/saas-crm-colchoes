@@ -5,7 +5,7 @@
 // para o escopo global automaticamente, ao contrário de scripts clássicos).
 // ═══════════════════════════════════════════════════════════════
 import { renderAgendaDia, setAgendaFiltro } from './agenda.js';
-import { copiarCodigoLoja, decidirAcesso, filtrarAcessos } from './aprovacoes.js';
+import { alterarStatusVendedor, copiarCodigoLoja, decidirAcesso, filtrarAcessos } from './aprovacoes.js';
 import { abrirRecuperarSenha, checkSession, enviarLinkRecuperacaoSenha, handleLogin, logout, voltarParaLogin } from './auth.js';
 import { clearSearch, handleSearch, handleSearchProtocolo, handleSearchUnificado, selectFilter } from './carteira.js';
 import { abrirModalEditarCliente, abrirModalExcluirCliente, confirmarExcluirCliente, filtrarClientesLista, salvarEdicaoCliente } from './clientes.js';
@@ -25,6 +25,7 @@ import { escapeHtml, formatCurrency, validateField } from './utils.js';
 
 // ─── Expõe em window as funções referenciadas via atributos inline no HTML ───
 window._ajusteAtualizarLixeiras = _ajusteAtualizarLixeiras;
+window.alterarStatusVendedor = alterarStatusVendedor;
 window.copiarCodigoLoja = copiarCodigoLoja;
 window.decidirAcesso = decidirAcesso;
 window.filtrarAcessos = filtrarAcessos;

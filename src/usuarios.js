@@ -199,8 +199,11 @@ import { escapeHtml } from './utils.js';
         }
 
         function renderAdminInicio(main) {
-            const isGerente = store.currentUser.perfil === 'Gerente' || store.currentUser.perfil === 'Administrador' || store.currentUser.perfil === 'Admin';
-            if (!isGerente) return;
+            // Exclusivo do Administrador — Gerente não tem mais o item de menu
+            // que leva aqui, mas isso sozinho não impede um navigateTo('admin_inicio')
+            // manual; reforça a regra também na própria tela.
+            const souAdministrador = store.currentUser.perfil === 'Administrador' || store.currentUser.perfil === 'Admin';
+            if (!souAdministrador) { navigateTo('inicio'); return; }
             const totalUsuarios = store.todosUsuarios.length; const ativos = store.todosUsuarios.filter(u => u.status === 'Ativo').length; const totalVendedores = store.todosVendedores.length;
             main.innerHTML = `<header class="dashboard-header"><div style="display:flex;align-items:center;gap:12px;"><span class="page-icon blue" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg></span><h1 style="margin:0;">Painel Administrativo</h1></div></header>
             <div class="action-grid" style="margin-bottom: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
@@ -219,6 +222,7 @@ import { escapeHtml } from './utils.js';
         // Gerenciamento de Acessos — aqui é só visualização pra Vendedor).
         function renderAdminUsuarios(main) {
             const souAdministrador = store.currentUser.perfil === 'Administrador' || store.currentUser.perfil === 'Admin';
+            if (!souAdministrador) { navigateTo('inicio'); return; }
             let html = `<header class="dashboard-header"><div style="display:flex; align-items:center; gap:16px;"><span class="page-icon blue" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75"/></svg></span><button class="btn-voltar" onclick="navigateTo('admin_inicio')">← Voltar</button><h1>Gerenciar Usuários</h1></div><button class="btn-primary-action" onclick="abrirModalUsuarioAdmin()"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Novo Usuário</button></header>
             <div class="table-card">
                 <div style="display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">

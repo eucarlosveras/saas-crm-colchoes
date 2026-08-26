@@ -30,6 +30,7 @@ const STATUS_INFO = {
     Pendente: { bg: 'var(--status-warning-bg)', border: 'var(--status-warning-border)', text: 'var(--status-warning-text)' },
     Ativo: { bg: 'var(--status-success-bg)', border: 'var(--status-success-border)', text: 'var(--status-success-text)' },
     Rejeitado: { bg: 'var(--status-error-bg)', border: 'var(--status-error-border)', text: 'var(--status-error-text)' },
+    Inativo: { bg: 'var(--status-info-bg)', border: 'var(--status-info-border)', text: 'var(--status-info-text)' },
 };
 
 function chipStatus(status) {
@@ -74,6 +75,7 @@ async function renderGerenciamentoAcessos() {
                 <select id="filtroStatusAcessos" class="form-input" style="width:180px;" onchange="filtrarAcessos()">
                     <option value="Pendente">Pendentes</option>
                     <option value="Ativo">Aprovados</option>
+                    <option value="Inativo">Inativos</option>
                     <option value="Rejeitado">Rejeitados</option>
                     <option value="todos">Todos</option>
                 </select>
@@ -144,6 +146,10 @@ function filtrarAcessos() {
                         <button class="btn-salvar-modal" style="margin-top:0; padding:6px 12px; font-size:11px;" onclick="decidirAcesso('${u.id_usuario}', 'aprovar')">Aprovar</button>
                         <button class="btn-cancelar-modal" style="padding:6px 12px; font-size:11px; color:var(--danger-text);" onclick="decidirAcesso('${u.id_usuario}', 'rejeitar')">Rejeitar</button>
                     </div>
+                ` : u.status === 'Ativo' ? `
+                    <button class="btn-cancelar-modal" style="padding:6px 12px; font-size:11px; color:var(--danger-text);" onclick="alterarStatusVendedor('${u.id_usuario}', 'Inativo')">Inativar</button>
+                ` : u.status === 'Inativo' ? `
+                    <button class="btn-salvar-modal" style="margin-top:0; padding:6px 12px; font-size:11px;" onclick="alterarStatusVendedor('${u.id_usuario}', 'Ativo')">Reativar</button>
                 ` : '—'}
             </td>
         </tr>
@@ -181,6 +187,35 @@ async function decidirAcesso(idUsuarioAlvo, decisao, aoConcluir) {
     }
 }
 
+// Único poder do Gerente sobre um usuário já aprovado: inativar (ou
+// reverter) um Vendedor da própria loja. Perfil, loja e demais campos
+// continuam fora do alcance dele — isso é exclusivo da tela de Administração
+// (Administrador). Ver supabase/functions/alterar-status-vendedor.
+async function alterarStatusVendedor(idUsuarioAlvo, novoStatus) {
+    const mensagemConfirmacao = novoStatus === 'Inativo'
+        ? 'Inativar este vendedor? Ele perde o acesso imediatamente.'
+        : 'Reativar o acesso deste vendedor?';
+    if (!confirm(mensagemConfirmacao)) return;
+
+    try {
+        const { data, error } = await db.functions.invoke('alterar-status-vendedor', {
+            body: { idUsuarioAlvo, novoStatus },
+        });
+        if (error || data?.error) {
+            let mensagem = data?.error;
+            if (!mensagem && error?.context?.json) {
+                try { mensagem = (await error.context.json())?.error; } catch (_) { /* ignora */ }
+            }
+            showToast(mensagem || 'Não foi possível alterar o status.', 'error');
+            return;
+        }
+        showToast(novoStatus === 'Inativo' ? 'Vendedor inativado.' : 'Vendedor reativado.', 'success');
+        await carregarVendedoresDaLoja();
+    } catch (e) {
+        showToast('Erro: ' + e.message, 'error');
+    }
+}
+
 function copiarCodigoLoja(codigo) {
     navigator.clipboard?.writeText(codigo).then(
         () => showToast('Código copiado!', 'success'),
@@ -188,4 +223,4 @@ function copiarCodigoLoja(codigo) {
     );
 }
 
-export { atualizarBadgeAcessosPendentes, chipStatus, copiarCodigoLoja, decidirAcesso, filtrarAcessos, renderGerenciamentoAcessos };
+export { alterarStatusVendedor, atualizarBadgeAcessosPendentes, chipStatus, copiarCodigoLoja, decidirAcesso, filtrarAcessos, renderGerenciamentoAcessos };

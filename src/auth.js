@@ -212,11 +212,13 @@ import { escapeHtml } from './utils.js';
             const isAdministrador = store.currentUser.perfil === 'Administrador' || store.currentUser.perfil === 'Admin';
             const isGerente = store.currentUser.perfil === 'Gerente';
 
-            // Gerente também precisa chegar em "Administração" pra conseguir
-            // convidar Vendedor/outro Gerente pra própria loja (renderAdminInicio
-            // e a Edge Function criar-usuario já aceitam Gerente — só faltava
-            // o item de menu pra ele alcançar a tela).
-            document.getElementById('navAdmin').style.display = (isAdministrador || isGerente) ? 'flex' : 'none';
+            // "Administração" (criar/editar/excluir qualquer usuário) é
+            // exclusiva do Administrador. Gerente NÃO tem esse poder — o
+            // único controle dele sobre usuários é aprovar/rejeitar/inativar
+            // Vendedor da própria loja, pela tela "Gerenciamento de Acessos"
+            // (navAcessos, abaixo). Corrigido depois de dar esse acesso por
+            // engano numa correção anterior.
+            document.getElementById('navAdmin').style.display = isAdministrador ? 'flex' : 'none';
             document.getElementById('navMetas').style.display = (isAdministrador || isGerente) ? 'flex' : 'none';
             // "Gerenciamento de Acessos" é só do Gerente — Administrador
             // aprova Gerente pela própria tela (Admin > Usuários), não aqui.
