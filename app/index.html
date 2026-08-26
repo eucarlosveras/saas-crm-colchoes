@@ -20,18 +20,42 @@
 
     <div class="login-overlay" id="loginOverlay">
         <div class="login-card">
-            <div class="login-icon" aria-hidden="true">CV</div>
-            <h2>CV CRM</h2>
-            <p class="subtitle">Acesso ao Sistema</p>
-            <div class="login-form">
-                <input type="email" id="loginEmail" placeholder="Seu e-mail">
-                <input type="password" id="loginSenha" placeholder="Sua senha">
+            <div id="loginBloco">
+                <div class="login-icon" aria-hidden="true">CV</div>
+                <h2>CV CRM</h2>
+                <p class="subtitle">Acesso ao Sistema</p>
+                <div class="login-form">
+                    <input type="email" id="loginEmail" placeholder="Seu e-mail">
+                    <input type="password" id="loginSenha" placeholder="Sua senha">
+                </div>
+                <button class="login-btn" id="btnLogin" onclick="handleLogin()">
+                    <span class="spinner"></span>
+                    <span class="btn-text">Entrar no Sistema</span>
+                </button>
+                <div class="login-msg" id="loginMsg" role="alert"></div>
+                <p class="subtitle" style="margin-top:16px;margin-bottom:0;">
+                    <a href="#" onclick="event.preventDefault(); abrirRecuperarSenha();" style="color:var(--brand-blue);font-weight:600;">Esqueci minha senha</a>
+                </p>
             </div>
-            <button class="login-btn" id="btnLogin" onclick="handleLogin()">
-                <span class="spinner"></span>
-                <span class="btn-text">Entrar no Sistema</span>
-            </button>
-            <div class="login-msg" id="loginMsg" role="alert"></div>
+
+            <!-- Recuperação de senha — mesmo card, troca de bloco em vez de
+                 overlay/página separada (usuário já está nesta tela). -->
+            <div id="recuperarSenhaBloco" style="display:none;">
+                <div class="login-icon" aria-hidden="true">CV</div>
+                <h2>Recuperar senha</h2>
+                <p class="subtitle">Informe seu e-mail — enviaremos um link pra você criar uma senha nova.</p>
+                <div class="login-form">
+                    <input type="email" id="recuperarSenhaEmail" placeholder="Seu e-mail">
+                </div>
+                <button class="login-btn" id="btnRecuperarSenha" onclick="enviarLinkRecuperacaoSenha()">
+                    <span class="spinner"></span>
+                    <span class="btn-text">Enviar link de recuperação</span>
+                </button>
+                <div class="login-msg" id="recuperarSenhaMsg" role="alert"></div>
+                <p class="subtitle" style="margin-top:16px;margin-bottom:0;">
+                    <a href="#" onclick="event.preventDefault(); voltarParaLogin();" style="color:var(--brand-blue);font-weight:600;">← Voltar pro login</a>
+                </p>
+            </div>
         </div>
     </div>
 

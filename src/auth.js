@@ -62,6 +62,56 @@ import { escapeHtml } from './utils.js';
             }
         }
 
+        // ── Recuperação de senha ──────────────────────────────────────
+        // Troca de bloco dentro do mesmo #loginOverlay (não é overlay nem
+        // página separada — o usuário já está na tela de login). O e-mail
+        // com o link de redefinição é o próprio Supabase Auth que envia;
+        // o link volta pra /reset-senha/ (ver src/reset-senha.js), que é
+        // quem de fato troca a senha.
+
+        function abrirRecuperarSenha() {
+            document.getElementById('loginMsg').textContent = '';
+            document.getElementById('recuperarSenhaMsg').textContent = '';
+            document.getElementById('recuperarSenhaEmail').value = document.getElementById('loginEmail').value;
+            document.getElementById('loginBloco').style.display = 'none';
+            document.getElementById('recuperarSenhaBloco').style.display = 'block';
+        }
+
+        function voltarParaLogin() {
+            document.getElementById('recuperarSenhaMsg').textContent = '';
+            document.getElementById('recuperarSenhaBloco').style.display = 'none';
+            document.getElementById('loginBloco').style.display = 'block';
+        }
+
+        async function enviarLinkRecuperacaoSenha() {
+            const btn = document.getElementById('btnRecuperarSenha');
+            if (btn.disabled) return;
+            const email = document.getElementById('recuperarSenhaEmail').value.trim();
+            const msg = document.getElementById('recuperarSenhaMsg');
+            if (!email) { msg.textContent = 'Informe seu e-mail.'; return; }
+
+            btn.classList.add('loading');
+            btn.disabled = true;
+            msg.textContent = '';
+            try {
+                // URL absoluta calculada por resolução relativa (não
+                // location.origin sozinho) — o site é publicado num subcaminho
+                // do domínio (GitHub Pages: /saas-crm-colchoes/), então
+                // origin puro perderia esse prefixo.
+                const redirectTo = new URL('../reset-senha/', location.href).href;
+                const { error } = await db.auth.resetPasswordForEmail(email, { redirectTo });
+                if (error) throw error;
+                // Não revela se o e-mail existe ou não na base (evita
+                // enumeração de contas) — mensagem é sempre a mesma.
+                msg.innerHTML = '<span style="color:var(--status-success-text);">Se esse e-mail estiver cadastrado, você vai receber o link em instantes.</span>';
+            } catch (err) {
+                msg.innerHTML = `<span class="error-message">Não foi possível enviar o link agora. Tente novamente.</span>`;
+            } finally {
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            }
+        }
+
         async function handleLogin() {
             const btn = document.getElementById('btnLogin');
             if (btn.disabled) return;
@@ -191,4 +241,4 @@ import { escapeHtml } from './utils.js';
             location.reload();
         }
 
-export { carregarDadosIniciais, carregarLojasMultiplas, checkSession, configurarPermissoes, handleLogin, initAppAfterLogin, logout };
+export { abrirRecuperarSenha, carregarDadosIniciais, carregarLojasMultiplas, checkSession, configurarPermissoes, enviarLinkRecuperacaoSenha, handleLogin, initAppAfterLogin, logout, voltarParaLogin };

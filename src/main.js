@@ -5,7 +5,7 @@
 // para o escopo global automaticamente, ao contrário de scripts clássicos).
 // ═══════════════════════════════════════════════════════════════
 import { renderAgendaDia, setAgendaFiltro } from './agenda.js';
-import { checkSession, handleLogin, logout } from './auth.js';
+import { abrirRecuperarSenha, checkSession, enviarLinkRecuperacaoSenha, handleLogin, logout, voltarParaLogin } from './auth.js';
 import { clearSearch, handleSearch, handleSearchProtocolo, handleSearchUnificado, selectFilter } from './carteira.js';
 import { abrirModalEditarCliente, abrirModalExcluirCliente, confirmarExcluirCliente, filtrarClientesLista, salvarEdicaoCliente } from './clientes.js';
 import { atualizarIndicadorDigitacao, confirmarExclusaoComentario, salvarComentario, salvarObservacaoFixa } from './comentarios.js';
@@ -69,7 +69,10 @@ window.filtrarPorLoja = filtrarPorLoja;
 window.filtrarPorVendedor = filtrarPorVendedor;
 window.filtrarProdutoSugestoes = filtrarProdutoSugestoes;
 window.formatCurrency = formatCurrency;
+window.abrirRecuperarSenha = abrirRecuperarSenha;
+window.enviarLinkRecuperacaoSenha = enviarLinkRecuperacaoSenha;
 window.handleLogin = handleLogin;
+window.voltarParaLogin = voltarParaLogin;
 window.handleSearch = handleSearch;
 window.handleSearchProtocolo = handleSearchProtocolo;
 window.handleSearchUnificado = handleSearchUnificado;

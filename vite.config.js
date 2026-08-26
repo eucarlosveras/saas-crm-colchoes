@@ -17,7 +17,9 @@ export default defineConfig({
                 cadastro: resolve(__dirname, 'cadastro/index.html'),
                 // Páginas legais públicas, linkadas no cadastro e na landing.
                 termos: resolve(__dirname, 'termos/index.html'),
-                privacidade: resolve(__dirname, 'privacidade/index.html')
+                privacidade: resolve(__dirname, 'privacidade/index.html'),
+                // Finaliza a recuperação de senha (link enviado por e-mail), em /reset-senha/.
+                resetSenha: resolve(__dirname, 'reset-senha/index.html')
             }
         }
     }
