@@ -119,6 +119,18 @@ Deno.serve(async (req) => {
       throw usuarioError;
     }
 
+    // 4) Dispara o e-mail de confirmação explicitamente. createUser() com
+    // email_confirm:false NÃO garante o envio de forma confiável — é uma
+    // chamada administrativa (efeito colateral, não o mecanismo pensado pra
+    // isso); resend() é a chamada feita especificamente pra enviar/reenviar
+    // esse e-mail, e é a que funciona de forma consistente. Best-effort: a
+    // conta já foi criada com sucesso, uma falha aqui não desfaz o cadastro
+    // (o usuário sempre pode pedir reenvio pela tela de confirmação).
+    const { error: resendError } = await admin.auth.resend({ type: 'signup', email });
+    if (resendError) {
+      console.error('Falha ao disparar e-mail de confirmação (conta já criada):', resendError.message);
+    }
+
     return json({ success: true });
   } catch (err) {
     console.error('Erro em criar-loja:', err);
