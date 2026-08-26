@@ -8,7 +8,7 @@ import { carregarProdutos } from './orcamentos.js';
 import { navigateTo } from './router.js';
 import { AppState, getLojasPermitidas, setUsuarioLogado, store } from './state.js';
 import { db } from './supabaseClient.js';
-import { hideLoader, showLoader } from './ui.js';
+import { hideLoader, showLoader, showToast } from './ui.js';
 import { escapeHtml } from './utils.js';
 
         async function carregarLojasMultiplas(usuarioId) {
@@ -112,6 +112,20 @@ import { escapeHtml } from './utils.js';
             configurarPermissoes();
             carregarDadosIniciais();
             iniciarSubscriptionNotificacoes();
+            avisarPrimeiroAcesso();
+        }
+
+        // Primeiro acesso vindo do cadastro self-service (cadastro.js grava
+        // esse flag no localStorage antes de mandar confirmar o e-mail — ver
+        // comentário lá pra saber por que não é um parâmetro de URL). Só um
+        // toast de boas-vindas por enquanto — não é o wizard guiado do plano
+        // original (item separado, fora do escopo desta leva).
+        function avisarPrimeiroAcesso() {
+            try {
+                if (localStorage.getItem('cvcrm_onboarding_pendente') !== '1') return;
+                localStorage.removeItem('cvcrm_onboarding_pendente');
+            } catch (_) { return; }
+            showToast('Bem-vindo! Comece cadastrando seus produtos e convidando sua equipe.', 'success');
         }
 
         async function configurarPermissoes() {

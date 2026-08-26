@@ -491,7 +491,8 @@
 
         .login-form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
         .login-form input[type="email"],
-        .login-form input[type="password"] {
+        .login-form input[type="password"],
+        .login-form input[type="text"] {
             width: 100%; padding: 13px 15px;
             border-radius: var(--radius-sm);
             border: 1.5px solid var(--border-light);
@@ -499,9 +500,25 @@
             font-size: var(--font-base); color: var(--text-primary);
         }
         body.dark .login-form input[type="email"],
-        body.dark .login-form input[type="password"] {
+        body.dark .login-form input[type="password"],
+        body.dark .login-form input[type="text"] {
             background: rgba(0,0,0,0.2); border-color: var(--border-medium);
         }
+        /* Checkbox de aceite de termos — usado no cadastro self-service. */
+        .login-form .aceite-termos-row {
+            display: flex; align-items: flex-start; gap: 9px;
+            font-size: var(--font-xs); color: var(--text-secondary);
+            line-height: 1.5; padding: 2px 2px 0;
+        }
+        .login-form .aceite-termos-row input[type="checkbox"] {
+            width: 15px; height: 15px; flex-shrink: 0; margin-top: 1px; accent-color: var(--brand-blue);
+        }
+        .login-form .aceite-termos-row a { color: var(--brand-blue); font-weight: 600; }
+        body.dark .login-form .aceite-termos-row a { color: var(--gold); }
+        /* Honeypot: campo real pro usuário nunca fica invisível por acidente
+           (screen readers ignoram aria-hidden, mas ainda "veem" um input focável
+           sem isso) — off-screen + tabIndex -1 no HTML cobre os dois casos. */
+        .campo-honeypot { position: absolute; left: -9999px; top: -9999px; }
 
         .segment-control {
             display: flex; background: var(--surface-2);

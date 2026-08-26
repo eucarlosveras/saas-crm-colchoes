@@ -12,7 +12,12 @@ export default defineConfig({
                 // Landing page de marketing, servida na raiz do domínio.
                 main: resolve(__dirname, 'index.html'),
                 // CRM propriamente dito (login + sistema), em /app/.
-                app: resolve(__dirname, 'app/index.html')
+                app: resolve(__dirname, 'app/index.html'),
+                // Cadastro self-service de lojas novas, em /cadastro/.
+                cadastro: resolve(__dirname, 'cadastro/index.html'),
+                // Páginas legais públicas, linkadas no cadastro e na landing.
+                termos: resolve(__dirname, 'termos/index.html'),
+                privacidade: resolve(__dirname, 'privacidade/index.html')
             }
         }
     }
