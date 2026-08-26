@@ -1138,24 +1138,22 @@
             border-right: 1.5px solid var(--border-medium);
         }
         .dash-view-toggle {
-            display: inline-flex; gap: 3px; background: var(--surface-2); padding: 3px;
-            border-radius: var(--radius-full); border: 1px solid var(--border-medium);
-            box-shadow: var(--shadow-xs);
+            display: inline-flex; gap: 18px; position: relative;
         }
         .dash-view-btn {
             display: inline-flex; align-items: center; gap: 6px;
-            border: none; background: transparent; padding: 8px 16px;
-            border-radius: var(--radius-full);
+            border: none; border-bottom: 2px solid transparent; background: transparent;
+            padding: 8px 2px 9px;
             font-size: var(--font-xs); font-weight: 600; color: var(--text-muted); cursor: pointer;
-            transition: all var(--transition); font-family: 'Inter', sans-serif;
+            transition: color var(--transition), border-color var(--transition); font-family: 'Inter', sans-serif;
             white-space: nowrap;
         }
         .dash-view-btn:hover:not(.active) { color: var(--text-primary); }
         .dash-view-btn.active {
-            background: var(--card-bg); color: var(--brand-blue); box-shadow: var(--shadow-sm);
+            color: var(--brand-blue); border-bottom-color: var(--brand-blue);
         }
-        .dash-view-btn.gerencial.active { color: var(--gold-dark); }
-        body.dark .dash-view-btn.gerencial.active { color: var(--gold); }
+        .dash-view-btn.gerencial.active { color: var(--gold-dark); border-bottom-color: var(--gold-dark); }
+        body.dark .dash-view-btn.gerencial.active { color: var(--gold); border-bottom-color: var(--gold); }
 
         /* Faixa fina abaixo do cabeçalho que muda de cor conforme a visão ativa —
            feedback visual rápido de "em que contexto eu estou". Só existe quando o
