@@ -203,7 +203,10 @@ async function salvarNovoProdutoEstoque(event) {
 
         if (error) {
             if (error.code === '23505') {
-                throw new Error('Já existe um produto com este código cadastrado.');
+                // Unicidade é por (loja, produto, qualidade) — só bate aqui se
+                // ESSA loja já tem esse produto nessa qualidade específica.
+                // Outra loja ter o mesmo modelo não colide mais (era um bug).
+                throw new Error('Este produto já está cadastrado nesta loja com essa qualidade.');
             }
             throw error;
         }
