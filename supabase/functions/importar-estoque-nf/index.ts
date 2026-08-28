@@ -154,8 +154,14 @@ Deno.serve(async (req) => {
     let criadosCount = 0;
     let atualizadosCount = 0;
     const errosAplicacao: string[] = [];
-    const referenciaNota = notaFiscal.numero
-      ? `NF ${notaFiscal.numero}${notaFiscal.fornecedor ? ' (' + notaFiscal.fornecedor + ')' : ''}`
+    // Número da NF sozinho não identifica a nota de forma única (duas séries
+    // diferentes do mesmo fornecedor podem reusar número) — por isso
+    // número/série juntos na referência, igual ao formato do DANFE.
+    const numeroSerie = notaFiscal.numero
+      ? notaFiscal.numero + (notaFiscal.serie ? '/' + notaFiscal.serie : '')
+      : null;
+    const referenciaNota = numeroSerie
+      ? `NF ${numeroSerie}${notaFiscal.fornecedor ? ' (' + notaFiscal.fornecedor + ')' : ''}`
       : 'nota fiscal';
 
     await emLotes([...porCodigo.entries()], 10, async ([codigoLower, { codigo, nome, quantidade }]) => {

@@ -457,7 +457,7 @@ function baixarModeloImportacaoEstoque() {
 // ═══════════════════════════════════════════════════════════════
 
 let _itensImportacaoNF = [];
-let _metadadosImportacaoNF = { numero: null, fornecedor: null };
+let _metadadosImportacaoNF = { numero: null, serie: null, fornecedor: null };
 
 function abrirModalImportarNF() {
     const selectLoja = document.getElementById('importarNFLoja');
@@ -485,7 +485,7 @@ function abrirModalImportarNF() {
     }
 
     _itensImportacaoNF = [];
-    _metadadosImportacaoNF = { numero: null, fornecedor: null };
+    _metadadosImportacaoNF = { numero: null, serie: null, fornecedor: null };
     const arquivoInput = document.getElementById('importarNFArquivo');
     if (arquivoInput) arquivoInput.value = '';
     const preview = document.getElementById('importarNFPreview');
@@ -510,13 +510,17 @@ function renderPreviewImportacaoNF() {
         return;
     }
 
-    const cabecalhoNota = _metadadosImportacaoNF.numero
-        ? `<div style="margin-bottom:8px;"><strong>NF ${escapeHtml(_metadadosImportacaoNF.numero)}</strong>${_metadadosImportacaoNF.fornecedor ? ' — ' + escapeHtml(_metadadosImportacaoNF.fornecedor) : ''}</div>`
+    const numeroSerie = _metadadosImportacaoNF.numero
+        ? _metadadosImportacaoNF.numero + (_metadadosImportacaoNF.serie ? '/' + _metadadosImportacaoNF.serie : '')
+        : null;
+    const cabecalhoNota = numeroSerie
+        ? `<div style="margin-bottom:8px;"><strong>NF ${escapeHtml(numeroSerie)}</strong>${_metadadosImportacaoNF.fornecedor ? ' — ' + escapeHtml(_metadadosImportacaoNF.fornecedor) : ''}<br><span style="color:var(--text-muted);">Data de entrada: hoje (${new Date().toLocaleDateString('pt-BR')})</span></div>`
         : '';
 
     const linhas = _itensImportacaoNF.map((it, i) => `
         <div style="display:flex; align-items:center; gap:8px; padding:4px 0; border-bottom:1px solid var(--border-light);">
             <span style="flex:1; min-width:0;"><strong>${escapeHtml(it.codigo)}</strong> — ${escapeHtml(it.nome)}</span>
+            <span style="flex:none; color:var(--text-muted); font-size:11px;">${escapeHtml(it.unidade || '')}</span>
             <span style="flex:none; font-weight:700;">${it.quantidade}</span>
             <button type="button" title="Remover item" onclick="removerItemPreviewNF(${i})" style="flex:none; background:none; border:none; color:var(--danger-text); cursor:pointer; padding:2px 4px; font-size:14px;">✕</button>
         </div>

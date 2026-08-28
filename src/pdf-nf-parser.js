@@ -71,9 +71,10 @@ function extrairItensDaPagina(linhas) {
     const xCodigo = header.itens.find(it => it.str.includes('COD. PROD'))?.x;
     const xDescricao = header.itens.find(it => it.str.includes('DESCRIÇÃO'))?.x;
     const xNcm = header.itens.find(it => it.str.includes('NCM'))?.x;
+    const xUn = header.itens.find(it => it.str === 'UN')?.x;
     const xQuant = header.itens.find(it => it.str.startsWith('QUANT'))?.x;
     const xVUnitario = header.itens.find(it => it.str.includes('V.UNITARIO'))?.x;
-    if ([xCodigo, xDescricao, xNcm, xQuant, xVUnitario].some(v => v === undefined)) return [];
+    if ([xCodigo, xDescricao, xNcm, xUn, xQuant, xVUnitario].some(v => v === undefined)) return [];
 
     // Fim da tabela: primeira linha abaixo do header que bate com um dos
     // rótulos do rodapé fixo da DANFE (esse bloco existe em toda página).
@@ -89,6 +90,7 @@ function extrairItensDaPagina(linhas) {
         const linha = linhas[i];
         const codigoTexto = textoNaFaixa(linha, xCodigo, xDescricao);
         const descTexto = textoNaFaixa(linha, xDescricao, xNcm);
+        const unidadeTexto = textoNaFaixa(linha, xUn, xQuant);
         const quantTexto = textoNaFaixa(linha, xQuant, xVUnitario);
 
         const codigoVazio = textoEhSoDivisorOuVazio(codigoTexto);
@@ -96,7 +98,7 @@ function extrairItensDaPagina(linhas) {
 
         if (!codigoVazio) {
             // Início de um novo item da tabela.
-            atual = { codigo: codigoTexto, nome: descTexto, quantidade: normalizarNumeroPtBr(quantTexto) };
+            atual = { codigo: codigoTexto, nome: descTexto, unidade: unidadeTexto || null, quantidade: normalizarNumeroPtBr(quantTexto) };
             itens.push(atual);
         } else if (!descVazia && atual) {
             // Continuação da descrição do item anterior (nome comprido que
@@ -112,9 +114,11 @@ function extrairMetadadosNota(linhasPagina1) {
     const textoCompleto = linhasPagina1.map(l => l.itens.map(it => it.str).join(' ')).join(' ');
     const matchFornecedor = textoCompleto.match(/RECEBEMOS DE (.+?) OS PRODUTOS/i);
     const matchNumero = textoCompleto.match(/N\.\s*0*(\d+)/);
+    const matchSerie = textoCompleto.match(/S[ÉE]RIE\s*0*(\d+)/i);
     return {
         fornecedor: matchFornecedor ? matchFornecedor[1].trim() : null,
         numero: matchNumero ? matchNumero[1] : null,
+        serie: matchSerie ? matchSerie[1] : null,
     };
 }
 
@@ -128,7 +132,7 @@ export async function parseNotaFiscalPDF(arquivo) {
     const doc = await pdfjsLib.getDocument({ data, disableWorker: true, isEvalSupported: false }).promise;
 
     const itensBrutos = [];
-    let metadados = { fornecedor: null, numero: null };
+    let metadados = { fornecedor: null, numero: null, serie: null };
     for (let p = 1; p <= doc.numPages; p++) {
         const page = await doc.getPage(p);
         const content = await page.getTextContent();
@@ -144,7 +148,7 @@ export async function parseNotaFiscalPDF(arquivo) {
         const nome = (it.nome || '').trim();
         if (!codigo || !nome) { avisos.push(`Item ${i + 1}: código ou nome vazio — ignorado.`); return; }
         if (it.quantidade === null || it.quantidade <= 0) { avisos.push(`Item ${i + 1} (${codigo}): quantidade não reconhecida — ignorado.`); return; }
-        itens.push({ codigo, nome, quantidade: Math.round(it.quantidade) });
+        itens.push({ codigo, nome, unidade: it.unidade || null, quantidade: Math.round(it.quantidade) });
     });
 
     if (itens.length === 0 && avisos.length === 0) {
