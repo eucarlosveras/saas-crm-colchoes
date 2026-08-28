@@ -228,9 +228,227 @@ async function salvarNovoProdutoEstoque(event) {
     }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// Importação de estoque em lote (CSV) — cada loja sobe a própria lista de
+// produtos em vez de cadastrar um por um. Ver supabase/functions/importar-estoque
+// pra regra de negócio completa (mesclagem, criação automática de produto/
+// categoria novos etc.). Parser próprio (sem lib externa: o pacote `xlsx`
+// mais usado pra isso tem 2 CVEs altas sem correção no npm — não vale o
+// risco pra um parser que dá pra escrever em poucas linhas).
+// ═══════════════════════════════════════════════════════════════
+
+const CABECALHOS_ESPERADOS = {
+    codigo: ['codigo', 'código', 'sku', 'cod'],
+    nome: ['nome', 'produto', 'nome_produto', 'descricao', 'descrição'],
+    categoria: ['categoria'],
+    qualidade: ['qualidade'],
+    quantidade: ['quantidade', 'qtd', 'qtd_disponivel', 'estoque', 'quantia'],
+};
+
+// Troca de char em char em vez de regex com marca de combinação Unicode
+// literal no source (frágil — depende do editor/encoding preservar o byte
+// exato). Cobre só os acentos que aparecem em cabeçalhos em português.
+const MAPA_ACENTOS = { á: 'a', à: 'a', â: 'a', ã: 'a', é: 'e', ê: 'e', í: 'i', ó: 'o', ô: 'o', õ: 'o', ú: 'u', ç: 'c' };
+function normalizarCabecalho(texto) {
+    return (texto || '').trim().toLowerCase()
+        .split('').map(ch => MAPA_ACENTOS[ch] || ch).join('');
+}
+
+// Parser de CSV pequeno mas correto: lida com campos entre aspas (podendo
+// conter o delimitador ou quebras de linha), aspas escapadas (""), BOM do
+// Excel e os dois delimitadores comuns (',' e ';' — Excel BR costuma
+// exportar com ';' porque ',' é separador decimal no locale pt-BR).
+function parseCSV(texto) {
+    let t = texto.replace(/^﻿/, ''); // remove BOM se existir
+    const linhaHeader = t.split(/\r\n|\n|\r/, 1)[0] || '';
+    const delimitador = (linhaHeader.match(/;/g) || []).length > (linhaHeader.match(/,/g) || []).length ? ';' : ',';
+
+    const linhas = [];
+    let campo = '', linhaAtual = [], dentroAspas = false;
+    for (let i = 0; i < t.length; i++) {
+        const c = t[i];
+        if (dentroAspas) {
+            if (c === '"' && t[i + 1] === '"') { campo += '"'; i++; }
+            else if (c === '"') { dentroAspas = false; }
+            else campo += c;
+        } else if (c === '"') {
+            dentroAspas = true;
+        } else if (c === delimitador) {
+            linhaAtual.push(campo); campo = '';
+        } else if (c === '\n' || c === '\r') {
+            if (c === '\r' && t[i + 1] === '\n') i++;
+            linhaAtual.push(campo); campo = '';
+            linhas.push(linhaAtual); linhaAtual = [];
+        } else {
+            campo += c;
+        }
+    }
+    if (campo !== '' || linhaAtual.length > 0) { linhaAtual.push(campo); linhas.push(linhaAtual); }
+
+    return linhas.filter(l => l.some(v => (v || '').trim() !== ''));
+}
+
+// Converte as linhas cruas do CSV em { codigo, nome, categoria, qualidade, quantidade }[],
+// mapeando o cabeçalho (aceita variações de nome/acento) pra posição da coluna.
+function mapearLinhasImportacao(linhas) {
+    if (linhas.length < 1) return { itens: [], erroHeader: 'Arquivo vazio.' };
+    const header = linhas[0].map(normalizarCabecalho);
+
+    const indice = {};
+    for (const [campoCanonico, variantes] of Object.entries(CABECALHOS_ESPERADOS)) {
+        const idx = header.findIndex(h => variantes.includes(h));
+        if (idx !== -1) indice[campoCanonico] = idx;
+    }
+    if (indice.codigo === undefined || indice.nome === undefined || indice.quantidade === undefined) {
+        return { itens: [], erroHeader: 'O arquivo precisa ter pelo menos as colunas: codigo, nome, quantidade.' };
+    }
+
+    const itens = linhas.slice(1).map(linha => ({
+        codigo: (linha[indice.codigo] || '').trim(),
+        nome: (linha[indice.nome] || '').trim(),
+        categoria: indice.categoria !== undefined ? (linha[indice.categoria] || '').trim() : '',
+        qualidade: indice.qualidade !== undefined ? (linha[indice.qualidade] || '').trim() : '',
+        quantidade: (linha[indice.quantidade] || '').trim(),
+    }));
+
+    return { itens, erroHeader: null };
+}
+
+let _itensImportacaoEstoque = [];
+
+function abrirModalImportarEstoque() {
+    const selectLoja = document.getElementById('importarEstoqueLoja');
+    const campoLoja = document.getElementById('campoImportarLoja');
+    if (selectLoja) {
+        const isAdminImportar = store.currentUser.perfil === 'Administrador' || store.currentUser.perfil === 'Admin';
+        const lojasPermitidasImportar = getLojasPermitidas();
+        const lojasParaEscolher = isAdminImportar
+            ? store.listaLojas
+            : store.listaLojas.filter(l => (lojasPermitidasImportar || []).includes(l.id_loja));
+
+        selectLoja.innerHTML = '<option value="" disabled selected>Selecione a loja...</option>';
+        lojasParaEscolher.slice().sort((a, b) => a.nome_loja.localeCompare(b.nome_loja)).forEach(l => {
+            const opt = document.createElement('option');
+            opt.value = l.id_loja; opt.textContent = l.nome_loja;
+            selectLoja.appendChild(opt);
+        });
+
+        if (lojasParaEscolher.length === 1) {
+            selectLoja.value = lojasParaEscolher[0].id_loja;
+            if (campoLoja) campoLoja.style.display = 'none';
+        } else if (campoLoja) {
+            campoLoja.style.display = 'block';
+        }
+    }
+
+    _itensImportacaoEstoque = [];
+    const arquivoInput = document.getElementById('importarEstoqueArquivo');
+    if (arquivoInput) arquivoInput.value = '';
+    const preview = document.getElementById('importarEstoquePreview');
+    if (preview) { preview.style.display = 'none'; preview.innerHTML = ''; }
+    document.getElementById('errImportarEstoque').textContent = '';
+    document.getElementById('btnConfirmarImportarEstoque').disabled = true;
+
+    openModal('modalImportarEstoque');
+}
+
+function fecharModalImportarEstoque() {
+    closeModal('modalImportarEstoque');
+}
+
+function processarArquivoImportacaoEstoque(event) {
+    const arquivo = event.target.files?.[0];
+    const preview = document.getElementById('importarEstoquePreview');
+    const err = document.getElementById('errImportarEstoque');
+    const btnConfirmar = document.getElementById('btnConfirmarImportarEstoque');
+    err.textContent = '';
+    btnConfirmar.disabled = true;
+    _itensImportacaoEstoque = [];
+    if (!arquivo) { preview.style.display = 'none'; return; }
+
+    const leitor = new FileReader();
+    leitor.onload = () => {
+        try {
+            const linhas = parseCSV(String(leitor.result || ''));
+            const { itens, erroHeader } = mapearLinhasImportacao(linhas);
+            if (erroHeader) { err.textContent = erroHeader; preview.style.display = 'none'; return; }
+
+            const validos = itens.filter(it => it.codigo && it.nome && it.quantidade !== '' && !Number.isNaN(Number.parseInt(it.quantidade, 10)) && Number.parseInt(it.quantidade, 10) >= 0);
+            const invalidos = itens.length - validos.length;
+
+            _itensImportacaoEstoque = validos;
+            preview.style.display = 'block';
+            preview.innerHTML = `<strong>${validos.length}</strong> produto${validos.length !== 1 ? 's' : ''} pronto${validos.length !== 1 ? 's' : ''} para importar` +
+                (invalidos > 0 ? `<br><span style="color:var(--danger-text);">${invalidos} linha${invalidos !== 1 ? 's' : ''} inválida${invalidos !== 1 ? 's' : ''} será${invalidos !== 1 ? 'ão' : ''} ignorada${invalidos !== 1 ? 's' : ''} (código, nome ou quantidade ausente/inválida).</span>` : '');
+
+            btnConfirmar.disabled = validos.length === 0;
+        } catch (e) {
+            err.textContent = 'Erro ao ler o arquivo: ' + e.message;
+            preview.style.display = 'none';
+        }
+    };
+    leitor.onerror = () => { err.textContent = 'Não foi possível ler o arquivo.'; };
+    leitor.readAsText(arquivo, 'UTF-8');
+}
+
+async function confirmarImportacaoEstoque() {
+    const idLoja = document.getElementById('importarEstoqueLoja')?.value;
+    const err = document.getElementById('errImportarEstoque');
+    err.textContent = '';
+
+    if (!idLoja) { err.textContent = 'Selecione a loja.'; return; }
+    if (_itensImportacaoEstoque.length === 0) { err.textContent = 'Nenhum item válido para importar.'; return; }
+
+    const btn = document.getElementById('btnConfirmarImportarEstoque');
+    btn.classList.add('saving'); btn.disabled = true;
+
+    try {
+        const { data, error } = await db.functions.invoke('importar-estoque', {
+            body: { idLoja, itens: _itensImportacaoEstoque },
+        });
+        if (error || data?.error) {
+            let mensagem = data?.error;
+            if (!mensagem && error?.context?.json) {
+                try { mensagem = (await error.context.json())?.error; } catch (_) { /* ignora */ }
+            }
+            throw new Error(mensagem || 'Não foi possível importar.');
+        }
+
+        const resumo = `Importação concluída: ${data.criados} novo${data.criados !== 1 ? 's' : ''}, ${data.atualizados} atualizado${data.atualizados !== 1 ? 's' : ''}.` +
+            (data.erros?.length ? ` ${data.erros.length} aviso(s).` : '');
+        showToast(resumo, 'success');
+        if (data.erros?.length) console.warn('Avisos na importação de estoque:', data.erros);
+
+        fecharModalImportarEstoque();
+        await carregarEstoqueComProdutos();
+    } catch (e) {
+        err.textContent = 'Erro: ' + e.message;
+    } finally {
+        btn.classList.remove('saving');
+        btn.disabled = false;
+    }
+}
+
+function baixarModeloImportacaoEstoque() {
+    const cabecalho = 'codigo,nome,categoria,qualidade,quantidade';
+    const exemplo = '5014077,Colchão Ortobom Light Casal,Colchão,novo,12';
+    const csv = cabecalho + '\n' + exemplo + '\n';
+    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'modelo_importacao_estoque.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
 async function renderEstoque() {
     const main = document.getElementById('mainContent');
     if (!main) return;
+
+    const podeImportar = store.currentUser.perfil === 'Gerente' || store.currentUser.perfil === 'Administrador' || store.currentUser.perfil === 'Admin';
 
     main.innerHTML = `
         <header class="dashboard-header">
@@ -238,6 +456,11 @@ async function renderEstoque() {
                 <span class="page-icon orange" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span>
                 <h1 style="margin:0;">Controle de Estoque</h1>
             </div>
+            ${podeImportar ? `
+            <button class="btn-primary-action" onclick="abrirModalImportarEstoque()">
+                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Importar Estoque
+            </button>` : ''}
         </header>
 
         <div class="kpi-grid">
@@ -460,4 +683,4 @@ function renderizarTabelaEstoque(data) {
     }).join('');
 }
 
-export { abrirModalNovoProduto, atualizarKpisEstoque, carregarCategoriasEstoque, carregarEstoqueComProdutos, fecharModalNovoProduto, filtrarEstoque, renderEstoque, renderizarTabelaEstoque, salvarNovoProdutoEstoque, verificarAlertasEstoque };
+export { abrirModalImportarEstoque, abrirModalNovoProduto, atualizarKpisEstoque, baixarModeloImportacaoEstoque, carregarCategoriasEstoque, carregarEstoqueComProdutos, confirmarImportacaoEstoque, fecharModalImportarEstoque, fecharModalNovoProduto, filtrarEstoque, processarArquivoImportacaoEstoque, renderEstoque, renderizarTabelaEstoque, salvarNovoProdutoEstoque, verificarAlertasEstoque };

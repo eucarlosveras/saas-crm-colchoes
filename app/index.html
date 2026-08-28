@@ -527,6 +527,41 @@
         </div>
     </div>
 
+    <!-- Modal: Importar Estoque em lote (CSV) -->
+    <div class="modal-overlay" id="modalImportarEstoque" onclick="if(event.target===this)closeModal('modalImportarEstoque')">
+        <div class="modal-card" style="max-width:520px;">
+            <h3>Importar Estoque (CSV)</h3>
+            <p style="font-size:var(--font-xs); color:var(--text-muted); margin:-8px 0 16px;">
+                Sobe a lista de produtos da loja. Só atualiza os códigos que vierem no arquivo — o resto do estoque continua como está.
+            </p>
+
+            <div class="form-group" id="campoImportarLoja">
+                <label class="form-label">Loja *</label>
+                <select id="importarEstoqueLoja" class="form-input" required>
+                    <option value="" disabled selected>Selecione a loja...</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Arquivo CSV *</label>
+                <input type="file" id="importarEstoqueArquivo" accept=".csv,text/csv" class="form-input" onchange="processarArquivoImportacaoEstoque(event)">
+                <button type="button" class="btn-cancelar-modal" style="margin-top:8px; padding:6px 12px; font-size:11px;" onclick="baixarModeloImportacaoEstoque()">Baixar modelo CSV</button>
+            </div>
+
+            <div id="importarEstoquePreview" style="display:none; font-size:var(--font-xs); background:var(--surface-2); border:1px solid var(--border-light); border-radius:var(--radius-sm); padding:10px 12px; margin-top:4px; max-height:160px; overflow-y:auto;"></div>
+
+            <div class="field-error" id="errImportarEstoque"></div>
+
+            <div class="modal-btns">
+                <button type="button" class="btn-cancelar-modal" onclick="fecharModalImportarEstoque()">Cancelar</button>
+                <button type="button" class="btn-salvar-modal" id="btnConfirmarImportarEstoque" disabled onclick="confirmarImportacaoEstoque()">
+                    <span class="btn-spinner"></span>
+                    <span class="btn-text">Importar</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="/src/main.js"></script>
 </body>
 </html>
