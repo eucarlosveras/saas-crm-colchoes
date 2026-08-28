@@ -5,14 +5,13 @@ import { renderClientesLista, renderFichaCliente } from './clientes.js';
 import { renderInicio } from './dashboard.js';
 import { abrirModalNovoProduto } from './estoque.js';
 import { abrirNovoOrcamento, renderDetalhesClientePage, renderNovoOrcamentoPage } from './orcamentos.js';
-import { store } from './state.js';
+import { podeCriarOrcamento, store } from './state.js';
 import { renderAdminInicio, renderAdminUsuarios } from './usuarios.js';
 
         function atualizarFab(view) {
     const fab = document.getElementById('fabButton');
     if (!fab) return;
-    const isVendedor = store.currentUser?.perfil === 'Vendedor';
-    if (view === 'inicio' && isVendedor) {
+    if (view === 'inicio' && podeCriarOrcamento()) {
         fab.style.display = 'flex';
         fab.title = 'Novo orçamento';
         fab.onclick = abrirNovoOrcamento;

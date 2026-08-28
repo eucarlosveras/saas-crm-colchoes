@@ -128,6 +128,19 @@ function getLojasPermitidas() {
     return [];
 }
 
+// Quem pode criar orçamento agora: Vendedor sempre; Gerente também, mas só
+// enquanto estiver na "Visão Vendedor" do próprio dashboard (é ele agindo
+// como vendedor da própria loja nessa visão) — na "Visão Gerencial" some de
+// novo, faz sentido só pra quem está vendendo de fato no momento.
+// Administrador fica de fora de propósito: é o operador da plataforma, não
+// alguém vendendo colchão numa loja.
+function podeCriarOrcamento() {
+    const perfil = store.currentUser?.perfil;
+    if (perfil === 'Vendedor') return true;
+    if (perfil === 'Gerente') return store.dashboardView !== 'gerencial';
+    return false;
+}
+
 // Helpers para acessar o AppState de forma concisa
 function getUsuarioLogado() { return AppState.usuarioLogado; }
 function getFiltroMes() { return AppState.filtros.mes; }
@@ -141,7 +154,7 @@ function getFiltroLoja() { return AppState.filtros.loja; }
 
 export {
     AppState, store,
-    setUsuarioLogado, setClienteAtual, setFiltroMes, getLojasPermitidas,
+    setUsuarioLogado, setClienteAtual, setFiltroMes, getLojasPermitidas, podeCriarOrcamento,
     getUsuarioLogado, getFiltroMes, getFiltroAno, getFiltroDia,
     getViewAtual, getViewAnterior, getPaginaAtual, getFiltroVendedor, getFiltroLoja
 };

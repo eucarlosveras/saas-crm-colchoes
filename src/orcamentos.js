@@ -6,7 +6,7 @@ import { atualizarIndicadorDigitacao, renderComentariosHtml, salvarComentario, s
 import { STATUS } from './constants.js';
 import { analisarClienteComIA } from './radar.js';
 import { navigateTo } from './router.js';
-import { AppState, setClienteAtual, store } from './state.js';
+import { AppState, podeCriarOrcamento, setClienteAtual, store } from './state.js';
 import { db } from './supabaseClient.js';
 import { closeModal, hideLoader, openModal, showLoader, showToast } from './ui.js';
 import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAgoraBrasiliaISO, getHojeBrasilia, parseCurrency, removerCodigoProduto, setUltimaVisita, validateField } from './utils.js';
@@ -912,7 +912,7 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
     return total; 
 }
 
-        function abrirNovoOrcamento() { if ((store.currentUser?.perfil || '').toLowerCase() !== 'vendedor') return; navigateTo('novo_orcamento'); }
+        function abrirNovoOrcamento() { if (!podeCriarOrcamento()) return; navigateTo('novo_orcamento'); }
 
         async function verificarClientePorCpf(cpf, telefone) {
             if (!cpf) return { existe: false, cliente: null, avisoTelefone: null };
@@ -1397,7 +1397,7 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
 
         function voltarDetalhes() {
             const fab = document.getElementById('fabButton');
-            if (fab && store.currentUser?.perfil === 'Vendedor') fab.style.display = 'flex';
+            if (fab && podeCriarOrcamento()) fab.style.display = 'flex';
             store.currentView = store.previousView;
             navigateTo(store.currentView);
         }

@@ -8,7 +8,7 @@ import { buildNotifications, renderNotificationBadge, toggleNotifications } from
 import { getMeuRadarBlockHtml, initMeuRadar } from './radar.js';
 import { AppState, getLojasPermitidas, store } from './state.js';
 import { db } from './supabaseClient.js';
-import { hideLoader, showLoader } from './ui.js';
+import { atualizarFab, hideLoader, showLoader } from './ui.js';
 import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getHojeBrasilia, getInicioSemanaBrasilia, getPrimeiroDiaMes } from './utils.js';
 // Chart.js (~200KB) é importado sob demanda dentro de renderizarGraficos() em vez
 // de estaticamente aqui — ele só é necessário na tela de Início, então carregá-lo
@@ -238,6 +238,10 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
 
             if (store.currentView === 'inicio') {
                 renderInicio();
+                // FAB de "novo orçamento" liga/desliga junto com a troca de visão —
+                // Gerente só vende (e só vê o botão) na Visão Vendedor, então trocar
+                // pra Gerencial tem que escondê-lo na hora, sem esperar outra navegação.
+                atualizarFab('inicio');
                 const mainAtualizado = document.getElementById('mainContent');
                 if (mainAtualizado) {
                     // Um frame pra o navegador aplicar o novo conteúdo com opacidade 0
