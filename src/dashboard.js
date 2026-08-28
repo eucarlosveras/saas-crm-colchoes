@@ -49,6 +49,57 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
         
         // Atualizar DOM com dados já calculados
         atualizarKPIsDashboard(vendasMes, performance, emRisco);
+
+        await carregarKpisMensais();
+    }
+
+    // Popula store.kpisMensais — usado por renderInicio() pra tudo que é
+    // calculado no cliente (barra de meta, gráfico de rosca, % conversão,
+    // ranking de vendedores na Visão Gerencial). Bug real corrigido aqui:
+    // essa função nunca existiu de fato — store.kpisMensais ficava para
+    // sempre no valor inicial [] (nenhum código em todo o projeto atribuía
+    // a ele), e renderInicio() também lia AppState.kpisMensaisResumo, um
+    // objeto de um resumo pré-calculado que igualmente nunca era escrito em
+    // lugar nenhum. Resultado: a barra "Meta do mês" (e tudo mais que
+    // depende de `dados` em renderInicio) sempre mostrava zero, mesmo com
+    // vendas fechadas de verdade — é o que o dono do produto reportou.
+    //
+    // Mesma regra de período já usada (e já testada) em carteira.js: abertos
+    // (Contato Inicial/Negociação/Em Fechamento) sempre visíveis, porque
+    // ainda estão em tratativa; finalizados (Fechado/Perdido) só contam se a
+    // CONCLUSÃO (data_fechamento) caiu no mês selecionado. Sem filtro
+    // explícito de vendedor/loja aqui — RLS já escopa isso sozinho
+    // (Vendedor só vê os próprios orçamentos, Gerente os da própria loja,
+    // Administrador todos).
+    async function carregarKpisMensais() {
+        try {
+            const statusAbertosIds = store.mapStatusUUID
+                .filter(s => [STATUS.CONTATO_INICIAL, STATUS.NEGOCIACAO, STATUS.EM_FECHAMENTO].includes(s.nome))
+                .map(s => s.id_status);
+            const statusFinalizadosIds = store.mapStatusUUID
+                .filter(s => [STATUS.FECHADO, STATUS.PERDIDO].includes(s.nome))
+                .map(s => s.id_status);
+
+            const startPeriodo = new Date(store.currentYear, store.currentMonth - 1, 1).toISOString();
+            const endPeriodo = new Date(store.currentYear, store.currentMonth, 1).toISOString();
+
+            let query = db.from('orcamentos')
+                .select('id_orcamento, id_usuario, valor_orcado, data_criacao, data_fechamento, status_orcamento(nome)')
+                .is('deleted_at', null);
+
+            const orParts = [];
+            if (statusAbertosIds.length) orParts.push(`id_status.in.(${statusAbertosIds.join(',')})`);
+            if (statusFinalizadosIds.length) orParts.push(`and(id_status.in.(${statusFinalizadosIds.join(',')}),data_fechamento.gte.${startPeriodo},data_fechamento.lt.${endPeriodo})`);
+            if (orParts.length) query = query.or(orParts.join(','));
+
+            const { data, error } = await query.limit(2000);
+            if (error) throw error;
+
+            store.kpisMensais = (data || []).map(o => ({ ...o, status: o.status_orcamento?.nome || '' }));
+        } catch (e) {
+            console.error('Erro ao carregar KPIs mensais:', e);
+            store.kpisMensais = [];
+        }
     }
 
     function atualizarKPIsDashboard(vendasMes, performance, emRisco) {
@@ -516,13 +567,15 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
     //    finalizados (Fechado/Perdido) pela data de CONCLUSÃO (data_fechamento).
     const dados = store.kpisMensais;
 
-    // 2. CÁLCULOS — pega os dados já calculados do nosso estado
-    const resumo = AppState.kpisMensaisResumo || {};
-    const total = resumo.total_oportunidades || 0;
-    const fechados = resumo.vendas_fechadas_qtd || 0;
-    const negociacao = resumo.em_tratativa || 0;
-    const valorVendido = resumo.vendas_fechadas_valor || 0;
+    // 2. CÁLCULOS — direto de `dados` (bug corrigido: isso antes lia
+    // AppState.kpisMensaisResumo, um resumo pré-calculado que nenhum código
+    // do projeto jamais escrevia — sempre {} , sempre zero, mesmo com
+    // vendas fechadas reais. Ver comentário em carregarKpisMensais().
+    const total = dados.length;
     const fechadosArr = dados.filter(o => o.status === STATUS.FECHADO || o.status === 'Vendido');
+    const fechados = fechadosArr.length;
+    const negociacao = dados.filter(o => ![STATUS.FECHADO, STATUS.PERDIDO, 'Vendido', 'Declinado'].includes(o.status)).length;
+    const valorVendido = fechadosArr.reduce((s, o) => s + parseFloat(o.valor_orcado || 0), 0);
     const conversao = total ? Math.round((fechados / total) * 100) : 0;
     const metaAtual = calcularMetaTotal();
     const percMetaExato = metaAtual ? Math.round((valorVendido / metaAtual) * 100) : 0;
