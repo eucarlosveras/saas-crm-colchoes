@@ -493,12 +493,17 @@ function selectFilter(filter) {
             const mesAtual = new Date().getMonth() + 1;
             const anoAtual = new Date().getFullYear();
             
+            // maybeSingle (não single): num mês sem nenhuma venda ainda a view não tem
+            // linha nenhuma para retornar — 0 linhas é um resultado válido, não um erro
+            // (mesmo raciocínio já aplicado em dashboard.js; aqui tinha ficado single()
+            // por engano, gerando 406 sempre que a loja/vendedor ainda não fechou nada
+            // no mês corrente).
             const { data: vendasMes } = await db
                 .from('vw_vendas_mensais')
                 .select('*')
                 .eq('ano', anoAtual)
                 .eq('mes', mesAtual)
-                .single();
+                .maybeSingle();
             
             // 3. Calcular métricas a partir das Views
             const etapasAbertas = funil?.filter(f => 
