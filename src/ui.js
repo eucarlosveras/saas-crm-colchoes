@@ -15,7 +15,11 @@ import { renderAdminInicio, renderAdminUsuarios } from './usuarios.js';
         fab.style.display = 'flex';
         fab.title = 'Novo orçamento';
         fab.onclick = abrirNovoOrcamento;
-    } else if (view === 'estoque') {
+    } else if (view === 'estoque' && ['Gerente', 'Administrador', 'Admin'].includes(store.currentUser?.perfil)) {
+        // Cadastro manual de produto agora sempre passa por
+        // cadastrar-produto-manual (Edge Function), que só autoriza
+        // Gerente/Admin — esconder o botão pra Vendedor evita abrir o
+        // modal só pra levar um erro de permissão ao salvar.
         fab.style.display = 'flex';
         fab.title = 'Adicionar produto';
         fab.onclick = abrirModalNovoProduto;

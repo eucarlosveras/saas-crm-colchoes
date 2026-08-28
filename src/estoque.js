@@ -50,7 +50,9 @@ function abrirModalNovoProduto() {
     // Resetar formulário
     const form = document.getElementById('formNovoProduto');
     if (form) form.reset();
-    
+    const statusEl = document.getElementById('novoProdCodigoStatus');
+    if (statusEl) statusEl.textContent = '';
+
     // Carregar categorias dinamicamente
     carregarCategoriasEstoque();
 
@@ -81,38 +83,63 @@ function abrirModalNovoProduto() {
             campoLoja.style.display = 'block';
         }
     }
-    
-    // Popular o select de produtos base usando o array global store.todosProdutos
-    const selectBase = document.getElementById('novoProdSelecaoBase');
-    if (selectBase && typeof store.todosProdutos !== 'undefined' && Array.isArray(store.todosProdutos)) {
-        selectBase.innerHTML = '<option value="" disabled selected>Selecione um produto...</option>';
-        store.todosProdutos.forEach(prod => {
-            const option = document.createElement('option');
-            option.value = prod.id_produto;
-            option.textContent = `${prod.codigo} - ${prod.nome}`;
-            // Armazena dados no próprio elemento option para acesso fácil
-            option.dataset.codigo = prod.codigo;
-            option.dataset.nome = prod.nome;
-            selectBase.appendChild(option);
-        });
-        
-        // Adiciona listener para atualizar data attributes no select quando mudar
-        selectBase.addEventListener('change', function() {
-            const selectedOption = this.options[this.selectedIndex];
-            if (selectedOption && selectedOption.value) {
-                this.dataset.codigo = selectedOption.dataset.codigo;
-                this.dataset.nome = selectedOption.dataset.nome;
-                this.dataset.idProduto = selectedOption.value;
-            } else {
-                delete this.dataset.codigo;
-                delete this.dataset.nome;
-                delete this.dataset.idProduto;
-            }
-        });
+
+    // Anexo é só pra quem pode subir arquivo no bucket privado (mesma regra
+    // da Entrada por Nota Fiscal) — Vendedor não vê o campo.
+    const campoAnexo = document.getElementById('campoNovoProdAnexo');
+    if (campoAnexo) {
+        const podeAnexar = store.currentUser.perfil === 'Gerente' || store.currentUser.perfil === 'Administrador' || store.currentUser.perfil === 'Admin';
+        campoAnexo.style.display = podeAnexar ? 'block' : 'none';
     }
-    
-    // Abrir modal usando a função padrão do sistema
+
     openModal('modalNovoProduto');
+}
+
+let _categoriasCacheEstoque = []; // cache pra classificação automática (ver aplicarCategoriaSugerida)
+
+// Mesma lógica usada nas importações em lote (CSV/Nota Fiscal, ver
+// _shared/categoria-helper.ts no lado das Edge Functions): 1ª palavra do
+// nome do produto batendo com uma categoria já existente — "TRAVESSEIRO
+// VISCO LUXO" sugere "Travesseiro". Só sugere dentro do que já existe no
+// filtro, nunca cria categoria nova a partir do nome.
+const MAPA_ACENTOS_ESTOQUE = { á: 'a', à: 'a', â: 'a', ã: 'a', é: 'e', ê: 'e', í: 'i', ó: 'o', ô: 'o', õ: 'o', ú: 'u', ç: 'c' };
+function normalizarTextoEstoque(texto) {
+    return (texto || '').trim().toLowerCase().split('').map(ch => MAPA_ACENTOS_ESTOQUE[ch] || ch).join('');
+}
+function inferirCategoriaPorNomeClient(nomeProduto) {
+    const primeiraPalavra = normalizarTextoEstoque(nomeProduto).split(/\s+/)[0] || '';
+    if (!primeiraPalavra) return null;
+    return _categoriasCacheEstoque.find(c => {
+        const nomeCat = normalizarTextoEstoque(c.nome);
+        return nomeCat === primeiraPalavra || nomeCat.startsWith(primeiraPalavra + ' ');
+    }) || null;
+}
+
+// Chamada tanto ao achar um produto pelo código quanto ao digitar o nome de
+// um produto novo — sempre tenta sugerir, o usuário pode trocar depois.
+function aplicarCategoriaSugerida(nomeProduto) {
+    const sugestao = inferirCategoriaPorNomeClient(nomeProduto);
+    const selectCategoria = document.getElementById('novoProdCategoria');
+    if (sugestao && selectCategoria) selectCategoria.value = sugestao.id;
+}
+
+// Busca pelo Código do Produto digitado: se já existe no catálogo, preenche
+// Nome e sugere Categoria automaticamente; se não existe, deixa o campo
+// Nome livre — é um produto novo, criado no catálogo ao salvar.
+function buscarProdutoPorCodigo(input) {
+    const codigo = (input.value || '').trim();
+    const statusEl = document.getElementById('novoProdCodigoStatus');
+    const nomeInput = document.getElementById('novoProdNome');
+    if (!codigo) { if (statusEl) statusEl.textContent = ''; return; }
+
+    const match = (store.todosProdutos || []).find(p => (p.codigo || '').toLowerCase() === codigo.toLowerCase());
+    if (match) {
+        if (nomeInput) nomeInput.value = match.nome;
+        aplicarCategoriaSugerida(match.nome);
+        if (statusEl) { statusEl.textContent = '✓ Produto já existe no catálogo'; statusEl.style.color = 'var(--status-success-text)'; }
+    } else {
+        if (statusEl) { statusEl.textContent = 'Código novo — preencha o nome pra cadastrar esse produto'; statusEl.style.color = 'var(--text-muted)'; }
+    }
 }
 
 async function carregarCategoriasEstoque() {
@@ -129,10 +156,11 @@ async function carregarCategoriasEstoque() {
 
         if (error) throw error;
 
+        _categoriasCacheEstoque = data || [];
         select.innerHTML = '<option value="" disabled selected>Selecione uma categoria...</option>';
-        
-        if (data && data.length > 0) {
-            data.forEach(cat => {
+
+        if (_categoriasCacheEstoque.length > 0) {
+            _categoriasCacheEstoque.forEach(cat => {
                 const option = document.createElement('option');
                 option.value = cat.id;
                 option.textContent = cat.nome;
@@ -151,36 +179,18 @@ async function carregarCategoriasEstoque() {
 async function salvarNovoProdutoEstoque(event) {
     event.preventDefault();
 
-    // Obter dados do select de produto base
-    const selectBase = document.getElementById('novoProdSelecaoBase');
-    const idProduto = selectBase?.dataset.idProduto;
-    const codigo = selectBase?.dataset.codigo;
-    const nome = selectBase?.dataset.nome;
-    
+    const codigo = (document.getElementById('novoProdCodigo')?.value || '').trim();
+    const nome = (document.getElementById('novoProdNome')?.value || '').trim();
     const categoriaId = document.getElementById('novoProdCategoria')?.value;
-    
-    const qualidadeEl = document.getElementById('novoProdQualidade');
-    if (!qualidadeEl || !qualidadeEl.value) {
-        showToast('Selecione a qualidade do produto.', 'warning');
-        return;
-    }
-    const qualidade = qualidadeEl.value;
-    
+    const qualidade = document.getElementById('novoProdQualidade')?.value;
     const qtdInicial = parseInt(document.getElementById('novoProdQuantidade')?.value) || 0;
     const lojaId = document.getElementById('novoProdLoja')?.value;
+    const arquivo = document.getElementById('novoProdAnexo')?.files?.[0] || null;
 
-    if (!idProduto || !codigo || !nome) {
-        showToast('Selecione um produto base válido.', 'warning');
-        return;
-    }
-    if (!categoriaId) {
-        showToast('Selecione uma categoria válida.', 'warning');
-        return;
-    }
-    if (!lojaId) {
-        showToast('Selecione a loja do produto.', 'warning');
-        return;
-    }
+    if (!codigo || !nome) { showToast('Preencha o código e o nome do produto.', 'warning'); return; }
+    if (!qualidade) { showToast('Selecione a qualidade do produto.', 'warning'); return; }
+    if (!categoriaId) { showToast('Selecione uma categoria válida.', 'warning'); return; }
+    if (!lojaId) { showToast('Selecione a loja do produto.', 'warning'); return; }
 
     const btnSalvar = event.target.querySelector('button[type="submit"]');
     const originalText = btnSalvar.textContent;
@@ -188,38 +198,35 @@ async function salvarNovoProdutoEstoque(event) {
     btnSalvar.disabled = true;
 
     try {
-        const payload = {
-            id_produto: idProduto,
-            codigo_produto: codigo,
-            nome_produto: nome,
-            categoria_id: parseInt(categoriaId),
-            qualidade: qualidade,
-            qtd_disponivel: qtdInicial,
-            status: 'Ativo',
-            id_loja: lojaId
-        };
+        // Anexo sobe pro Storage ANTES de chamar a function (mesmo padrão da
+        // Entrada por Nota Fiscal) — best-effort: se falhar, o cadastro segue
+        // sem o arquivo, não trava o usuário.
+        let arquivoPath = null;
+        if (arquivo) {
+            const nomeSanitizado = arquivo.name.replace(/[^\w.\-]/g, '_');
+            const caminho = `${lojaId}/${Date.now()}-${nomeSanitizado}`;
+            const { error: erroUpload } = await db.storage.from('notas-fiscais').upload(caminho, arquivo, { contentType: arquivo.type || undefined });
+            if (erroUpload) console.error('Falha ao subir o anexo (produto segue sem o arquivo):', erroUpload.message);
+            else arquivoPath = caminho;
+        }
 
-        const { error } = await db.from('estoque').insert(payload);
-
-        if (error) {
-            if (error.code === '23505') {
-                // Unicidade é por (loja, produto, qualidade) — só bate aqui se
-                // ESSA loja já tem esse produto nessa qualidade específica.
-                // Outra loja ter o mesmo modelo não colide mais (era um bug).
-                throw new Error('Este produto já está cadastrado nesta loja com essa qualidade.');
+        // Insert em `produtos` (catálogo compartilhado) precisa de service
+        // role — RLS só libera leitura pra authenticated — daí passar por
+        // uma Edge Function em vez de insert direto, igual CSV/Nota Fiscal.
+        const { data, error } = await db.functions.invoke('cadastrar-produto-manual', {
+            body: { idLoja: lojaId, codigo, nome, categoriaId: parseInt(categoriaId), qualidade, qtdInicial, arquivoPath },
+        });
+        if (error || data?.error) {
+            let mensagem = data?.error;
+            if (!mensagem && error?.context?.json) {
+                try { mensagem = (await error.context.json())?.error; } catch (_) { /* ignora */ }
             }
-            throw error;
+            throw new Error(mensagem || 'Não foi possível cadastrar o produto.');
         }
 
         showToast('Produto adicionado com sucesso!', 'success');
         fecharModalNovoProduto();
-        
-        if (typeof renderEstoquePage === 'function') {
-            await renderEstoquePage();
-        } else if (typeof renderEstoque === 'function') {
-            await renderEstoque();
-        }
-
+        await carregarEstoqueComProdutos();
     } catch (e) {
         showToast('Erro ao salvar: ' + e.message, 'error');
     } finally {
@@ -896,11 +903,12 @@ function chipTipoMovimentacao(variacao) {
 
 // Referência enxuta: só o número que identifica a origem — NF na entrada,
 // Orçamento na saída — sem o texto de observação inteiro (que não cabe
-// numa linha só). Entrada sem NF associada (import via CSV, por exemplo)
-// não tem número pra extrair — mostra o observação mesmo, é o único dado
-// disponível nesse caso. Quando a entrada tem o PDF anexado
-// (arquivo_nf_path), o número vira link clicável que abre o arquivo
-// original — devolve HTML pronto (já escapado), não texto puro.
+// numa linha só). Entrada sem NF associada (import via CSV, cadastro
+// manual) não tem número pra extrair — mostra o observação mesmo, é o
+// único dado disponível nesse caso. Quando a entrada tem QUALQUER arquivo
+// anexado (arquivo_anexo_path — PDF de NF, mas também imagem/planilha de
+// um cadastro manual), vira link clicável que abre o arquivo original —
+// devolve HTML pronto (já escapado), não texto puro.
 function renderReferenciaKardex(m, positivo) {
     if (!positivo) {
         const texto = m.orcamentos?.protocolo ? `#${m.orcamentos.protocolo}` : (m.observacao || '-');
@@ -908,21 +916,22 @@ function renderReferenciaKardex(m, positivo) {
     }
     const matchNF = (m.observacao || '').match(/NF\s+([\d/]+)/i);
     const texto = matchNF ? `NF ${matchNF[1]}` : (m.observacao || '-');
-    if (matchNF && m.arquivo_nf_path) {
-        return `<a href="#" class="link-kardex" onclick="event.preventDefault(); abrirNotaFiscalAnexada('${escapeHtml(m.arquivo_nf_path)}')">${escapeHtml(texto)}</a>`;
+    if (m.arquivo_anexo_path) {
+        return `<a href="#" class="link-kardex" onclick="event.preventDefault(); abrirAnexoMovimentacao('${escapeHtml(m.arquivo_anexo_path)}')">📎 ${escapeHtml(texto)}</a>`;
     }
     return escapeHtml(texto);
 }
 
-// Abre o PDF original da NF num signed URL de curta duração — nunca uma URL
-// pública fixa (bucket é privado, nota tem preço de custo do fornecedor).
-async function abrirNotaFiscalAnexada(path) {
+// Abre o arquivo anexado (PDF de NF, imagem, planilha etc.) num signed URL
+// de curta duração — nunca uma URL pública fixa (bucket é privado, pode ter
+// preço de custo de fornecedor).
+async function abrirAnexoMovimentacao(path) {
     try {
         const { data, error } = await db.storage.from('notas-fiscais').createSignedUrl(path, 60);
         if (error) throw error;
         window.open(data.signedUrl, '_blank', 'noopener');
     } catch (e) {
-        showToast('Não foi possível abrir o PDF da nota: ' + e.message, 'error');
+        showToast('Não foi possível abrir o anexo: ' + e.message, 'error');
     }
 }
 
@@ -943,7 +952,7 @@ async function abrirKardexEstoque(idEstoque) {
         sub.textContent = `Código ${itemEstoque.codigo_produto} · Disponível: ${itemEstoque.qtd_disponivel} · Reservado: ${itemEstoque.qtd_reservada || 0}`;
 
         const { data: movimentacoes, error } = await db.from('movimentacoes_estoque')
-            .select('created_at, tipo_movimentacao, qtd_anterior_disponivel, qtd_nova_disponivel, observacao, arquivo_nf_path, usuarios(nome), orcamentos(protocolo)')
+            .select('created_at, tipo_movimentacao, qtd_anterior_disponivel, qtd_nova_disponivel, observacao, arquivo_anexo_path, usuarios(nome), orcamentos(protocolo)')
             .eq('id_estoque', idEstoque)
             .order('created_at', { ascending: true });
         if (error) throw error;
@@ -987,4 +996,4 @@ function fecharModalKardex() {
     closeModal('modalKardexEstoque');
 }
 
-export { abrirKardexEstoque, abrirModalImportarEstoque, abrirModalImportarNF, abrirModalNovoProduto, abrirNotaFiscalAnexada, atualizarKpisEstoque, baixarModeloImportacaoEstoque, carregarCategoriasEstoque, carregarEstoqueComProdutos, confirmarImportacaoEstoque, confirmarImportacaoNF, fecharModalImportarEstoque, fecharModalImportarNF, fecharModalKardex, fecharModalNovoProduto, filtrarEstoque, processarArquivoImportacaoEstoque, processarArquivoImportarNF, removerItemPreviewNF, renderEstoque, renderizarTabelaEstoque, salvarNovoProdutoEstoque, verificarAlertasEstoque };
+export { abrirKardexEstoque, abrirModalImportarEstoque, abrirModalImportarNF, abrirModalNovoProduto, abrirAnexoMovimentacao, aplicarCategoriaSugerida, atualizarKpisEstoque, baixarModeloImportacaoEstoque, buscarProdutoPorCodigo, carregarCategoriasEstoque, carregarEstoqueComProdutos, confirmarImportacaoEstoque, confirmarImportacaoNF, fecharModalImportarEstoque, fecharModalImportarNF, fecharModalKardex, fecharModalNovoProduto, filtrarEstoque, processarArquivoImportacaoEstoque, processarArquivoImportarNF, removerItemPreviewNF, renderEstoque, renderizarTabelaEstoque, salvarNovoProdutoEstoque, verificarAlertasEstoque };
