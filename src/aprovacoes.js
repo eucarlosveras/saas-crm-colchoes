@@ -39,7 +39,7 @@ function chipStatus(status) {
 }
 
 let listaVendedoresCache = [];
-let filtroStatusAtual = 'Pendente';
+let filtroStatusAtual = 'todos';
 let buscaAtual = '';
 
 async function renderGerenciamentoAcessos() {
@@ -73,11 +73,11 @@ async function renderGerenciamentoAcessos() {
             <div style="display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
                 <input type="text" id="buscaAcessos" class="form-input" placeholder="Buscar por nome ou e-mail..." style="flex:1; min-width:200px;" oninput="filtrarAcessos()">
                 <select id="filtroStatusAcessos" class="form-input" style="width:180px;" onchange="filtrarAcessos()">
+                    <option value="todos">Todos</option>
                     <option value="Pendente">Pendentes</option>
                     <option value="Ativo">Aprovados</option>
                     <option value="Inativo">Inativos</option>
                     <option value="Rejeitado">Rejeitados</option>
-                    <option value="todos">Todos</option>
                 </select>
             </div>
             <div style="overflow-x:auto;">
@@ -110,7 +110,7 @@ async function carregarVendedoresDaLoja() {
 }
 
 function filtrarAcessos() {
-    filtroStatusAtual = document.getElementById('filtroStatusAcessos')?.value || 'Pendente';
+    filtroStatusAtual = document.getElementById('filtroStatusAcessos')?.value || 'todos';
     buscaAtual = (document.getElementById('buscaAcessos')?.value || '').trim().toLowerCase();
 
     let lista = listaVendedoresCache;
