@@ -16,6 +16,7 @@
 // uma. Segue o checklist de docs/AUTORIZACAO.md: authGuard + checagem
 // explícita de permissão, e-mail case-insensitive.
 import { authGuard } from '../_shared/auth-guard.ts';
+import { inferirCategoriaPorNome } from '../_shared/categoria-helper.ts';
 import { getAdminClient } from '../_shared/supabase-client.ts';
 
 const corsHeaders = {
@@ -172,7 +173,14 @@ Deno.serve(async (req) => {
     await emLotes(linhas, 10, async (linha) => {
       try {
         const produto = mapaProdutos.get(linha.codigo.toLowerCase());
-        const categoria = mapaCategorias.get((linha.categoria || CATEGORIA_PADRAO).toLowerCase());
+        // Categoria explícita na planilha tem prioridade; sem ela, tenta
+        // classificar automaticamente pela 1ª palavra do nome batendo com
+        // uma categoria já existente (ex: "TRAVESSEIRO VISCO LUXO" ->
+        // Travesseiro); sem match nenhum, cai no fallback "Outros".
+        const categoriaExplicita = linha.categoria ? mapaCategorias.get(linha.categoria.toLowerCase()) : null;
+        const categoria = categoriaExplicita
+          || inferirCategoriaPorNome(linha.nome, [...mapaCategorias.values()])
+          || mapaCategorias.get(CATEGORIA_PADRAO.toLowerCase());
         const chave = `${linha.codigo.toLowerCase()}|${linha.qualidade}`;
         const existente = mapaEstoque.get(chave);
 

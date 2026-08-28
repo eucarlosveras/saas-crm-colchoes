@@ -7,14 +7,18 @@
 // nunca substitui. Sempre qualidade 'novo' (mercadoria recém-chegada do
 // fornecedor nunca é mostruário/avaria) e tipo_movimentacao 'entrada'.
 //
-// Mesma regra de categoria do CSV: a nota não tem esse campo (só tem NCM,
-// que é fiscal, não organizacional), cai no fallback "Outros" pra produto
-// novo — Gerente reclassifica depois se quiser.
+// Categoria: a nota não tem esse campo (só tem NCM, que é fiscal, não
+// organizacional) — pra produto novo, tenta classificar automaticamente
+// pela 1ª palavra do nome batendo com uma categoria já existente (ex:
+// "TRAVESSEIRO VISCO LUXO" -> Travesseiro; ver inferirCategoriaPorNome em
+// _shared/categoria-helper.ts); sem match, cai no fallback "Outros" —
+// Gerente reclassifica depois se quiser.
 //
 // Gerente só dá entrada na própria loja; Administrador em qualquer uma.
 // Segue o checklist de docs/AUTORIZACAO.md: authGuard + checagem explícita
 // de permissão, e-mail case-insensitive.
 import { authGuard } from '../_shared/auth-guard.ts';
+import { inferirCategoriaPorNome } from '../_shared/categoria-helper.ts';
 import { getAdminClient } from '../_shared/supabase-client.ts';
 
 const corsHeaders = {
@@ -115,12 +119,20 @@ Deno.serve(async (req) => {
     const { data: produtosExistentes } = await admin.from('produtos').select('id_produto, codigo').in('codigo', codigosUnicos);
     const mapaProdutos = new Map((produtosExistentes || []).map(p => [p.codigo.toLowerCase(), p]));
 
-    const { data: categoriaPadrao } = await admin.from('categorias').select('id, nome').ilike('nome', CATEGORIA_PADRAO).maybeSingle();
+    // Carrega TODAS as categorias já existentes — usadas tanto pro fallback
+    // "Outros" quanto pra classificação automática pelo nome do produto
+    // (ver inferirCategoriaPorNome): "TRAVESSEIRO VISCO LUXO" cai em
+    // "Travesseiro" porque essa categoria já existe e a 1ª palavra bate.
+    // Nunca cria categoria nova a partir do nome — só usa as que já existem.
+    const { data: todasCategorias } = await admin.from('categorias').select('id, nome');
+    const listaCategorias = todasCategorias || [];
+    const categoriaPadrao = listaCategorias.find((c) => c.nome.toLowerCase() === CATEGORIA_PADRAO.toLowerCase());
     let idCategoriaPadrao = categoriaPadrao?.id;
     if (!idCategoriaPadrao) {
       const { data: criada, error: erroCat } = await admin.from('categorias').insert([{ nome: CATEGORIA_PADRAO }]).select('id').single();
       if (erroCat) throw erroCat;
       idCategoriaPadrao = criada!.id;
+      listaCategorias.push({ id: idCategoriaPadrao!, nome: CATEGORIA_PADRAO });
     }
 
     const { data: estoqueExistente } = await admin.from('estoque').select('id, codigo_produto, qualidade, qtd_disponivel').eq('id_loja', idLoja).eq('qualidade', 'novo');
@@ -182,8 +194,9 @@ Deno.serve(async (req) => {
           if (erroMov) console.error('Falha ao registrar movimentação de entrada:', erroMov.message);
           atualizadosCount++;
         } else {
+          const categoriaInferida = inferirCategoriaPorNome(nome, listaCategorias);
           const { data: novo, error } = await admin.from('estoque').insert([{
-            codigo_produto: codigo, nome_produto: nome, categoria_id: idCategoriaPadrao,
+            codigo_produto: codigo, nome_produto: nome, categoria_id: categoriaInferida?.id ?? idCategoriaPadrao,
             id_produto: produto?.id_produto, qualidade: 'novo', qtd_disponivel: quantidade,
             status: 'Ativo', id_loja: idLoja,
           }]).select('id').single();
