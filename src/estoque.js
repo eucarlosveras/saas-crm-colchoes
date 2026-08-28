@@ -841,7 +841,7 @@ function renderizarTabelaEstoque(data) {
         return `
             <tr>
                 <td style="font-family: 'JetBrains Mono', monospace; font-size: var(--font-xs);">${escapeHtml(item.codigo_produto || '-')}</td>
-                <td><strong>${escapeHtml(item.nome_produto || 'Produto não vinculado')}</strong></td>
+                <td><a href="#" class="link-kardex" onclick="event.preventDefault(); abrirKardexEstoque('${item.id}')"><strong>${escapeHtml(item.nome_produto || 'Produto não vinculado')}</strong></a></td>
                 <td>${escapeHtml(item.categorias?.nome || '-')}</td>
                 <td><span class="quality-tag ${qualidadeClass}">${qualidadeLabel}</span></td>
                 <td style="text-align: center;"><span class="pill ${pillClass}">${disponivel}</span></td>
@@ -852,4 +852,95 @@ function renderizarTabelaEstoque(data) {
     }).join('');
 }
 
-export { abrirModalImportarEstoque, abrirModalImportarNF, abrirModalNovoProduto, atualizarKpisEstoque, baixarModeloImportacaoEstoque, carregarCategoriasEstoque, carregarEstoqueComProdutos, confirmarImportacaoEstoque, confirmarImportacaoNF, fecharModalImportarEstoque, fecharModalImportarNF, fecharModalNovoProduto, filtrarEstoque, processarArquivoImportacaoEstoque, processarArquivoImportarNF, removerItemPreviewNF, renderEstoque, renderizarTabelaEstoque, salvarNovoProdutoEstoque, verificarAlertasEstoque };
+// ═══════════════════════════════════════════════════════════════
+// Kardex do produto — histórico completo de movimentações de UMA linha de
+// estoque (entradas e saídas), em ordem cronológica, estilo Kardex do
+// TOTVS. Clicado a partir do nome do produto na tabela de estoque.
+//
+// IMPORTANTE (transparência, não é bug desta tela): "saída por venda" só
+// aparece aqui quando o orçamento tiver itens em `itens_orcamento` — hoje
+// a tela "Novo Orçamento" ainda não grava lá (usa só o campo de texto livre
+// modelo_colchao), então o trigger de baixa automática nunca dispara com
+// dado de verdade. As entradas (CSV/Nota Fiscal) já aparecem certinho; as
+// saídas vão aparecer assim que essa ligação for feita — não é escopo
+// desta tela consertar isso.
+// ═══════════════════════════════════════════════════════════════
+
+const TIPO_MOVIMENTACAO_INFO = {
+    entrada: { label: 'Entrada', badge: 'success' },
+    devolucao: { label: 'Devolução', badge: 'success' },
+    venda: { label: 'Saída (Venda)', badge: 'error' },
+    saida_manual: { label: 'Saída Manual', badge: 'error' },
+    reserva: { label: 'Reserva', badge: 'warning' },
+    liberacao: { label: 'Liberação de Reserva', badge: 'info' },
+    ajuste: { label: 'Ajuste', badge: 'info' },
+};
+
+function chipTipoMovimentacao(tipo) {
+    const info = TIPO_MOVIMENTACAO_INFO[tipo] || { label: tipo || '-', badge: 'info' };
+    return `<span style="display:inline-flex; align-items:center; padding:3px 10px; border-radius:100px; font-size:11px; font-weight:700; background:var(--status-${info.badge}-bg); border:1px solid var(--status-${info.badge}-border); color:var(--status-${info.badge}-text);">${escapeHtml(info.label)}</span>`;
+}
+
+async function abrirKardexEstoque(idEstoque) {
+    const corpo = document.getElementById('kardexCorpo');
+    const titulo = document.getElementById('kardexTitulo');
+    const sub = document.getElementById('kardexSubtitulo');
+    titulo.textContent = 'Histórico do produto';
+    sub.textContent = '';
+    corpo.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-muted);">Carregando...</div>';
+    openModal('modalKardexEstoque');
+
+    try {
+        const { data: itemEstoque, error: erroItem } = await db.from('estoque').select('codigo_produto, nome_produto, qtd_disponivel, qtd_reservada').eq('id', idEstoque).single();
+        if (erroItem) throw erroItem;
+
+        titulo.textContent = itemEstoque.nome_produto || 'Produto';
+        sub.textContent = `Código ${itemEstoque.codigo_produto} · Disponível: ${itemEstoque.qtd_disponivel} · Reservado: ${itemEstoque.qtd_reservada || 0}`;
+
+        const { data: movimentacoes, error } = await db.from('movimentacoes_estoque')
+            .select('created_at, tipo_movimentacao, qtd_anterior_disponivel, qtd_nova_disponivel, observacao, usuarios(nome), orcamentos(protocolo)')
+            .eq('id_estoque', idEstoque)
+            .order('created_at', { ascending: true });
+        if (error) throw error;
+
+        if (!movimentacoes || movimentacoes.length === 0) {
+            corpo.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-muted);">Nenhuma movimentação registrada ainda para este produto.</div>';
+            return;
+        }
+
+        corpo.innerHTML = `
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead><tr><th>Data</th><th>Tipo</th><th style="text-align:right;">Variação</th><th style="text-align:right;">Saldo</th><th>Referência</th><th>Usuário</th></tr></thead>
+                    <tbody>
+                        ${movimentacoes.map(m => {
+                            const variacao = (m.qtd_nova_disponivel ?? 0) - (m.qtd_anterior_disponivel ?? 0);
+                            const corVariacao = variacao > 0 ? 'var(--status-success-text)' : variacao < 0 ? 'var(--status-error-text)' : 'var(--text-muted)';
+                            const referencia = m.orcamentos?.protocolo
+                                ? `Orçamento #${m.orcamentos.protocolo}`
+                                : (m.observacao || '-');
+                            return `
+                                <tr>
+                                    <td style="white-space:nowrap;">${new Date(m.created_at).toLocaleString('pt-BR')}</td>
+                                    <td>${chipTipoMovimentacao(m.tipo_movimentacao)}</td>
+                                    <td style="text-align:right; font-weight:700; color:${corVariacao};">${variacao > 0 ? '+' : ''}${variacao}</td>
+                                    <td style="text-align:right; font-weight:700;">${m.qtd_nova_disponivel ?? '-'}</td>
+                                    <td style="font-size:var(--font-xs); color:var(--text-muted); max-width:220px;">${escapeHtml(referencia)}</td>
+                                    <td style="font-size:var(--font-xs); color:var(--text-muted);">${escapeHtml(m.usuarios?.nome || '-')}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } catch (e) {
+        corpo.innerHTML = `<div style="text-align:center; padding:40px; color:var(--danger-text);">Erro ao carregar histórico: ${escapeHtml(e.message)}</div>`;
+    }
+}
+
+function fecharModalKardex() {
+    closeModal('modalKardexEstoque');
+}
+
+export { abrirKardexEstoque, abrirModalImportarEstoque, abrirModalImportarNF, abrirModalNovoProduto, atualizarKpisEstoque, baixarModeloImportacaoEstoque, carregarCategoriasEstoque, carregarEstoqueComProdutos, confirmarImportacaoEstoque, confirmarImportacaoNF, fecharModalImportarEstoque, fecharModalImportarNF, fecharModalKardex, fecharModalNovoProduto, filtrarEstoque, processarArquivoImportacaoEstoque, processarArquivoImportarNF, removerItemPreviewNF, renderEstoque, renderizarTabelaEstoque, salvarNovoProdutoEstoque, verificarAlertasEstoque };

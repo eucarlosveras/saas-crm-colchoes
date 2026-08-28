@@ -1413,6 +1413,9 @@
         }
         .client-name:hover { color: var(--brand-blue-dark); text-decoration: underline; }
 
+        .link-kardex { color: var(--brand-blue); text-decoration: none; cursor: pointer; }
+        .link-kardex:hover { color: var(--brand-blue-dark); text-decoration: underline; }
+
         /* ===== Carteira de Negociações (tela inicial) — lista em grid ===== */
         .search-unificado {
             display: flex; align-items: center; gap: 8px; background: var(--surface-2);
