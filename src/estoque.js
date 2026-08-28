@@ -444,6 +444,165 @@ function baixarModeloImportacaoEstoque() {
     document.body.removeChild(link);
 }
 
+// ═══════════════════════════════════════════════════════════════
+// Entrada de estoque a partir de uma Nota Fiscal (PDF/DANFE) — segunda
+// forma de importação, ao lado da planilha CSV. Diferença de semântica:
+// aqui é uma ENTREGA (soma ao que já existe), não uma "foto" do estoque.
+// Ver src/pdf-nf-parser.js (leitura do PDF) e
+// supabase/functions/importar-estoque-nf (aplicação no banco).
+//
+// `parseNotaFiscalPDF` (e o pdfjs-dist por trás dele) só é importado sob
+// demanda (import dinâmico), pra não pesar no bundle de quem nunca usa essa
+// tela — é uma lib de ~1-2MB só pra extrair texto de PDF.
+// ═══════════════════════════════════════════════════════════════
+
+let _itensImportacaoNF = [];
+let _metadadosImportacaoNF = { numero: null, fornecedor: null };
+
+function abrirModalImportarNF() {
+    const selectLoja = document.getElementById('importarNFLoja');
+    const campoLoja = document.getElementById('campoImportarNFLoja');
+    if (selectLoja) {
+        const isAdminImportar = store.currentUser.perfil === 'Administrador' || store.currentUser.perfil === 'Admin';
+        const lojasPermitidasImportar = getLojasPermitidas();
+        const lojasParaEscolher = isAdminImportar
+            ? store.listaLojas
+            : store.listaLojas.filter(l => (lojasPermitidasImportar || []).includes(l.id_loja));
+
+        selectLoja.innerHTML = '<option value="" disabled selected>Selecione a loja...</option>';
+        lojasParaEscolher.slice().sort((a, b) => a.nome_loja.localeCompare(b.nome_loja)).forEach(l => {
+            const opt = document.createElement('option');
+            opt.value = l.id_loja; opt.textContent = l.nome_loja;
+            selectLoja.appendChild(opt);
+        });
+
+        if (lojasParaEscolher.length === 1) {
+            selectLoja.value = lojasParaEscolher[0].id_loja;
+            if (campoLoja) campoLoja.style.display = 'none';
+        } else if (campoLoja) {
+            campoLoja.style.display = 'block';
+        }
+    }
+
+    _itensImportacaoNF = [];
+    _metadadosImportacaoNF = { numero: null, fornecedor: null };
+    const arquivoInput = document.getElementById('importarNFArquivo');
+    if (arquivoInput) arquivoInput.value = '';
+    const preview = document.getElementById('importarNFPreview');
+    if (preview) { preview.style.display = 'none'; preview.innerHTML = ''; }
+    document.getElementById('errImportarNF').textContent = '';
+    document.getElementById('btnConfirmarImportarNF').disabled = true;
+
+    openModal('modalImportarNF');
+}
+
+function fecharModalImportarNF() {
+    closeModal('modalImportarNF');
+}
+
+function renderPreviewImportacaoNF() {
+    const preview = document.getElementById('importarNFPreview');
+    if (!preview) return;
+
+    if (_itensImportacaoNF.length === 0) {
+        preview.style.display = 'none';
+        document.getElementById('btnConfirmarImportarNF').disabled = true;
+        return;
+    }
+
+    const cabecalhoNota = _metadadosImportacaoNF.numero
+        ? `<div style="margin-bottom:8px;"><strong>NF ${escapeHtml(_metadadosImportacaoNF.numero)}</strong>${_metadadosImportacaoNF.fornecedor ? ' — ' + escapeHtml(_metadadosImportacaoNF.fornecedor) : ''}</div>`
+        : '';
+
+    const linhas = _itensImportacaoNF.map((it, i) => `
+        <div style="display:flex; align-items:center; gap:8px; padding:4px 0; border-bottom:1px solid var(--border-light);">
+            <span style="flex:1; min-width:0;"><strong>${escapeHtml(it.codigo)}</strong> — ${escapeHtml(it.nome)}</span>
+            <span style="flex:none; font-weight:700;">${it.quantidade}</span>
+            <button type="button" title="Remover item" onclick="removerItemPreviewNF(${i})" style="flex:none; background:none; border:none; color:var(--danger-text); cursor:pointer; padding:2px 4px; font-size:14px;">✕</button>
+        </div>
+    `).join('');
+
+    preview.style.display = 'block';
+    preview.innerHTML = cabecalhoNota + `<strong>${_itensImportacaoNF.length}</strong> produto${_itensImportacaoNF.length !== 1 ? 's' : ''} pronto${_itensImportacaoNF.length !== 1 ? 's' : ''} para dar entrada:` + linhas;
+
+    document.getElementById('btnConfirmarImportarNF').disabled = false;
+}
+
+function removerItemPreviewNF(indice) {
+    _itensImportacaoNF.splice(indice, 1);
+    renderPreviewImportacaoNF();
+}
+
+async function processarArquivoImportarNF(event) {
+    const arquivo = event.target.files?.[0];
+    const err = document.getElementById('errImportarNF');
+    const preview = document.getElementById('importarNFPreview');
+    err.textContent = '';
+    _itensImportacaoNF = [];
+    _metadadosImportacaoNF = { numero: null, fornecedor: null };
+    if (!arquivo) { preview.style.display = 'none'; document.getElementById('btnConfirmarImportarNF').disabled = true; return; }
+
+    preview.style.display = 'block';
+    preview.innerHTML = 'Lendo o PDF...';
+
+    try {
+        const { parseNotaFiscalPDF } = await import('./pdf-nf-parser.js');
+        const resultado = await parseNotaFiscalPDF(arquivo);
+
+        _itensImportacaoNF = resultado.itens;
+        _metadadosImportacaoNF = resultado.notaFiscal;
+
+        if (resultado.avisos.length) {
+            err.textContent = resultado.avisos.length === 1
+                ? resultado.avisos[0]
+                : `${resultado.avisos.length} linha(s) não reconhecida(s) — confira o total antes de confirmar.`;
+        }
+
+        renderPreviewImportacaoNF();
+    } catch (e) {
+        err.textContent = 'Não consegui ler este PDF: ' + e.message;
+        preview.style.display = 'none';
+        document.getElementById('btnConfirmarImportarNF').disabled = true;
+    }
+}
+
+async function confirmarImportacaoNF() {
+    const idLoja = document.getElementById('importarNFLoja')?.value;
+    const err = document.getElementById('errImportarNF');
+    err.textContent = '';
+
+    if (!idLoja) { err.textContent = 'Selecione a loja.'; return; }
+    if (_itensImportacaoNF.length === 0) { err.textContent = 'Nenhum item para dar entrada.'; return; }
+
+    const btn = document.getElementById('btnConfirmarImportarNF');
+    btn.classList.add('saving'); btn.disabled = true;
+
+    try {
+        const { data, error } = await db.functions.invoke('importar-estoque-nf', {
+            body: { idLoja, itens: _itensImportacaoNF, notaFiscal: _metadadosImportacaoNF },
+        });
+        if (error || data?.error) {
+            let mensagem = data?.error;
+            if (!mensagem && error?.context?.json) {
+                try { mensagem = (await error.context.json())?.error; } catch (_) { /* ignora */ }
+            }
+            throw new Error(mensagem || 'Não foi possível dar entrada no estoque.');
+        }
+
+        const resumo = `Entrada registrada: ${data.criados} produto${data.criados !== 1 ? 's' : ''} novo${data.criados !== 1 ? 's' : ''}, ${data.atualizados} atualizado${data.atualizados !== 1 ? 's' : ''}.`;
+        showToast(resumo, 'success');
+        if (data.erros?.length) console.warn('Avisos na entrada por NF:', data.erros);
+
+        fecharModalImportarNF();
+        await carregarEstoqueComProdutos();
+    } catch (e) {
+        err.textContent = 'Erro: ' + e.message;
+    } finally {
+        btn.classList.remove('saving');
+        btn.disabled = false;
+    }
+}
+
 async function renderEstoque() {
     const main = document.getElementById('mainContent');
     if (!main) return;
@@ -457,10 +616,16 @@ async function renderEstoque() {
                 <h1 style="margin:0;">Controle de Estoque</h1>
             </div>
             ${podeImportar ? `
-            <button class="btn-primary-action" onclick="abrirModalImportarEstoque()">
-                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Importar Estoque
-            </button>` : ''}
+            <div style="display:flex; gap:8px;">
+                <button class="btn-primary-action" onclick="abrirModalImportarEstoque()">
+                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Importar Estoque
+                </button>
+                <button class="btn-primary-action" onclick="abrirModalImportarNF()">
+                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/><line x1="9" y1="11" x2="13" y2="11"/></svg>
+                    Entrada por Nota Fiscal
+                </button>
+            </div>` : ''}
         </header>
 
         <div class="kpi-grid">
@@ -683,4 +848,4 @@ function renderizarTabelaEstoque(data) {
     }).join('');
 }
 
-export { abrirModalImportarEstoque, abrirModalNovoProduto, atualizarKpisEstoque, baixarModeloImportacaoEstoque, carregarCategoriasEstoque, carregarEstoqueComProdutos, confirmarImportacaoEstoque, fecharModalImportarEstoque, fecharModalNovoProduto, filtrarEstoque, processarArquivoImportacaoEstoque, renderEstoque, renderizarTabelaEstoque, salvarNovoProdutoEstoque, verificarAlertasEstoque };
+export { abrirModalImportarEstoque, abrirModalImportarNF, abrirModalNovoProduto, atualizarKpisEstoque, baixarModeloImportacaoEstoque, carregarCategoriasEstoque, carregarEstoqueComProdutos, confirmarImportacaoEstoque, confirmarImportacaoNF, fecharModalImportarEstoque, fecharModalImportarNF, fecharModalNovoProduto, filtrarEstoque, processarArquivoImportacaoEstoque, processarArquivoImportarNF, removerItemPreviewNF, renderEstoque, renderizarTabelaEstoque, salvarNovoProdutoEstoque, verificarAlertasEstoque };

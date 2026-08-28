@@ -562,6 +562,40 @@
         </div>
     </div>
 
+    <!-- Modal: Entrada de Estoque por Nota Fiscal (PDF/DANFE) -->
+    <div class="modal-overlay" id="modalImportarNF" onclick="if(event.target===this)closeModal('modalImportarNF')">
+        <div class="modal-card" style="max-width:520px;">
+            <h3>Entrada por Nota Fiscal</h3>
+            <p style="font-size:var(--font-xs); color:var(--text-muted); margin:-8px 0 16px;">
+                Sobe o PDF (DANFE) da nota de compra. A quantidade de cada produto <strong>soma</strong> ao estoque atual da loja — não substitui.
+            </p>
+
+            <div class="form-group" id="campoImportarNFLoja">
+                <label class="form-label">Loja *</label>
+                <select id="importarNFLoja" class="form-input" required>
+                    <option value="" disabled selected>Selecione a loja...</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Arquivo PDF (DANFE) *</label>
+                <input type="file" id="importarNFArquivo" accept=".pdf,application/pdf" class="form-input" onchange="processarArquivoImportarNF(event)">
+            </div>
+
+            <div id="importarNFPreview" style="display:none; font-size:var(--font-xs); background:var(--surface-2); border:1px solid var(--border-light); border-radius:var(--radius-sm); padding:10px 12px; margin-top:4px; max-height:220px; overflow-y:auto;"></div>
+
+            <div class="field-error" id="errImportarNF"></div>
+
+            <div class="modal-btns">
+                <button type="button" class="btn-cancelar-modal" onclick="fecharModalImportarNF()">Cancelar</button>
+                <button type="button" class="btn-salvar-modal" id="btnConfirmarImportarNF" disabled onclick="confirmarImportacaoNF()">
+                    <span class="btn-spinner"></span>
+                    <span class="btn-text">Dar Entrada</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="/src/main.js"></script>
 </body>
 </html>
