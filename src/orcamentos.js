@@ -218,6 +218,30 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
                     .eq('id_orcamento', orc.id_orcamento);
                 if (errUpdate) throw errUpdate;
 
+                // 2. Sincroniza itens_orcamento com a lista editada (apaga os
+                // antigos, insere os novos) — se não fizer isso, o fechamento
+                // da venda usaria os produtos ORIGINAIS (de antes do ajuste)
+                // pra dar baixa no estoque, deduzindo o item errado. Best-effort
+                // com aviso (não trava a edição): o modelo_colchao/valor_orcado
+                // acima já são a fonte de verdade visível pro usuário.
+                const { error: errDelItens } = await db.from('itens_orcamento').delete().eq('id_orcamento', orc.id_orcamento);
+                if (errDelItens) {
+                    console.error('Falha ao limpar itens antigos do orçamento:', errDelItens.message);
+                    showToast('Proposta salva, mas os itens de estoque não foram atualizados — avise o suporte.', 'warning');
+                } else {
+                    const itensPayload = itens.map(i => ({
+                        id_orcamento: orc.id_orcamento,
+                        id_produto: resolverIdProdutoPeloTexto(i.nome),
+                        quantidade: 1,
+                        preco_praticado: i.por,
+                    }));
+                    const { error: errInsItens } = await db.from('itens_orcamento').insert(itensPayload);
+                    if (errInsItens) {
+                        console.error('Falha ao gravar itens atualizados do orçamento:', errInsItens.message);
+                        showToast('Proposta salva, mas os itens de estoque não foram atualizados — avise o suporte.', 'warning');
+                    }
+                }
+
                 // 3. Atualiza estado local
                 AppState.contextoVenda.clienteAtual.modelo_colchao = novosProdutos;
                 AppState.contextoVenda.clienteAtual.valor_orcado   = valorTotal;
@@ -829,6 +853,24 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
             }
         }
 
+        // Mesma lógica de correspondência de validarProdutoSelecionado() (o
+        // "check" verde), reaproveitada pra ligar o texto digitado num
+        // produto real do catálogo — usada tanto ao criar quanto ao editar
+        // (Ajuste de Proposta) um orçamento, pra popular itens_orcamento e
+        // permitir a baixa automática de estoque no fechamento da venda.
+        // Item digitado que não bate com o catálogo (ex: "Frete") retorna
+        // null de propósito — continua sendo salvo (em modelo_colchao e, com
+        // id_produto nulo, em itens_orcamento), só não participa da baixa.
+        function resolverIdProdutoPeloTexto(texto) {
+            const alvo = (texto || '').trim().toLowerCase();
+            if (!alvo) return null;
+            const match = store.todosProdutos.find(p => {
+                const textoDisplay = p.codigo ? `${p.codigo} - ${p.nome}`.toLowerCase() : p.nome.toLowerCase();
+                return textoDisplay === alvo || p.nome.toLowerCase() === alvo;
+            });
+            return match ? match.id_produto : null;
+        }
+
         function validarProdutoSelecionado(input) {
             const checkSpan = input.parentElement.querySelector('.prod-check');
             const produtoDigitado = input.value.trim().toLowerCase();
@@ -1137,7 +1179,16 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
                     p_hora_contato: horaContato || null,
                     p_observacao_agendamento: motivoContato || null,
                     p_observacoes: observacoes,
-                    p_origem: origem
+                    p_origem: origem,
+                    // Estruturado (produto + quantidade), pra baixa automática de
+                    // estoque disparar de verdade no fechamento da venda — antes
+                    // só existia o texto livre acima, e o trigger de baixa nunca
+                    // tinha nada em itens_orcamento pra processar.
+                    p_itens: produtosList.map(p => ({
+                        id_produto: resolverIdProdutoPeloTexto(p.nome),
+                        quantidade: 1,
+                        preco_praticado: p.valorPor,
+                    })),
                 });
                 if (errRpc) throw errRpc;
                 const newOrc = Array.isArray(resultadoSalvar) ? resultadoSalvar[0] : resultadoSalvar;
