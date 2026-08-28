@@ -122,14 +122,31 @@ function extrairMetadadosNota(linhasPagina1) {
     };
 }
 
+// No navegador o pdf.js sempre exige um worker configurado (mesmo pedindo
+// disableWorker) — GlobalWorkerOptions.workerSrc precisa apontar pra um
+// arquivo de verdade. Import dinâmico com `?url` é a forma padrão do Vite
+// de expor a URL final do worker já empacotado. Em Node (usado só pelos
+// testes locais deste parser) não existe `window`, então esse bloco nunca
+// roda — Node nem tenta resolver o `?url`, que ele não entenderia.
+async function garantirWorkerConfigurado() {
+    if (typeof window === 'undefined' || pdfjsLib.GlobalWorkerOptions.workerSrc) return;
+    const workerUrl = (await import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url')).default;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+}
+
 // Ponto de entrada. `arquivo` é um File/Blob (navegador) ou um
 // ArrayBuffer/Uint8Array (Node, usado nos testes).
 export async function parseNotaFiscalPDF(arquivo) {
+    await garantirWorkerConfigurado();
+
     const data = arquivo instanceof Uint8Array || arquivo instanceof ArrayBuffer
         ? arquivo
         : new Uint8Array(await arquivo.arrayBuffer());
 
-    const doc = await pdfjsLib.getDocument({ data, disableWorker: true, isEvalSupported: false }).promise;
+    // No navegador, com workerSrc configurado, roda num worker de verdade
+    // (não trava a aba enquanto lê PDFs grandes/multi-página). Em Node
+    // (testes) não tem worker configurado — precisa rodar inline.
+    const doc = await pdfjsLib.getDocument({ data, disableWorker: typeof window === 'undefined', isEvalSupported: false }).promise;
 
     const itensBrutos = [];
     let metadados = { fornecedor: null, numero: null, serie: null };
