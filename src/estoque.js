@@ -866,19 +866,26 @@ function renderizarTabelaEstoque(data) {
 // desta tela consertar isso.
 // ═══════════════════════════════════════════════════════════════
 
-const TIPO_MOVIMENTACAO_INFO = {
-    entrada: { label: 'Entrada', badge: 'success' },
-    devolucao: { label: 'Devolução', badge: 'success' },
-    venda: { label: 'Saída (Venda)', badge: 'error' },
-    saida_manual: { label: 'Saída Manual', badge: 'error' },
-    reserva: { label: 'Reserva', badge: 'warning' },
-    liberacao: { label: 'Liberação de Reserva', badge: 'info' },
-    ajuste: { label: 'Ajuste', badge: 'info' },
-};
+// Padronizado só em Entrada/Saída (pedido explícito) — pela VARIAÇÃO real
+// (qtd_nova - qtd_anterior), não pelo tipo_movimentacao cru. Mais robusto:
+// continua certo mesmo pra tipos que hoje não aparecem na prática (reserva,
+// devolução, ajuste negativo etc.) sem precisar mapear cada um à mão.
+function chipTipoMovimentacao(variacao) {
+    const positivo = variacao >= 0;
+    const label = positivo ? 'Entrada' : 'Saída';
+    const badge = positivo ? 'success' : 'error';
+    return `<span style="display:inline-flex; align-items:center; padding:3px 10px; border-radius:100px; font-size:11px; font-weight:700; white-space:nowrap; background:var(--status-${badge}-bg); border:1px solid var(--status-${badge}-border); color:var(--status-${badge}-text);">${label}</span>`;
+}
 
-function chipTipoMovimentacao(tipo) {
-    const info = TIPO_MOVIMENTACAO_INFO[tipo] || { label: tipo || '-', badge: 'info' };
-    return `<span style="display:inline-flex; align-items:center; padding:3px 10px; border-radius:100px; font-size:11px; font-weight:700; background:var(--status-${info.badge}-bg); border:1px solid var(--status-${info.badge}-border); color:var(--status-${info.badge}-text);">${escapeHtml(info.label)}</span>`;
+// Referência enxuta: só o número que identifica a origem — NF na entrada,
+// Orçamento na saída — sem o texto de observação inteiro (que não cabe
+// numa linha só). Entrada sem NF associada (import via CSV, por exemplo)
+// não tem número pra extrair — mostra o observação mesmo, é o único dado
+// disponível nesse caso.
+function formatarReferenciaKardex(m, positivo) {
+    if (!positivo) return m.orcamentos?.protocolo ? `#${m.orcamentos.protocolo}` : (m.observacao || '-');
+    const matchNF = (m.observacao || '').match(/NF\s+([\d/]+)/i);
+    return matchNF ? `NF ${matchNF[1]}` : (m.observacao || '-');
 }
 
 async function abrirKardexEstoque(idEstoque) {
@@ -910,22 +917,21 @@ async function abrirKardexEstoque(idEstoque) {
 
         corpo.innerHTML = `
             <div style="overflow-x:auto;">
-                <table>
-                    <thead><tr><th>Data</th><th>Tipo</th><th style="text-align:right;">Variação</th><th style="text-align:right;">Saldo</th><th>Referência</th><th>Usuário</th></tr></thead>
+                <table style="white-space:nowrap;">
+                    <thead><tr><th>Data</th><th>Tipo</th><th style="text-align:right;">Variação</th><th style="text-align:right;">Saldo</th><th>Referência</th><th>Vendedor</th></tr></thead>
                     <tbody>
                         ${movimentacoes.map(m => {
                             const variacao = (m.qtd_nova_disponivel ?? 0) - (m.qtd_anterior_disponivel ?? 0);
-                            const corVariacao = variacao > 0 ? 'var(--status-success-text)' : variacao < 0 ? 'var(--status-error-text)' : 'var(--text-muted)';
-                            const referencia = m.orcamentos?.protocolo
-                                ? `Orçamento #${m.orcamentos.protocolo}`
-                                : (m.observacao || '-');
+                            const positivo = variacao >= 0;
+                            const corVariacao = positivo ? 'var(--status-success-text)' : 'var(--status-error-text)';
+                            const referencia = formatarReferenciaKardex(m, positivo);
                             return `
                                 <tr>
-                                    <td style="white-space:nowrap;">${new Date(m.created_at).toLocaleString('pt-BR')}</td>
-                                    <td>${chipTipoMovimentacao(m.tipo_movimentacao)}</td>
+                                    <td>${new Date(m.created_at).toLocaleDateString('pt-BR')}</td>
+                                    <td>${chipTipoMovimentacao(variacao)}</td>
                                     <td style="text-align:right; font-weight:700; color:${corVariacao};">${variacao > 0 ? '+' : ''}${variacao}</td>
                                     <td style="text-align:right; font-weight:700;">${m.qtd_nova_disponivel ?? '-'}</td>
-                                    <td style="font-size:var(--font-xs); color:var(--text-muted); max-width:220px;">${escapeHtml(referencia)}</td>
+                                    <td style="font-size:var(--font-xs); color:var(--text-muted);">${escapeHtml(referencia)}</td>
                                     <td style="font-size:var(--font-xs); color:var(--text-muted);">${escapeHtml(m.usuarios?.nome || '-')}</td>
                                 </tr>
                             `;
