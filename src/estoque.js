@@ -458,6 +458,7 @@ function baixarModeloImportacaoEstoque() {
 
 let _itensImportacaoNF = [];
 let _metadadosImportacaoNF = { numero: null, serie: null, fornecedor: null };
+let _arquivoImportacaoNF = null; // guardado pra subir no Storage só na confirmação (não no preview)
 
 function abrirModalImportarNF() {
     const selectLoja = document.getElementById('importarNFLoja');
@@ -486,6 +487,7 @@ function abrirModalImportarNF() {
 
     _itensImportacaoNF = [];
     _metadadosImportacaoNF = { numero: null, serie: null, fornecedor: null };
+    _arquivoImportacaoNF = null;
     const arquivoInput = document.getElementById('importarNFArquivo');
     if (arquivoInput) arquivoInput.value = '';
     const preview = document.getElementById('importarNFPreview');
@@ -544,6 +546,7 @@ async function processarArquivoImportarNF(event) {
     err.textContent = '';
     _itensImportacaoNF = [];
     _metadadosImportacaoNF = { numero: null, fornecedor: null };
+    _arquivoImportacaoNF = arquivo || null;
     if (!arquivo) { preview.style.display = 'none'; document.getElementById('btnConfirmarImportarNF').disabled = true; return; }
 
     preview.style.display = 'block';
@@ -582,8 +585,22 @@ async function confirmarImportacaoNF() {
     btn.classList.add('saving'); btn.disabled = true;
 
     try {
+        // Sobe o PDF original pro Storage ANTES de aplicar no estoque — é o
+        // arquivo que o Kardex vai linkar depois. Caminho prefixado por
+        // id_loja: é o que a policy do bucket usa pra escopar por loja.
+        // Best-effort: se o upload falhar, a entrada continua (não é
+        // motivo pra travar o vendedor) — só não fica com link no Kardex.
+        let arquivoPath = null;
+        if (_arquivoImportacaoNF) {
+            const nomeSanitizado = _arquivoImportacaoNF.name.replace(/[^\w.\-]/g, '_');
+            const caminho = `${idLoja}/${Date.now()}-${nomeSanitizado}`;
+            const { error: erroUpload } = await db.storage.from('notas-fiscais').upload(caminho, _arquivoImportacaoNF, { contentType: 'application/pdf' });
+            if (erroUpload) console.error('Falha ao subir o PDF da nota (entrada segue sem o anexo):', erroUpload.message);
+            else arquivoPath = caminho;
+        }
+
         const { data, error } = await db.functions.invoke('importar-estoque-nf', {
-            body: { idLoja, itens: _itensImportacaoNF, notaFiscal: _metadadosImportacaoNF },
+            body: { idLoja, itens: _itensImportacaoNF, notaFiscal: { ..._metadadosImportacaoNF, arquivoPath } },
         });
         if (error || data?.error) {
             let mensagem = data?.error;
@@ -881,11 +898,32 @@ function chipTipoMovimentacao(variacao) {
 // Orçamento na saída — sem o texto de observação inteiro (que não cabe
 // numa linha só). Entrada sem NF associada (import via CSV, por exemplo)
 // não tem número pra extrair — mostra o observação mesmo, é o único dado
-// disponível nesse caso.
-function formatarReferenciaKardex(m, positivo) {
-    if (!positivo) return m.orcamentos?.protocolo ? `#${m.orcamentos.protocolo}` : (m.observacao || '-');
+// disponível nesse caso. Quando a entrada tem o PDF anexado
+// (arquivo_nf_path), o número vira link clicável que abre o arquivo
+// original — devolve HTML pronto (já escapado), não texto puro.
+function renderReferenciaKardex(m, positivo) {
+    if (!positivo) {
+        const texto = m.orcamentos?.protocolo ? `#${m.orcamentos.protocolo}` : (m.observacao || '-');
+        return escapeHtml(texto);
+    }
     const matchNF = (m.observacao || '').match(/NF\s+([\d/]+)/i);
-    return matchNF ? `NF ${matchNF[1]}` : (m.observacao || '-');
+    const texto = matchNF ? `NF ${matchNF[1]}` : (m.observacao || '-');
+    if (matchNF && m.arquivo_nf_path) {
+        return `<a href="#" class="link-kardex" onclick="event.preventDefault(); abrirNotaFiscalAnexada('${escapeHtml(m.arquivo_nf_path)}')">${escapeHtml(texto)}</a>`;
+    }
+    return escapeHtml(texto);
+}
+
+// Abre o PDF original da NF num signed URL de curta duração — nunca uma URL
+// pública fixa (bucket é privado, nota tem preço de custo do fornecedor).
+async function abrirNotaFiscalAnexada(path) {
+    try {
+        const { data, error } = await db.storage.from('notas-fiscais').createSignedUrl(path, 60);
+        if (error) throw error;
+        window.open(data.signedUrl, '_blank', 'noopener');
+    } catch (e) {
+        showToast('Não foi possível abrir o PDF da nota: ' + e.message, 'error');
+    }
 }
 
 async function abrirKardexEstoque(idEstoque) {
@@ -905,7 +943,7 @@ async function abrirKardexEstoque(idEstoque) {
         sub.textContent = `Código ${itemEstoque.codigo_produto} · Disponível: ${itemEstoque.qtd_disponivel} · Reservado: ${itemEstoque.qtd_reservada || 0}`;
 
         const { data: movimentacoes, error } = await db.from('movimentacoes_estoque')
-            .select('created_at, tipo_movimentacao, qtd_anterior_disponivel, qtd_nova_disponivel, observacao, usuarios(nome), orcamentos(protocolo)')
+            .select('created_at, tipo_movimentacao, qtd_anterior_disponivel, qtd_nova_disponivel, observacao, arquivo_nf_path, usuarios(nome), orcamentos(protocolo)')
             .eq('id_estoque', idEstoque)
             .order('created_at', { ascending: true });
         if (error) throw error;
@@ -924,14 +962,14 @@ async function abrirKardexEstoque(idEstoque) {
                             const variacao = (m.qtd_nova_disponivel ?? 0) - (m.qtd_anterior_disponivel ?? 0);
                             const positivo = variacao >= 0;
                             const corVariacao = positivo ? 'var(--status-success-text)' : 'var(--status-error-text)';
-                            const referencia = formatarReferenciaKardex(m, positivo);
+                            const referencia = renderReferenciaKardex(m, positivo);
                             return `
                                 <tr>
                                     <td>${new Date(m.created_at).toLocaleDateString('pt-BR')}</td>
                                     <td>${chipTipoMovimentacao(variacao)}</td>
                                     <td style="text-align:right; font-weight:700; color:${corVariacao};">${variacao > 0 ? '+' : ''}${variacao}</td>
                                     <td style="text-align:right; font-weight:700;">${m.qtd_nova_disponivel ?? '-'}</td>
-                                    <td style="font-size:var(--font-xs); color:var(--text-muted);">${escapeHtml(referencia)}</td>
+                                    <td style="font-size:var(--font-xs); color:var(--text-muted);">${referencia}</td>
                                     <td style="font-size:var(--font-xs); color:var(--text-muted);">${escapeHtml(m.usuarios?.nome || '-')}</td>
                                 </tr>
                             `;
@@ -949,4 +987,4 @@ function fecharModalKardex() {
     closeModal('modalKardexEstoque');
 }
 
-export { abrirKardexEstoque, abrirModalImportarEstoque, abrirModalImportarNF, abrirModalNovoProduto, atualizarKpisEstoque, baixarModeloImportacaoEstoque, carregarCategoriasEstoque, carregarEstoqueComProdutos, confirmarImportacaoEstoque, confirmarImportacaoNF, fecharModalImportarEstoque, fecharModalImportarNF, fecharModalKardex, fecharModalNovoProduto, filtrarEstoque, processarArquivoImportacaoEstoque, processarArquivoImportarNF, removerItemPreviewNF, renderEstoque, renderizarTabelaEstoque, salvarNovoProdutoEstoque, verificarAlertasEstoque };
+export { abrirKardexEstoque, abrirModalImportarEstoque, abrirModalImportarNF, abrirModalNovoProduto, abrirNotaFiscalAnexada, atualizarKpisEstoque, baixarModeloImportacaoEstoque, carregarCategoriasEstoque, carregarEstoqueComProdutos, confirmarImportacaoEstoque, confirmarImportacaoNF, fecharModalImportarEstoque, fecharModalImportarNF, fecharModalKardex, fecharModalNovoProduto, filtrarEstoque, processarArquivoImportacaoEstoque, processarArquivoImportarNF, removerItemPreviewNF, renderEstoque, renderizarTabelaEstoque, salvarNovoProdutoEstoque, verificarAlertasEstoque };

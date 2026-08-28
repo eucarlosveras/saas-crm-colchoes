@@ -177,7 +177,7 @@ Deno.serve(async (req) => {
           const { error: erroMov } = await admin.from('movimentacoes_estoque').insert([{
             id_estoque: existente.id, id_usuario: chamador.id_usuario, tipo_movimentacao: 'entrada',
             quantidade, qtd_anterior_disponivel: existente.qtd_disponivel, qtd_nova_disponivel: novaQtd,
-            observacao: `Entrada por ${referenciaNota}`,
+            observacao: `Entrada por ${referenciaNota}`, arquivo_nf_path: notaFiscal.arquivoPath || null,
           }]);
           if (erroMov) console.error('Falha ao registrar movimentação de entrada:', erroMov.message);
           atualizadosCount++;
@@ -192,7 +192,7 @@ Deno.serve(async (req) => {
           const { error: erroMovNova } = await admin.from('movimentacoes_estoque').insert([{
             id_estoque: novo!.id, id_usuario: chamador.id_usuario, tipo_movimentacao: 'entrada',
             quantidade, qtd_anterior_disponivel: 0, qtd_nova_disponivel: quantidade,
-            observacao: `Entrada por ${referenciaNota}`,
+            observacao: `Entrada por ${referenciaNota}`, arquivo_nf_path: notaFiscal.arquivoPath || null,
           }]);
           if (erroMovNova) console.error('Falha ao registrar movimentação de entrada:', erroMovNova.message);
           criadosCount++;
