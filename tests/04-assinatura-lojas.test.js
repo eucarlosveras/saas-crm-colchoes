@@ -20,9 +20,18 @@ module.exports = async function testAssinaturaLojas() {
         assert(!origErr, 'setup falhou ao ler estado original da loja: ' + JSON.stringify(origErr));
         cleanups.push(async () => { await admin.from('lojas').update(original).eq('id_loja', LOJA_A); });
 
-        const gerente = await criarUsuarioEfemero({ perfil: 'Gerente', idLoja: LOJA_A, prefixo: 'assinGer' });
+        // Prefixo em minúsculas de propósito: current_perfil()/current_is_admin()
+        // (e toda a RLS que depende delas) comparam "email = auth.email()" com
+        // igualdade EXATA, e auth.email() sempre devolve minúsculas — um e-mail
+        // de teste com maiúscula (ex: 'assinGer') faz o Postgres não encontrar a
+        // linha em usuarios, current_perfil() vira NULL, e a RLS trata a UPDATE
+        // como "0 linhas visíveis" (sucesso vazio, não erro) sem a trigger nem
+        // chegar a rodar — um falso-negativo enganoso pra este teste. Bug real,
+        // pré-existente e mais amplo que esta trigger (afeta toda a RLS pra
+        // qualquer usuário com maiúscula no e-mail) — não corrigido aqui.
+        const gerente = await criarUsuarioEfemero({ perfil: 'Gerente', idLoja: LOJA_A, prefixo: 'assinger' });
         cleanups.push(gerente.cleanup);
-        const adm = await criarUsuarioEfemero({ perfil: 'Administrador', idLoja: null, prefixo: 'assinAdm' });
+        const adm = await criarUsuarioEfemero({ perfil: 'Administrador', idLoja: null, prefixo: 'assinadm' });
         cleanups.push(adm.cleanup);
 
         // 1) Gerente tentando se auto-promover: precisa ser barrado pelo trigger,
