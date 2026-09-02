@@ -198,6 +198,21 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="modalAssinaturaLoja" onclick="if(event.target === this) closeModal('modalAssinaturaLoja')">
+        <div class="modal-card" style="max-width:420px;">
+            <h3>Assinatura — <span id="assinaturaModLojaNome"></span></h3>
+            <div class="modal-row">
+                <div><label for="assinaturaModPlano">Plano</label><select id="assinaturaModPlano"><option value="Trial">Trial</option><option value="Starter">Starter</option><option value="Pro">Pro</option><option value="Enterprise">Enterprise</option></select></div>
+                <div><label for="assinaturaModStatus">Status da assinatura</label><select id="assinaturaModStatus"><option value="Trial">Trial</option><option value="Ativa">Ativa</option><option value="Inadimplente">Inadimplente</option><option value="Cancelada">Cancelada</option></select></div>
+            </div>
+            <label for="assinaturaModValidoAte">Válido até</label><input type="date" id="assinaturaModValidoAte">
+            <label for="assinaturaModObs">Observações (só o Administrador vê)</label><textarea id="assinaturaModObs" rows="3" placeholder="Ex: PIX combinado todo dia 5"></textarea>
+            <p style="font-size:var(--font-xs); color:var(--text-muted); margin-top:8px;">Inadimplente/Cancelada bloqueia o login de todos os usuários dessa loja no próximo acesso.</p>
+            <div class="field-error" id="errAssinaturaLoja"></div>
+            <div class="modal-btns"><button class="btn-cancelar-modal" onclick="closeModal('modalAssinaturaLoja')">Cancelar</button><button class="btn-salvar-modal" id="btnSalvarAssinaturaLoja" onclick="salvarAssinaturaLoja()"><span class="btn-spinner"></span><span class="btn-text">Salvar</span></button></div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="modalExcluirUsuarioAdmin" onclick="if(event.target === this) closeModal('modalExcluirUsuarioAdmin')">
         <div class="modal-card" style="max-width:420px;">
             <h3>Excluir Usuário</h3>

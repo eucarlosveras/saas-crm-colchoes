@@ -63,6 +63,7 @@ const store = {
     historicoFaturamento: [],
     comentarioParaExcluir: null,
     idUsuarioEmEdicao: null,
+    idLojaEmEdicaoAssinatura: null,
     usuariosParaLogin: [],
     isSavingComment: false,
     isConfirmingPerda: false,

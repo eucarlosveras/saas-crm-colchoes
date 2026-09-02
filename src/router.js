@@ -7,6 +7,7 @@ import { renderCarteiraPage } from './carteira.js';
 import { _clientes, renderClientes, renderClientesLista, renderFichaCliente } from './clientes.js';
 import { carregarKpisDiariosVendedor, carregarKpisEDashboard, renderInicio } from './dashboard.js';
 import { renderEstoque } from './estoque.js';
+import { renderAdminLojas } from './lojas.js';
 import { renderMetas } from './metas.js';
 import { renderDetalhesClientePage, renderNovoOrcamentoPage } from './orcamentos.js';
 import { store } from './state.js';
@@ -50,6 +51,7 @@ import { renderAdminInicio, renderAdminUsuarios } from './usuarios.js';
     	}
     	else if (view === 'admin_inicio') renderAdminInicio(document.getElementById('mainContent'));
     	else if (view === 'admin_usuarios') renderAdminUsuarios(document.getElementById('mainContent'));
+    	else if (view === 'admin_lojas') renderAdminLojas(document.getElementById('mainContent'));
     	else if (view === 'agenda_dia') {
         	await renderAgendaDia();
     	}

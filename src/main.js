@@ -13,6 +13,7 @@ import { atualizarIndicadorDigitacao, confirmarExclusaoComentario, salvarComenta
 import { alternarVisaoDashboard, selecionarPeriodoKpiVendedor } from './dashboard.js';
 import { abrirKardexEstoque, abrirModalImportarEstoque, abrirModalImportarNF, abrirAnexoMovimentacao, aplicarCategoriaSugerida, baixarModeloImportacaoEstoque, buscarProdutoPorCodigo, confirmarImportacaoEstoque, confirmarImportacaoNF, fecharModalImportarEstoque, fecharModalImportarNF, fecharModalKardex, fecharModalNovoProduto, filtrarEstoque, processarArquivoImportacaoEstoque, processarArquivoImportarNF, removerItemPreviewNF, salvarNovoProdutoEstoque } from './estoque.js';
 import { changeDay, changeMonth, filtrarPorLoja, filtrarPorVendedor } from './filtros.js';
+import { abrirModalAssinaturaLoja, filtrarLojasAdmin, salvarAssinaturaLoja } from './lojas.js';
 import { abrirModalMeta, salvarMetaLoja, salvarNovaMeta } from './metas.js';
 import { marcarNotificacaoBancoLida, marcarNotificacaoLida, toggleNotifications } from './notificacoes.js';
 import { _ajusteAtualizarLixeiras, abrirAjusteProposta, abrirConfirmaFechamento, abrirDetalhesCliente, abrirModalAgendamento, abrirModalAgendarNovoOrcamento, abrirModalGerarOrcamento, abrirMotivoPerda, abrirNovoOrcamento, adicionarProdutoRow, agendarContato, ajusteAdicionarLinha, ajusteRecalcularLinha, ajusteRecalcularTotal, ajusteValidarDesconto, atualizarTextoOrcamentoComDesconto, confirmarPerda, copiarTextoOrcamento, enviarOrcamentoWhatsApp, expandirComentario, fecharProdutoSugestoes, filtrarProdutoSugestoes, marcarTextoOrcamentoEditadoManualmente, prodNomeKeydown, recalcularLinhaNovoOrcamento, removerProdutoRow, salvarAjusteProposta, salvarOrcamento, selecionarModoFechamento, selecionarProdutoSugestao, setQuickDate, validarCPF, voltarDetalhes } from './orcamentos.js';
@@ -38,6 +39,9 @@ window.abrirModalEditarCliente = abrirModalEditarCliente;
 window.abrirModalExcluirCliente = abrirModalExcluirCliente;
 window.abrirModalExcluirUsuarioAdmin = abrirModalExcluirUsuarioAdmin;
 window.abrirModalGerarOrcamento = abrirModalGerarOrcamento;
+window.abrirModalAssinaturaLoja = abrirModalAssinaturaLoja;
+window.filtrarLojasAdmin = filtrarLojasAdmin;
+window.salvarAssinaturaLoja = salvarAssinaturaLoja;
 window.abrirModalMeta = abrirModalMeta;
 window.abrirModalUsuarioAdmin = abrirModalUsuarioAdmin;
 window.alternarVisaoDashboard = alternarVisaoDashboard;
@@ -154,7 +158,7 @@ window.voltarDetalhes = voltarDetalhes;
 
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
-                const modais = ['modalMotivoPerda', 'modalConfirmaFechamento', 'modalEditarMeta', 'modalExcluirComentario', 'modalUsuarioAdmin', 'modalExcluirUsuarioAdmin', 'modalEditarCliente', 'modalExcluirCliente', 'modalCriarNegocio', 'modalAjusteProposta', 'modalAgendarContato'];
+                const modais = ['modalMotivoPerda', 'modalConfirmaFechamento', 'modalEditarMeta', 'modalExcluirComentario', 'modalUsuarioAdmin', 'modalExcluirUsuarioAdmin', 'modalAssinaturaLoja', 'modalEditarCliente', 'modalExcluirCliente', 'modalCriarNegocio', 'modalAjusteProposta', 'modalAgendarContato'];
                 for (const id of modais) {
                     if (document.getElementById(id) && document.getElementById(id).classList.contains('open')) {
                         closeModal(id);
