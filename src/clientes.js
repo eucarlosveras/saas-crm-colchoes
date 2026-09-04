@@ -8,6 +8,7 @@ import { getLojasPermitidas, store } from './state.js';
 import { db } from './supabaseClient.js';
 import { closeModal, openModal, showToast } from './ui.js';
 import { classToFormatStatus, escapeHtml, formatarProdutos } from './utils.js';
+import { exportarOrcamentosExcel } from './exportar.js';
 
         function renderClientes() { navigateTo('clientes_lista'); }
 
@@ -133,9 +134,21 @@ import { classToFormatStatus, escapeHtml, formatarProdutos } from './utils.js';
                                 value="${escapeHtml(window._clienteBusca || '')}"
                                 oninput="filtrarClientesLista(this.value)" style="width:260px;">
                         </div>
-                        <span id="clientesCount" style="font-size:var(--font-xs);color:var(--text-muted);">
-                            ${_clientes.todos.length} cliente${_clientes.todos.length !== 1 ? 's' : ''}
-                        </span>
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            <span id="clientesCount" style="font-size:var(--font-xs);color:var(--text-muted);">
+                                ${_clientes.todos.length} cliente${_clientes.todos.length !== 1 ? 's' : ''}
+                            </span>
+                            ${isGerente ? `<button class="btn-exportar-excel" onclick="exportarOrcamentosExcel()" title="Exportar orçamentos em Excel" aria-label="Exportar Excel">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                    <line x1="8" y1="13" x2="16" y2="13"/>
+                                    <line x1="8" y1="17" x2="16" y2="17"/>
+                                    <line x1="10" y1="9" x2="8" y2="9"/>
+                                </svg>
+                                Exportar Excel
+                            </button>` : ''}
+                        </div>
                     </div>
                     <div style="overflow-x:auto;">
                         <table>
@@ -337,6 +350,9 @@ import { classToFormatStatus, escapeHtml, formatarProdutos } from './utils.js';
                         </div>`;
                     }).join('');
 
+                // Guarda dados do cliente no escopo global temporário para o exportar acessar via onclick
+                window._fichaClienteAtual = { cliente: c, orcamentos: orcs || [] };
+
                 main.innerHTML = `
                     <header class="dashboard-header">
                         <div style="display:flex;align-items:center;gap:16px;">
@@ -344,7 +360,16 @@ import { classToFormatStatus, escapeHtml, formatarProdutos } from './utils.js';
                             <h1>${escapeHtml(c.nome_cliente || 'Cliente')}</h1>
                             <span class="cliente-id-badge">${codigo}</span>
                         </div>
-                        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                            <button class="btn-exportar-pdf" onclick="exportarFichaClientePDF(window._fichaClienteAtual)" title="Exportar ficha em PDF" aria-label="Exportar PDF da ficha">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                    <line x1="12" y1="18" x2="12" y2="12"/>
+                                    <line x1="9" y1="15" x2="15" y2="15"/>
+                                </svg>
+                                Exportar PDF
+                            </button>
                             <button class="btn-primary-action" onclick="abrirModalEditarCliente('${c._pk}')">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                                 Editar

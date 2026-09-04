@@ -1945,6 +1945,29 @@
         }
         .btn-danger-ghost:hover { background: var(--danger-border); }
 
+        /* ── Botões de exportação (PDF / Excel) ── */
+        .btn-exportar-pdf {
+            background: rgba(239,68,68,.08); color: #dc2626;
+            border: 1.5px solid rgba(239,68,68,.25); padding: 8px 14px;
+            border-radius: var(--radius-sm); font-weight: 600; cursor: pointer;
+            font-size: var(--font-xs); font-family: 'Inter', sans-serif;
+            transition: all var(--transition); display: inline-flex; align-items: center; gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-exportar-pdf:hover { background: rgba(239,68,68,.16); border-color: rgba(239,68,68,.5); }
+        .btn-exportar-pdf:active { transform: scale(.97); }
+
+        .btn-exportar-excel {
+            background: rgba(22,163,74,.08); color: #16a34a;
+            border: 1.5px solid rgba(22,163,74,.25); padding: 8px 14px;
+            border-radius: var(--radius-sm); font-weight: 600; cursor: pointer;
+            font-size: var(--font-xs); font-family: 'Inter', sans-serif;
+            transition: all var(--transition); display: inline-flex; align-items: center; gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-exportar-excel:hover { background: rgba(22,163,74,.16); border-color: rgba(22,163,74,.5); }
+        .btn-exportar-excel:active { transform: scale(.97); }
+
         .btn-salvar-timeline {
             background: var(--brand-blue); color: #fff; border: none;
             padding: 10px 24px; border-radius: var(--radius-sm); font-weight: 700;
