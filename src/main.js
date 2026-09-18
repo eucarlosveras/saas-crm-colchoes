@@ -11,6 +11,7 @@ import { clearSearch, handleSearch, handleSearchProtocolo, handleSearchUnificado
 import { abrirModalEditarCliente, abrirModalExcluirCliente, confirmarExcluirCliente, filtrarClientesLista, salvarEdicaoCliente } from './clientes.js';
 import { atualizarIndicadorDigitacao, confirmarExclusaoComentario, salvarComentario, salvarObservacaoFixa } from './comentarios.js';
 import { alternarVisaoDashboard, selecionarPeriodoKpiVendedor } from './dashboard.js';
+import { exportarFichaClientePDF, exportarOrcamentosExcel, exportarRelatorioVendasPDF } from './exportar.js';
 import { abrirKardexEstoque, abrirModalImportarEstoque, abrirModalImportarNF, abrirAnexoMovimentacao, aplicarCategoriaSugerida, baixarModeloImportacaoEstoque, buscarProdutoPorCodigo, confirmarImportacaoEstoque, confirmarImportacaoNF, fecharModalImportarEstoque, fecharModalImportarNF, fecharModalKardex, fecharModalNovoProduto, filtrarEstoque, processarArquivoImportacaoEstoque, processarArquivoImportarNF, removerItemPreviewNF, salvarNovoProdutoEstoque } from './estoque.js';
 import { changeDay, changeMonth, filtrarPorLoja, filtrarPorVendedor } from './filtros.js';
 import { abrirModalMeta, salvarMetaLoja, salvarNovaMeta } from './metas.js';
@@ -41,6 +42,9 @@ window.abrirModalGerarOrcamento = abrirModalGerarOrcamento;
 window.abrirModalMeta = abrirModalMeta;
 window.abrirModalUsuarioAdmin = abrirModalUsuarioAdmin;
 window.alternarVisaoDashboard = alternarVisaoDashboard;
+window.exportarRelatorioVendasPDF = exportarRelatorioVendasPDF;
+window.exportarOrcamentosExcel = exportarOrcamentosExcel;
+window.exportarFichaClientePDF = exportarFichaClientePDF;
 window.abrirMotivoPerda = abrirMotivoPerda;
 window.abrirNovoOrcamento = abrirNovoOrcamento;
 window.adicionarProdutoRow = adicionarProdutoRow;

@@ -135,11 +135,11 @@ import { escapeHtml, formatCurrency, parseCurrency } from './utils.js';
                     </div>
                     <table style="width:100%; border-collapse:collapse;">
                         <thead>
-                            <tr style="background:var(--bg-body); border-bottom:1px solid var(--border-light);">
-                                <th style="padding:10px 20px 10px 36px; text-align:left; font-size:var(--font-xs); color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Vendedor</th>
-                                <th style="padding:10px 20px; text-align:left; font-size:var(--font-xs); color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Meta Individual</th>
-                                <th style="padding:10px 20px; text-align:left; font-size:var(--font-xs); color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; min-width:200px;">Progresso</th>
-                                <th style="padding:10px 20px; text-align:right; font-size:var(--font-xs); color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Ação</th>
+                            <tr>
+                                <th style="padding:9px 14px 9px 36px; text-align:left;">Vendedor</th>
+                                <th>Meta Individual</th>
+                                <th style="min-width:200px;">Progresso</th>
+                                <th style="text-align:right;">Ação</th>
                             </tr>
                         </thead>
                         <tbody>`;
@@ -149,17 +149,16 @@ import { escapeHtml, formatCurrency, parseCurrency } from './utils.js';
                     const real = realizadoPorVendedor[v.id_usuario] || 0;
                     const p = pct(real, meta);
                     const cor = barColor(p);
-                    const bg = idx % 2 === 0 ? 'var(--card-bg)' : 'var(--bg-body)';
                     sections += `
-                            <tr style="background:${bg}; border-bottom:1px solid var(--border-light);">
-                                <td style="padding:14px 20px 14px 36px;">
+                            <tr>
+                                <td style="padding:10px 14px 10px 36px;">
                                     <div style="display:flex; align-items:center; gap:8px;">
                                         <div style="width:28px; height:28px; border-radius:50%; background:var(--brand-blue); color:#fff; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center;">${escapeHtml(v.nome.charAt(0).toUpperCase())}</div>
                                         <strong style="font-size:var(--font-sm);">${escapeHtml(v.nome)}</strong>
                                     </div>
                                 </td>
-                                <td style="padding:14px 20px; font-weight:700; font-size:var(--font-sm);">R$ ${fmt(meta)}</td>
-                                <td style="padding:14px 20px;">
+                                <td style="font-weight:700; font-size:var(--font-sm);">R$ ${fmt(meta)}</td>
+                                <td>
                                     <div style="display:flex; align-items:center; gap:8px;">
                                         <div style="flex:1; background:var(--border-light); border-radius:99px; height:8px; overflow:hidden; min-width:80px;">
                                             <div style="width:${p}%; height:100%; background:${cor}; border-radius:99px;"></div>
@@ -168,7 +167,7 @@ import { escapeHtml, formatCurrency, parseCurrency } from './utils.js';
                                         <span style="font-size:11px; color:var(--text-muted);">R$ ${fmt(real)}</span>
                                     </div>
                                 </td>
-                                <td style="padding:14px 20px; text-align:right;">
+                                <td style="text-align:right;">
                                     <button class="btn-salvar-modal" style="padding:6px 14px; font-size:11px; background:var(--card-bg); border:1px solid var(--border-light); color:var(--text-primary); border-radius:8px;"
                                         onclick="abrirModalMeta('${v.id_usuario}', '${escapeHtml(v.nome)}', ${meta})">Editar Meta</button>
                                 </td>
