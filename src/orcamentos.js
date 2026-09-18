@@ -1018,8 +1018,8 @@ import { addDiasBrasilia, classToFormatStatus, escapeHtml, formatCurrency, getAg
                 </div>
 
                 <div class="footer-actions" style="max-width:320px; margin:24px auto 0;">
-                    <button id="btnSalvarOrcamento" style="background:var(--brand-blue); color:#fff; border:none; padding:14px; border-radius:8px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:0.2s;" onclick="salvarOrcamento()">
-                        <span class="btn-spinner" style="display:none; width:16px; height:16px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin 1s linear infinite;"></span>
+                    <button id="btnSalvarOrcamento" class="btn-orcamento-save" onclick="salvarOrcamento()">
+                        <span class="orc-spinner-wrap"><span class="orc-spinner"></span></span>
                         <span class="btn-text" style="display:flex; align-items:center; gap:8px;">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
                             Confirmar e Salvar

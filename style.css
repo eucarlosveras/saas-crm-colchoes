@@ -2142,15 +2142,15 @@
         .section-header {
             display: flex; align-items: center; gap: 8px;
             padding-bottom: 16px; margin-bottom: 18px;
-            border-bottom: 1px solid var(--divider); flex-shrink: 0;
+            flex-shrink: 0;
         }
         .section-title { font-size: var(--font-sm); font-weight: 700; color: var(--text-primary); letter-spacing: -0.01em; }
         .section-icon { color: var(--brand-blue); }
 
         .novo-orcamento-wrapper .form-group { margin-bottom: 14px; display: flex; flex-direction: column; }
         .novo-orcamento-wrapper .form-group label {
-            font-size: var(--font-xs); font-weight: 700; color: var(--text-muted);
-            margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.06em;
+            font-size: var(--font-xs); font-weight: 500; color: var(--text-secondary);
+            margin-bottom: 5px;
         }
         /* Herda altura/raio/foco de .form-input (base global) — aqui só o que
            é realmente específico desta tela: fonte monoespaçada nos campos de
@@ -2349,11 +2349,11 @@
            GLOBAL FORM INPUT (modais e páginas)
         ──────────────────────────────────────────────────────── */
         .form-input {
-            width: 100%; min-height: 44px; padding: 12px 14px;
-            border: 1.5px solid var(--border-light); border-radius: var(--radius-sm);
+            width: 100%; min-height: 40px; padding: 9px 12px;
+            border: 1px solid var(--border-light); border-radius: var(--radius-xs);
             font-family: 'Inter', sans-serif; font-size: var(--font-sm);
             color: var(--text-primary); background: var(--surface-2);
-            transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+            transition: border-color var(--duration-micro, 80ms) var(--ease-smooth-out), box-shadow var(--duration-micro, 80ms) var(--ease-smooth-out), background var(--duration-micro, 80ms) var(--ease-smooth-out);
         }
         .form-input:hover { border-color: var(--border-medium); }
         .form-input:focus {
@@ -2386,6 +2386,37 @@
             display: flex; align-items: center; justify-content: center; gap: 7px;
         }
         .btn-add-item:hover { background: var(--brand-blue-subtle); border-color: var(--brand-blue); }
+
+        /* Botão principal do orçamento — feedback tátil apple-style */
+        .btn-orcamento-save {
+            width: 100%; padding: 13px 20px;
+            background: var(--brand-blue); color: #fff;
+            border: none; border-radius: var(--radius-sm);
+            font-family: 'Inter', sans-serif; font-size: var(--font-sm);
+            font-weight: 600; letter-spacing: -0.01em;
+            cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+            transition: transform var(--duration-micro, 80ms) var(--ease-smooth-out), opacity var(--duration-micro, 80ms) var(--ease-smooth-out);
+        }
+        .btn-orcamento-save:hover { opacity: 0.92; }
+        .btn-orcamento-save:active:not(:disabled) {
+            transform: scale(0.97);
+            transition-duration: 60ms;
+        }
+        .btn-orcamento-save:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* Spinner wrap: width/opacity transition avoids conflict with rotation animation */
+        .orc-spinner-wrap {
+            width: 0; overflow: hidden; opacity: 0;
+            display: inline-flex; align-items: center;
+            transition: width var(--duration-quick, 150ms) var(--ease-smooth-out),
+                        opacity var(--duration-quick, 150ms) var(--ease-smooth-out);
+        }
+        .btn-orcamento-save.saving .orc-spinner-wrap { width: 22px; opacity: 1; }
+        .orc-spinner {
+            width: 15px; height: 15px; flex-shrink: 0;
+            border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
+            border-radius: 50%; animation: spin 0.8s linear infinite;
+        }
 
         /* ────────────────────────────────────────────────────────
            MÓDULO DE ESTOQUE
