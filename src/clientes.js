@@ -187,6 +187,7 @@ import { exportarOrcamentosExcel } from './exportar.js';
             const codigo = c.id_cliente_codigo || String(c._pk || '').slice(0, 8) || '-';
 
             const tr = document.createElement('tr');
+            tr.className = 'clickable-row';
 
             // td código
             const tdCod = document.createElement('td');

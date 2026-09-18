@@ -863,7 +863,7 @@ function renderizarTabelaEstoque(data) {
         }
 
         return `
-            <tr>
+            <tr class="clickable-row">
                 <td style="font-family: 'JetBrains Mono', monospace; font-size: var(--font-xs);">${escapeHtml(item.codigo_produto || '-')}</td>
                 <td><a href="#" class="link-kardex" onclick="event.preventDefault(); abrirKardexEstoque('${item.id}')"><strong>${escapeHtml(item.nome_produto || 'Produto não vinculado')}</strong></a></td>
                 <td>${escapeHtml(item.categorias?.nome || '-')}</td>
