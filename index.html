@@ -10,7 +10,7 @@
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,700;14..32,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,700;14..32,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@700;800&display=swap">
 <style>
 /* ── Tokens ─────────────────────────────────────── */
 :root {
@@ -43,7 +43,7 @@
   --glass-bg:     rgba(255,255,255,.60);
   --glass-bg-2:   rgba(255,255,255,.72);
   --glass-border: rgba(255,255,255,.75);
-  --f-display: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --f-display: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   /* ── Motion tokens (transitions-dev) ───────────── */
   --duration-micro:     80ms;
   --duration-fast:      250ms;
@@ -149,31 +149,21 @@ button{font:inherit;color:inherit}
 .stat-val{font-family:var(--f-mono);font-size:1.35rem;font-weight:500;color:#fff;letter-spacing:-.03em;margin-bottom:4px}
 .stat-lbl{font-size:.78rem;color:rgba(255,255,255,.42)}
 
-/* Hero mockup */
-.hero-mockup{background:#fff;border-radius:var(--r-lg);box-shadow:0 34px 70px rgba(4,10,22,.45);overflow:hidden;border:1px solid rgba(255,255,255,.1)}
-.mock-tb{background:#EDEFF3;padding:10px 14px;display:flex;align-items:center;gap:7px;border-bottom:1px solid #E4E7ED}
-.dot-r{width:9px;height:9px;border-radius:50%;background:#E0A9A9;flex-shrink:0}
-.dot-y{width:9px;height:9px;border-radius:50%;background:#D8C067;flex-shrink:0}
-.dot-g{width:9px;height:9px;border-radius:50%;background:#7EC4A8;flex-shrink:0}
-.mock-url{flex:1;background:#fff;border:1px solid #E4E7ED;border-radius:5px;padding:3px 10px;font-family:var(--f-mono);font-size:.65rem;color:#8A94A6;margin:0 8px}
-.mock-body{display:grid;grid-template-columns:50px 1fr;height:330px}
-.mock-sidebar{background:#0F1B2E;padding:16px 0;display:flex;flex-direction:column;align-items:center;gap:14px}
-.mock-ico{width:24px;height:24px;border-radius:7px;background:rgba(255,255,255,.07)}
-.mock-ico.active{background:rgba(242,100,25,.22);box-shadow:inset 0 0 0 1px rgba(242,100,25,.4)}
-.mock-main{padding:14px;background:#F7F8FB;overflow:hidden}
-.mock-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
-.mock-kpi{background:#fff;border:1px solid #E4E7ED;border-radius:9px;padding:9px 11px}
-.mock-kpi-l{font-size:.59rem;color:#8A94A6;margin-bottom:3px}
-.mock-kpi-v{font-family:var(--f-mono);font-size:.94rem;font-weight:600;letter-spacing:-.03em}
-.mock-kpi-t{font-size:.59rem;color:var(--green);font-weight:700}
-.mock-chart{background:#fff;border:1px solid #E4E7ED;border-radius:9px;padding:11px;margin-bottom:10px;display:flex;align-items:flex-end;gap:6px;height:86px}
-.mock-bar{flex:1;border-radius:3px 3px 0 0}
-.mock-kanban{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
-.mock-col{background:#fff;border:1px solid #E4E7ED;border-radius:8px;padding:7px}
-.mock-col-h{font-size:.53rem;font-weight:800;color:#8A94A6;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}
-.mock-card{background:#F7F8FB;border:1px solid #E4E7ED;border-radius:5px;padding:5px;margin-bottom:4px}
-.mock-card-n{font-size:.59rem;font-weight:700;color:var(--text)}
-.mock-card-v{font-family:var(--f-mono);font-size:.56rem;color:var(--green);font-weight:600}
+/* ── Hero brand glow (por trás do título) ────── */
+.hero-glow-brand{position:absolute;top:50%;left:30%;transform:translate(-50%,-55%);width:820px;height:620px;border-radius:50%;background:radial-gradient(circle,rgba(26,58,107,.28) 0%,rgba(26,58,107,.10) 38%,transparent 68%);pointer-events:none;mix-blend-mode:screen}
+
+/* ── Browser Mockup ─────────────────────────── */
+.browser-mockup{border-radius:var(--r-lg);box-shadow:0 44px 90px rgba(4,10,22,.55),0 12px 28px rgba(4,10,22,.25),0 0 0 1px rgba(255,255,255,.09);overflow:hidden;animation:mockup-float 7s ease-in-out infinite;will-change:transform}
+@keyframes mockup-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@media(prefers-reduced-motion:reduce){.browser-mockup{animation:none}}
+.browser-chrome{background:#E8EAED;padding:11px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #D5D8DC}
+.chrome-dots{display:flex;gap:7px;flex-shrink:0}
+.chrome-dot{width:11px;height:11px;border-radius:50%}
+.chrome-dot.close   {background:#FF5F57;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.12)}
+.chrome-dot.minimize{background:#FEBC2E;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.12)}
+.chrome-dot.expand  {background:#28C840;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.12)}
+.browser-url{flex:1;background:#fff;border:1px solid #D5D8DC;border-radius:6px;padding:4px 12px;font-family:var(--f-mono);font-size:.63rem;color:#8A94A6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.browser-screen{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;object-position:top left;background:linear-gradient(145deg,#0F1B2E 0%,#1a2844 60%,#0f1824 100%)}
 
 /* ── Section base ───────────────────────────────── */
 .section{padding:104px 0}
@@ -338,7 +328,7 @@ button{font:inherit;color:inherit}
 /* ── Responsive ─────────────────────────────────── */
 @media(max-width:960px){
   .hero-grid,.radar-grid,.footer-grid{grid-template-columns:1fr!important}
-  .hero-mockup,.hide-sm{display:none!important}
+  .hide-sm{display:none!important}
   .pain-grid,.how-grid,.plans-grid{grid-template-columns:1fr!important}
   .hero-stats{grid-template-columns:repeat(3,1fr)}
   .nav-links{display:none}
@@ -347,7 +337,6 @@ button{font:inherit;color:inherit}
 }
 @media(max-width:600px){
   .hero-stats{grid-template-columns:1fr}
-  .mock-kpis{grid-template-columns:repeat(2,1fr)}
   .plans-grid{grid-template-columns:1fr}
 }
 </style>
@@ -377,6 +366,7 @@ button{font:inherit;color:inherit}
 
 <!-- HERO -->
 <section class="hero">
+  <div class="hero-glow-brand"></div>
   <div class="hero-glow-1"></div>
   <div class="hero-glow-2"></div>
   <div class="wrap">
@@ -412,63 +402,23 @@ button{font:inherit;color:inherit}
       </div>
 
       <div class="hide-sm">
-        <div class="hero-mockup">
-          <div class="mock-tb">
-            <span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span>
-            <div class="mock-url">app.cvcrm.com.br/app</div>
-          </div>
-          <div class="mock-body">
-            <div class="mock-sidebar">
-              <div class="mock-ico active"></div>
-              <div class="mock-ico"></div>
-              <div class="mock-ico"></div>
-              <div class="mock-ico"></div>
-              <div class="mock-ico"></div>
+        <!-- Browser Mockup: substitua src="" pelo caminho do seu screenshot (ex: "img/screenshot-crm.png") -->
+        <div class="browser-mockup">
+          <div class="browser-chrome">
+            <div class="chrome-dots" aria-hidden="true">
+              <span class="chrome-dot close"></span>
+              <span class="chrome-dot minimize"></span>
+              <span class="chrome-dot expand"></span>
             </div>
-            <div class="mock-main">
-              <div class="mock-kpis">
-                <div class="mock-kpi">
-                  <div class="mock-kpi-l">Vendas do mês</div>
-                  <div class="mock-kpi-v mono">R$&nbsp;47k</div>
-                  <div class="mock-kpi-t">↑ 18%</div>
-                </div>
-                <div class="mock-kpi">
-                  <div class="mock-kpi-l">Orçamentos</div>
-                  <div class="mock-kpi-v mono">23</div>
-                  <div class="mock-kpi-t">↑ 5</div>
-                </div>
-                <div class="mock-kpi">
-                  <div class="mock-kpi-l">Conversão</div>
-                  <div class="mock-kpi-v mono">62%</div>
-                  <div class="mock-kpi-t">↑ 4pp</div>
-                </div>
-              </div>
-              <div class="mock-chart">
-                <div class="mock-bar" style="flex:1;height:38%;background:#E4E7ED"></div>
-                <div class="mock-bar" style="flex:1;height:58%;background:rgba(26,58,107,.45)"></div>
-                <div class="mock-bar" style="flex:1;height:44%;background:#E4E7ED"></div>
-                <div class="mock-bar" style="flex:1;height:72%;background:rgba(26,58,107,.45)"></div>
-                <div class="mock-bar" style="flex:1;height:92%;background:var(--accent)"></div>
-                <div class="mock-bar" style="flex:1;height:68%;background:rgba(26,58,107,.45)"></div>
-                <div class="mock-bar" style="flex:1;height:52%;background:#E4E7ED"></div>
-              </div>
-              <div class="mock-kanban">
-                <div class="mock-col">
-                  <div class="mock-col-h">Contato</div>
-                  <div class="mock-card"><div class="mock-card-n">Maria S.</div><div class="mock-card-v">R$&nbsp;2.800</div></div>
-                  <div class="mock-card"><div class="mock-card-n">João P.</div><div class="mock-card-v">R$&nbsp;1.400</div></div>
-                </div>
-                <div class="mock-col">
-                  <div class="mock-col-h">Proposta</div>
-                  <div class="mock-card"><div class="mock-card-n">Ana C.</div><div class="mock-card-v">R$&nbsp;4.200</div></div>
-                </div>
-                <div class="mock-col">
-                  <div class="mock-col-h">Fechamento</div>
-                  <div class="mock-card"><div class="mock-card-n">Pedro R.</div><div class="mock-card-v">R$&nbsp;3.600</div></div>
-                </div>
-              </div>
-            </div>
+            <div class="browser-url">app.cvcrm.com.br/app</div>
           </div>
+          <img
+            class="browser-screen"
+            src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+            alt="Dashboard do CV CRM — screenshot real do painel"
+            width="760"
+            height="475"
+          >
         </div>
       </div>
     </div>
