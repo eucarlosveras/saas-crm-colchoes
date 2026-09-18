@@ -25,8 +25,8 @@
                 <h2>CV CRM</h2>
                 <p class="subtitle">Acesso ao Sistema</p>
                 <div class="login-form">
-                    <input type="email" id="loginEmail" placeholder="Seu e-mail">
-                    <input type="password" id="loginSenha" placeholder="Sua senha">
+                    <input type="email" id="loginEmail" placeholder="Seu e-mail" onkeydown="if(event.key==='Enter'){event.preventDefault(); handleLogin();}">
+                    <input type="password" id="loginSenha" placeholder="Sua senha" onkeydown="if(event.key==='Enter'){event.preventDefault(); handleLogin();}">
                 </div>
                 <button class="login-btn" id="btnLogin" onclick="handleLogin()">
                     <span class="spinner"></span>
@@ -45,7 +45,7 @@
                 <h2>Recuperar senha</h2>
                 <p class="subtitle">Informe seu e-mail — enviaremos um link pra você criar uma senha nova.</p>
                 <div class="login-form">
-                    <input type="email" id="recuperarSenhaEmail" placeholder="Seu e-mail">
+                    <input type="email" id="recuperarSenhaEmail" placeholder="Seu e-mail" onkeydown="if(event.key==='Enter'){event.preventDefault(); enviarLinkRecuperacaoSenha();}">
                 </div>
                 <button class="login-btn" id="btnRecuperarSenha" onclick="enviarLinkRecuperacaoSenha()">
                     <span class="spinner"></span>

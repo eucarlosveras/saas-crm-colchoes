@@ -498,7 +498,7 @@
             padding: 52px 44px;
             box-shadow: var(--shadow-lg), 0 0 0 1px var(--border-light);
             width: 100%; max-width: 420px;
-            animation: fadeInUp 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
+            animation: fadeInUp 0.5s var(--ease-smooth-out);
         }
         body.dark .login-card {
             background: rgba(19, 28, 46, 0.85);
@@ -506,10 +506,21 @@
             box-shadow: var(--shadow-modal);
         }
 
+        /* Materializa (não só funde): o card é uma superfície de vidro
+           (backdrop-filter), então a entrada ganha uma leve escala junto do
+           translateY+opacity — lê como um material real chegando, não um
+           plano opacity-only. Sem overshoot (sem bounce): não é um gesto com
+           momentum, é um diálogo que abre sozinho ao carregar a página. */
         @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to   { opacity: 1; transform: translateY(0); }
+            from { opacity: 0; transform: translateY(20px) scale(0.98); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
         }
+
+        /* Troca Login ↔ Recuperar senha (loginBloco/recuperarSenhaBloco, ver
+           auth.js): era um corte seco de display:none/block. Reaproveita
+           crmViewIn (mesma animação da troca Kanban/Tabela da Carteira) —
+           puro CSS, dispara sozinha toda vez que o bloco sai de display:none. */
+        #loginBloco, #recuperarSenhaBloco { animation: crmViewIn 0.22s var(--ease-smooth-out); }
 
         .login-card .login-icon {
             width: 60px; height: 60px; border-radius: 16px;
@@ -613,12 +624,15 @@
             transform: translateY(-1px);
         }
         .login-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; box-shadow: none; }
+        /* Texto e spinner materializam juntos (mesma duração/curva) em vez do
+           texto sumir abrupto enquanto só o spinner recebia transição. */
+        .login-btn .btn-text { transition: opacity 0.2s var(--ease-smooth-out); }
         .login-btn.loading .btn-text { opacity: 0; }
         .login-btn .spinner {
             position: absolute; width: 20px; height: 20px;
             border: 2.5px solid rgba(255,255,255,0.3); border-top-color: #fff;
             border-radius: 50%; animation: spin 0.7s linear infinite;
-            opacity: 0; transition: opacity 0.2s;
+            opacity: 0; transition: opacity 0.2s var(--ease-smooth-out);
         }
         .login-btn.loading .spinner { opacity: 1; }
 
@@ -629,6 +643,11 @@
             font-size: var(--font-xs); margin-top: 14px; min-height: 20px;
             color: #dc2626; font-weight: 600;
         }
+        /* Erro de login nasce como elemento novo no DOM (msg.innerHTML é
+           reescrito a cada tentativa) — reaproveita a mesma animação de
+           entrada (crmViewIn, ver Carteira) para não inventar um novo
+           vocabulário de movimento só pra esta tela. */
+        .login-msg .error-message { display: inline-flex; animation: crmViewIn 0.22s var(--ease-smooth-out); }
 
         /* ────────────────────────────────────────────────────────
            HAMBURGER & OVERLAY (mobile)
