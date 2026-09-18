@@ -22,6 +22,33 @@ import { escapeHtml } from './utils.js';
             return 'Usuário inativo.';
         }
 
+        // Controle de assinatura por loja (ver Painel do Operador > Assinantes,
+        // src/lojas.js) — ainda 100% manual, sem gateway de pagamento integrado.
+        // Administrador é o operador da plataforma e não pertence a loja
+        // nenhuma, então nunca é bloqueado por isso. Para os demais perfis,
+        // checa a loja BASE (usuarios.id_loja) — um franqueado com lojas
+        // adicionais via usuario_lojas não tem cada uma checada individualmente
+        // aqui ainda (mesma simplificação já assumida no resto do app).
+        async function verificarAssinaturaLoja(userProfile) {
+            if (userProfile.perfil === 'Administrador' || userProfile.perfil === 'Admin') return null;
+            if (!userProfile.id_loja) return null;
+            try {
+                const { data: loja, error } = await db.from('lojas')
+                    .select('assinatura_status')
+                    .eq('id_loja', userProfile.id_loja)
+                    .maybeSingle();
+                if (error || !loja) return null; // Falha ao checar não deve travar o login.
+                if (['Inadimplente', 'Cancelada'].includes(loja.assinatura_status)) {
+                    return loja.assinatura_status === 'Cancelada'
+                        ? 'A assinatura da sua loja foi cancelada. Fale com o suporte para regularizar.'
+                        : 'A assinatura da sua loja está com pagamento pendente. Fale com o suporte para regularizar o acesso.';
+                }
+                return null;
+            } catch (_) {
+                return null;
+            }
+        }
+
         async function carregarLojasMultiplas(usuarioId) {
             try {
                 const { data, error } = await db
@@ -67,6 +94,15 @@ import { escapeHtml } from './utils.js';
                         await db.auth.signOut();
                         document.getElementById('loginOverlay').classList.remove('hidden');
                         if (mensagem) document.getElementById('loginMsg').innerHTML = `<span class="error-message">${escapeHtml(mensagem)}</span>`;
+                        return;
+                    }
+                    // 2.6 Loja com assinatura inadimplente/cancelada: barra também
+                    // a sessão restaurada, não só o login novo (ver handleLogin()).
+                    const mensagemAssinatura = await verificarAssinaturaLoja(userProfile);
+                    if (mensagemAssinatura) {
+                        await db.auth.signOut();
+                        document.getElementById('loginOverlay').classList.remove('hidden');
+                        document.getElementById('loginMsg').innerHTML = `<span class="error-message">${escapeHtml(mensagemAssinatura)}</span>`;
                         return;
                     }
                     // 3. Tudo em ordem: esconde o ecrã de login e arranca com a dashboard
@@ -171,6 +207,11 @@ import { escapeHtml } from './utils.js';
                     .single();
                 if (profileError || !userProfile) throw new Error("Perfil não encontrado no sistema.");
                 if (userProfile.status?.toLowerCase() !== 'ativo') throw new Error(mensagemStatusBloqueado(userProfile.status));
+                const mensagemAssinatura = await verificarAssinaturaLoja(userProfile);
+                if (mensagemAssinatura) {
+                    await db.auth.signOut();
+                    throw new Error(mensagemAssinatura);
+                }
                 // 4. Libera o acesso e inicia a dashboard
                 setUsuarioLogado(userProfile);
                 document.getElementById('loginOverlay').classList.add('hidden');

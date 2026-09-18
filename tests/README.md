@@ -28,3 +28,7 @@ Cobertura atual:
   de franquia: um Gerente (franqueado) multi-loja enxerga clientes de todas
   as lojas que possui (via `usuario_lojas`), mas continua sem enxergar a
   loja de outro franqueado.
+- `04-assinatura-lojas.test.js` — a trigger `trg_lojas_protege_assinatura`
+  (Painel do Operador > Assinantes) barra um Gerente tentando alterar a
+  própria assinatura, libera o Administrador real, e não vaza pra colunas
+  fora do escopo de billing.

@@ -5,6 +5,7 @@ import { renderClientesLista, renderFichaCliente } from './clientes.js';
 import { renderInicio } from './dashboard.js';
 import { abrirModalNovoProduto } from './estoque.js';
 import { abrirNovoOrcamento, renderDetalhesClientePage, renderNovoOrcamentoPage } from './orcamentos.js';
+import { renderAdminLojas } from './lojas.js';
 import { podeCriarOrcamento, store } from './state.js';
 import { renderAdminInicio, renderAdminUsuarios } from './usuarios.js';
 
@@ -69,6 +70,7 @@ import { renderAdminInicio, renderAdminUsuarios } from './usuarios.js';
             if (store.currentView === 'inicio') renderInicio();
             else if (store.currentView === 'admin_inicio') renderAdminInicio(document.getElementById('mainContent'));
             else if (store.currentView === 'admin_usuarios') renderAdminUsuarios(document.getElementById('mainContent'));
+            else if (store.currentView === 'admin_lojas') renderAdminLojas(document.getElementById('mainContent'));
             else if (store.currentView === 'detalhes_cliente') renderDetalhesClientePage();
             else if (store.currentView === 'novo_orcamento') renderNovoOrcamentoPage();
             else if (store.currentView === 'clientes_lista') renderClientesLista();
