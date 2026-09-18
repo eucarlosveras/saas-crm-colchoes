@@ -96,7 +96,11 @@ details[open] .plus{transform:rotate(45deg)}
 .billing-switch.on .billing-knob{transform:translateX(21px)}
 
 /* ── Nav ────────────────────────────────────────── */
-.nav{position:sticky;top:0;z-index:200;background:var(--hero-bg);border-bottom:1px solid var(--hero-bd)}
+/* Material translucido (nao mais uma barra opaca): o conteudo
+   passa por baixo borrado, com uma sombra suave no lugar da
+   borda dura — "scroll edge effect" em vez de divisor rigido. */
+.nav{position:sticky;top:0;z-index:200;background:rgba(12,26,48,.68);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid rgba(255,255,255,.06);box-shadow:0 16px 32px -20px rgba(0,0,0,.55)}
+@media(prefers-reduced-transparency:reduce){.nav{background:var(--hero-bg);-webkit-backdrop-filter:none;backdrop-filter:none;border-bottom:1px solid var(--hero-bd);box-shadow:none}}
 .nav-inner{max-width:1160px;margin:0 auto;padding:0 28px;height:62px;display:flex;align-items:center;justify-content:space-between;gap:24px}
 .nav-logo{display:flex;align-items:center;gap:11px;color:#fff}
 .nav-mark{width:30px;height:30px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--f-display);font-size:11px;font-weight:800;color:#fff;letter-spacing:0;flex-shrink:0}
