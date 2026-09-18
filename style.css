@@ -117,6 +117,13 @@
 
             /* New comment accent */
             --new-comment-accent: var(--brand-blue);
+
+            /* Motion tokens (transitions-dev) */
+            --duration-micro: 80ms;
+            --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+            /* Table row hover — subtle brand-tinted highlight */
+            --table-row-hover: rgba(30, 58, 95, 0.04);
         }
 
         /* ────────────────────────────────────────────────────────
@@ -183,6 +190,8 @@
             --danger-light-bg: #2A1616;
             --danger-border: #7A3232;
             --danger-text: #E8A3A3;
+
+            --table-row-hover: rgba(74, 130, 209, 0.07);
         }
 
         /* ────────────────────────────────────────────────────────
@@ -433,7 +442,7 @@
             border-color: var(--border-light);
             color: var(--text-primary);
         }
-        body.dark table thead th { background: var(--surface-2); color: var(--text-muted); }
+        body.dark table thead th { background: var(--surface-2); color: var(--text-muted); border-bottom-color: var(--border-medium); }
         body.dark table tbody td  { border-color: var(--border-light); }
 
         /* ────────────────────────────────────────────────────────
@@ -1364,23 +1373,29 @@
             letter-spacing: -0.02em;
         }
 
-        table { width: 100%; border-collapse: collapse; font-size: var(--font-sm); }
+        table { width: 100%; border-collapse: collapse; font-size: var(--font-sm); font-variant-numeric: tabular-nums; }
         table thead th {
-            background: var(--surface-2); padding: 12px 14px;
-            font-weight: 700; font-size: var(--font-2xs); text-transform: uppercase;
-            letter-spacing: 0.07em; color: var(--text-muted);
-            border-bottom: 1px solid var(--border-light); text-align: left;
+            background: var(--surface-2); padding: 9px 14px;
+            font-weight: 600; font-size: var(--font-2xs); text-transform: uppercase;
+            letter-spacing: 0.05em; color: var(--text-muted);
+            border-bottom: 2px solid var(--border-medium); text-align: left;
         }
         table thead th:first-child { border-radius: var(--radius-xs) 0 0 var(--radius-xs); }
         table thead th:last-child  { border-radius: 0 var(--radius-xs) var(--radius-xs) 0; }
 
         table tbody td {
-            padding: 13px 14px; border-bottom: 1px solid var(--divider); vertical-align: middle;
+            padding: 10px 14px; border-bottom: 1px solid var(--border-light); vertical-align: middle; line-height: 1.4;
         }
         table tbody tr:last-child td { border-bottom: none; }
 
-        .table-card tbody tr.clickable-row { cursor: pointer; transition: background 0.12s; }
-        .table-card tbody tr.clickable-row:hover { background: var(--surface-2); }
+        /* Row hover highlight — immediate feedback (transitions-dev motion tokens) */
+        table tbody tr {
+            transition: background var(--duration-micro, 80ms) var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1));
+        }
+        table tbody tr:hover { background: var(--table-row-hover); }
+
+        .table-card tbody tr.clickable-row { cursor: pointer; }
+        .table-card tbody tr.clickable-row:hover { background: var(--table-row-hover); }
 
         /* --- ACCORDION PRODUTOS --- */
         .btn-expand-produtos {
@@ -1944,6 +1959,29 @@
             transition: all var(--transition); display: inline-flex; align-items: center; gap: 7px;
         }
         .btn-danger-ghost:hover { background: var(--danger-border); }
+
+        /* ── Botões de exportação (PDF / Excel) ── */
+        .btn-exportar-pdf {
+            background: rgba(239,68,68,.08); color: #dc2626;
+            border: 1.5px solid rgba(239,68,68,.25); padding: 8px 14px;
+            border-radius: var(--radius-sm); font-weight: 600; cursor: pointer;
+            font-size: var(--font-xs); font-family: 'Inter', sans-serif;
+            transition: all var(--transition); display: inline-flex; align-items: center; gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-exportar-pdf:hover { background: rgba(239,68,68,.16); border-color: rgba(239,68,68,.5); }
+        .btn-exportar-pdf:active { transform: scale(.97); }
+
+        .btn-exportar-excel {
+            background: rgba(22,163,74,.08); color: #16a34a;
+            border: 1.5px solid rgba(22,163,74,.25); padding: 8px 14px;
+            border-radius: var(--radius-sm); font-weight: 600; cursor: pointer;
+            font-size: var(--font-xs); font-family: 'Inter', sans-serif;
+            transition: all var(--transition); display: inline-flex; align-items: center; gap: 6px;
+            white-space: nowrap;
+        }
+        .btn-exportar-excel:hover { background: rgba(22,163,74,.16); border-color: rgba(22,163,74,.5); }
+        .btn-exportar-excel:active { transform: scale(.97); }
 
         .btn-salvar-timeline {
             background: var(--brand-blue); color: #fff; border: none;
