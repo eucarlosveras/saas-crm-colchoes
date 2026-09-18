@@ -38,6 +38,10 @@
   --r-md:  12px;
   --r-lg:  18px;
   --r-xl:  24px;
+  --r-bento: 28px;
+  --glass-bg:     rgba(255,255,255,.60);
+  --glass-bg-2:   rgba(255,255,255,.72);
+  --glass-border: rgba(255,255,255,.75);
   --f-display: 'Syne', sans-serif;
   --f-body:    'DM Sans', system-ui, sans-serif;
   --f-mono:    'JetBrains Mono', monospace;
@@ -58,7 +62,7 @@ details[open] .plus{transform:rotate(45deg)}
 .wrap{max-width:1160px;margin:0 auto;padding:0 28px}
 
 /* ── Type ───────────────────────────────────────── */
-.d-xl{font-family:var(--f-display);font-size:clamp(2.3rem,4.4vw,3.5rem);font-weight:800;line-height:1.06;letter-spacing:-.044em;text-wrap:balance}
+.d-xl{font-family:var(--f-display);font-size:clamp(1.9rem,6.6vw,5.75rem);font-weight:800;line-height:1.05;letter-spacing:-.05em;text-wrap:balance;overflow-wrap:break-word}
 .d-lg{font-family:var(--f-display);font-size:clamp(1.8rem,3.1vw,2.4rem);font-weight:800;line-height:1.1;letter-spacing:-.04em;text-wrap:balance}
 .d-md{font-family:var(--f-display);font-size:1.15rem;font-weight:700;line-height:1.3;letter-spacing:-.018em}
 .mono{font-family:var(--f-mono)}
@@ -90,21 +94,23 @@ details[open] .plus{transform:rotate(45deg)}
 .nav-cta:hover{background:var(--accent-2)}
 
 /* ── Hero ───────────────────────────────────────── */
-.hero{background:var(--hero-bg);position:relative;overflow:hidden;padding:96px 0 100px}
+.hero{background:var(--hero-bg);position:relative;overflow:hidden;padding:168px 0 148px}
 .hero-glow-1{position:absolute;top:-180px;right:-120px;width:640px;height:640px;border-radius:50%;background:radial-gradient(circle,rgba(242,100,25,.22) 0%,transparent 62%);pointer-events:none}
 .hero-glow-2{position:absolute;bottom:-160px;left:-80px;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(45,90,160,.12) 0%,transparent 65%);pointer-events:none}
-.hero-grid{display:grid;grid-template-columns:1.04fr 1fr;gap:64px;align-items:center}
-.hero-pill{display:inline-flex;align-items:center;gap:9px;background:rgba(242,100,25,.12);border:1px solid rgba(242,100,25,.28);color:#F9A76A;padding:6px 15px;border-radius:999px;font-size:.78rem;font-weight:700;margin-bottom:26px}
+.hero-grid{display:grid;grid-template-columns:1.04fr 1fr;gap:88px;align-items:center}
+.hero-pill{display:inline-flex;align-items:center;gap:9px;background:rgba(242,100,25,.12);border:1px solid rgba(242,100,25,.28);color:#F9A76A;padding:6px 15px;border-radius:999px;font-size:.78rem;font-weight:700;margin-bottom:32px}
 .hero-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:blink 2.2s ease-in-out infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-.hero-h1{color:#fff;margin-bottom:22px}
-.hero-sub{font-size:17px;line-height:1.65;color:var(--hero-muted);max-width:470px;margin-bottom:36px}
-.hero-btns{display:flex;gap:14px;flex-wrap:wrap}
-.btn-primary{display:inline-flex;align-items:center;gap:8px;padding:15px 30px;border-radius:var(--r-sm);background:var(--accent);color:#fff;font-size:.95rem;font-weight:700;border:none;cursor:pointer;transition:background .15s,transform .1s}
-.btn-primary:hover{background:var(--accent-2);transform:translateY(-1px)}
-.btn-outline-light{display:inline-flex;align-items:center;padding:15px 28px;border-radius:var(--r-sm);border:1.5px solid rgba(255,255,255,.22);color:#fff;font-size:.95rem;font-weight:600;transition:border-color .15s,color .15s}
+.hero-h1{color:#fff;margin-bottom:28px}
+.hero-sub{font-size:19px;line-height:1.7;color:var(--hero-muted);max-width:480px;margin-bottom:46px}
+.hero-btns{display:flex;gap:16px;flex-wrap:wrap}
+.btn-primary{display:inline-flex;align-items:center;gap:8px;padding:18px 34px;border-radius:var(--r-sm);background:var(--accent);color:#fff;font-size:1rem;font-weight:700;border:none;cursor:pointer;box-shadow:0 14px 34px rgba(242,100,25,.32);transition:background .15s,transform .1s,box-shadow .15s}
+.btn-primary:hover{background:var(--accent-2);transform:translateY(-1px);box-shadow:0 18px 40px rgba(242,100,25,.4)}
+.btn-primary:active{transform:translateY(0) scale(.97);transition:transform .1s ease-out;box-shadow:0 8px 20px rgba(242,100,25,.32)}
+.btn-outline-light{display:inline-flex;align-items:center;padding:18px 32px;border-radius:var(--r-sm);border:1.5px solid rgba(255,255,255,.22);color:#fff;font-size:1rem;font-weight:600;transition:border-color .15s,color .15s,transform .1s}
 .btn-outline-light:hover{border-color:var(--accent);color:#F9A76A}
-.hero-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:52px;padding-top:28px;border-top:1px solid rgba(255,255,255,.12)}
+.btn-outline-light:active{transform:scale(.97);transition:transform .1s ease-out}
+.hero-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:68px;padding-top:34px;border-top:1px solid rgba(255,255,255,.12)}
 .stat-val{font-family:var(--f-mono);font-size:1.35rem;font-weight:500;color:#fff;letter-spacing:-.03em;margin-bottom:4px}
 .stat-lbl{font-size:.78rem;color:rgba(255,255,255,.42)}
 
@@ -151,19 +157,32 @@ details[open] .plus{transform:rotate(45deg)}
 .pain-card p{font-size:.9rem;line-height:1.68;color:var(--text-2)}
 .pain-cta{text-align:center;margin-top:44px;font-size:.95rem;font-weight:700;color:var(--brand)}
 
-/* ── Features ───────────────────────────────────── */
-.features-section{background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
-.feat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:22px}
-.feat-card{border:1px solid var(--border);border-radius:var(--r-lg);padding:32px;background:var(--surface);transition:box-shadow .2s,transform .2s}
-.feat-card:hover{box-shadow:var(--sh-lg);transform:translateY(-2px)}
-.feat-bar{width:38px;height:3px;border-radius:2px;margin-bottom:22px}
-.feat-bar-brand{background:var(--brand)}
-.feat-bar-accent{background:var(--accent)}
-.feat-bar-purple{background:#5B4FCF}
-.feat-bar-green{background:var(--green)}
-.feat-card h3{font-family:var(--f-display);font-size:1.1rem;font-weight:700;letter-spacing:-.022em;margin-bottom:11px}
-.feat-card p{font-size:.94rem;line-height:1.7;color:var(--text-2)}
-.feat-tag{display:inline-block;margin-top:18px;padding:4px 12px;border-radius:999px;font-size:.75rem;font-weight:700;background:var(--surface-2);color:var(--text-2)}
+/* ── Features / Bento Grid ──────────────────────── */
+.features-section{background:linear-gradient(180deg,#F7F8FB 0%,#EEF1F7 100%);border-top:1px solid var(--border);border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.features-glow-1{position:absolute;top:-140px;left:-110px;width:520px;height:520px;border-radius:50%;background:radial-gradient(circle,rgba(45,90,160,.10) 0%,transparent 65%);pointer-events:none}
+.features-glow-2{position:absolute;bottom:-160px;right:-90px;width:480px;height:480px;border-radius:50%;background:radial-gradient(circle,rgba(242,100,25,.09) 0%,transparent 65%);pointer-events:none}
+.bento-grid{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:minmax(210px,auto);gap:22px;position:relative}
+.bento-card{background:var(--glass-bg);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);border:1px solid var(--glass-border);border-radius:var(--r-bento);padding:32px;display:flex;flex-direction:column;box-shadow:0 8px 30px rgba(15,24,36,.05);transition:transform .25s ease,box-shadow .25s ease}
+.bento-card:hover{transform:translateY(-3px);box-shadow:0 18px 42px rgba(15,24,36,.09)}
+.bento-card.large{grid-column:1/3;grid-row:1/3}
+.bento-card.wide{grid-column:3/5;grid-row:1/2}
+.bento-card.small-a{grid-column:3/4;grid-row:2/3}
+.bento-card.small-b{grid-column:4/5;grid-row:2/3}
+.bento-icon{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:20px;flex-shrink:0}
+.bento-icon svg{width:22px;height:22px}
+.bento-icon.tint-brand{background:rgba(26,58,107,.10);color:var(--brand)}
+.bento-icon.tint-accent{background:rgba(242,100,25,.12);color:var(--accent)}
+.bento-icon.tint-purple{background:rgba(91,79,207,.12);color:#5B4FCF}
+.bento-icon.tint-green{background:rgba(30,158,110,.12);color:var(--green)}
+.bento-card h3{font-family:var(--f-display);font-size:1.15rem;font-weight:700;letter-spacing:-.022em;margin-bottom:10px}
+.bento-card.large h3{font-size:1.4rem}
+.bento-card p{font-size:.92rem;line-height:1.7;color:var(--text-2)}
+.bento-tag{display:inline-flex;align-self:flex-start;margin-top:16px;padding:5px 13px;border-radius:999px;font-size:.74rem;font-weight:700;background:var(--glass-bg-2);border:1px solid var(--border);color:var(--text-2)}
+.bento-flow{display:flex;gap:8px;margin-top:auto;padding-top:20px;flex-wrap:wrap}
+.bento-flow-step{flex:1;min-width:100px;background:var(--glass-bg-2);border:1px solid var(--border);border-radius:10px;padding:9px 10px;font-size:.72rem;font-weight:700;color:var(--text-2);text-align:center}
+.bento-flow-step.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+@media(prefers-reduced-transparency:reduce){.bento-card{background:#fff;-webkit-backdrop-filter:none;backdrop-filter:none}}
+@media(prefers-contrast:more){.bento-card{background:#fff;border-color:var(--text-2)}}
 
 /* ── Radar IA ───────────────────────────────────── */
 .radar-section{background:var(--hero-bg);padding:104px 0;position:relative;overflow:hidden}
@@ -260,11 +279,13 @@ details[open] .plus{transform:rotate(45deg)}
 
 /* ── Responsive ─────────────────────────────────── */
 @media(max-width:960px){
-  .hero-grid,.feat-grid,.radar-grid,.footer-grid{grid-template-columns:1fr!important}
+  .hero-grid,.radar-grid,.footer-grid{grid-template-columns:1fr!important}
   .hero-mockup,.hide-sm{display:none!important}
   .pain-grid,.how-grid,.plans-grid{grid-template-columns:1fr!important}
   .hero-stats{grid-template-columns:repeat(3,1fr)}
   .nav-links{display:none}
+  .bento-grid{grid-template-columns:1fr!important;grid-auto-rows:auto!important}
+  .bento-card,.bento-card.large,.bento-card.wide,.bento-card.small-a,.bento-card.small-b{grid-column:auto!important;grid-row:auto!important}
 }
 @media(max-width:600px){
   .hero-stats{grid-template-columns:1fr}
@@ -422,35 +443,47 @@ details[open] .plus{transform:rotate(45deg)}
 
 <!-- FUNCIONALIDADES -->
 <section id="funcionalidades" class="section features-section">
+  <div class="features-glow-1"></div>
+  <div class="features-glow-2"></div>
   <div class="wrap">
     <div class="section-header">
       <h2 class="d-lg">Tudo que sua loja precisa,<br>em um lugar só</h2>
       <p class="section-sub">Desenvolvido especificamente para o varejo de colchões — não é um CRM genérico adaptado.</p>
     </div>
-    <div class="feat-grid">
-      <div class="feat-card">
-        <div class="feat-bar feat-bar-brand"></div>
+    <div class="bento-grid">
+      <div class="bento-card large">
+        <div class="bento-icon tint-brand">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="9.5" y="4" width="5" height="10" rx="1.5"/><rect x="16" y="4" width="5" height="13" rx="1.5"/></svg>
+        </div>
         <h3>Pipeline Visual de Vendas</h3>
         <p>Acompanhe cada cliente do primeiro contato ao fechamento. Saiba exatamente em que etapa está cada negociação e quais precisam de atenção agora.</p>
-        <span class="feat-tag">Drag &amp; drop</span>
+        <div class="bento-flow">
+          <div class="bento-flow-step">Contato</div>
+          <div class="bento-flow-step">Proposta</div>
+          <div class="bento-flow-step active">Fechamento</div>
+        </div>
       </div>
-      <div class="feat-card">
-        <div class="feat-bar feat-bar-accent"></div>
+      <div class="bento-card wide">
+        <div class="bento-icon tint-accent">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg>
+        </div>
         <h3>Orçamentos em Segundos</h3>
         <p>Gere propostas profissionais diretamente do sistema e envie por WhatsApp com um clique. Sem planilha, sem Word, sem retrabalho.</p>
-        <span class="feat-tag">Texto pronto p/ WhatsApp</span>
+        <span class="bento-tag">Texto pronto p/ WhatsApp</span>
       </div>
-      <div class="feat-card">
-        <div class="feat-bar feat-bar-purple"></div>
+      <div class="bento-card small-a">
+        <div class="bento-icon tint-purple">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V7l6-4 6 4v14"/><path d="M14 21v-7h6v7"/><path d="M8 9h.01M8 13h.01M8 17h.01"/></svg>
+        </div>
         <h3>Gestão Multi-loja</h3>
-        <p>Visualize vendas, metas e estoque de todas as suas lojas em um painel unificado. Compare performance entre unidades com um clique.</p>
-        <span class="feat-tag">Painel centralizado</span>
+        <p>Vendas, metas e estoque de todas as lojas em um painel unificado.</p>
       </div>
-      <div class="feat-card">
-        <div class="feat-bar feat-bar-green"></div>
+      <div class="bento-card small-b">
+        <div class="bento-icon tint-green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5V8Z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>
+        </div>
         <h3>Controle de Estoque</h3>
-        <p>Alertas automáticos de estoque mínimo, histórico de movimentação e visibilidade por loja. Nunca mais perca uma venda por falta de produto.</p>
-        <span class="feat-tag">Alertas automáticos</span>
+        <p>Alertas automáticos de estoque mínimo por loja.</p>
       </div>
     </div>
   </div>
