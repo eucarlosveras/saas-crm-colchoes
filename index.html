@@ -10,7 +10,7 @@
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,700;14..32,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <style>
 /* ── Tokens ─────────────────────────────────────── */
 :root {
@@ -43,7 +43,7 @@
   --glass-bg:     rgba(255,255,255,.60);
   --glass-bg-2:   rgba(255,255,255,.72);
   --glass-border: rgba(255,255,255,.75);
-  --f-display: 'Syne', sans-serif;
+  --f-display: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   /* ── Motion tokens (transitions-dev) ───────────── */
   --duration-micro:     80ms;
   --duration-fast:      250ms;
@@ -79,9 +79,9 @@ button{font:inherit;color:inherit}
 .wrap{max-width:1160px;margin:0 auto;padding:0 28px}
 
 /* ── Type ───────────────────────────────────────── */
-.d-xl{font-family:var(--f-display);font-size:clamp(1.9rem,6.6vw,5.75rem);font-weight:800;line-height:1.05;letter-spacing:-.05em;text-wrap:balance;overflow-wrap:break-word}
-.d-lg{font-family:var(--f-display);font-size:clamp(1.8rem,3.1vw,2.4rem);font-weight:800;line-height:1.1;letter-spacing:-.04em;text-wrap:balance}
-.d-md{font-family:var(--f-display);font-size:1.15rem;font-weight:700;line-height:1.3;letter-spacing:-.018em}
+.d-xl{font-family:var(--f-display);font-size:clamp(1.9rem,5.6vw,4.75rem);font-weight:800;line-height:1.08;letter-spacing:-.03em;text-wrap:balance;overflow-wrap:break-word}
+.d-lg{font-family:var(--f-display);font-size:clamp(1.7rem,2.9vw,2.3rem);font-weight:800;line-height:1.18;letter-spacing:-.02em;text-wrap:balance}
+.d-md{font-family:var(--f-display);font-size:1.15rem;font-weight:700;line-height:1.35;letter-spacing:-.012em}
 .mono{font-family:var(--f-mono)}
 .eyebrow{font-family:var(--f-body);font-size:.78rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
 
@@ -103,7 +103,7 @@ button{font:inherit;color:inherit}
 .nav-inner{max-width:1160px;margin:0 auto;padding:0 28px;height:62px;display:flex;align-items:center;justify-content:space-between;gap:24px}
 .nav-logo{display:flex;align-items:center;gap:11px;color:#fff}
 .nav-mark{width:30px;height:30px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--f-display);font-size:11px;font-weight:800;color:#fff;letter-spacing:0;flex-shrink:0}
-.nav-brand{font-family:var(--f-display);font-size:1.05rem;font-weight:700;letter-spacing:-.025em}
+.nav-brand{font-family:var(--f-display);font-size:1.05rem;font-weight:700;letter-spacing:-.015em}
 .nav-brand em{font-style:normal;color:var(--accent)}
 .nav-links{display:flex;align-items:center;gap:28px;list-style:none}
 .nav-links a{font-size:.875rem;font-weight:500;color:var(--hero-muted);transition:color .15s}
@@ -190,7 +190,7 @@ button{font:inherit;color:inherit}
 .pain-card{background:var(--glass-bg-2);-webkit-backdrop-filter:blur(20px) saturate(160%);backdrop-filter:blur(20px) saturate(160%);border:1px solid var(--glass-border);border-radius:var(--r-card);padding:30px;box-shadow:var(--sh-sm);transition:transform var(--duration-fast) var(--ease-smooth-out),box-shadow var(--duration-fast) var(--ease-smooth-out)}
 .pain-card:hover{transform:translateY(-3px);box-shadow:var(--sh-lg)}
 .pain-num{font-family:var(--f-mono);font-size:.75rem;font-weight:600;color:var(--accent);background:var(--accent-lt);padding:3px 10px;border-radius:7px;width:fit-content;margin-bottom:18px}
-.pain-card h3{font-family:var(--f-display);font-size:1.05rem;font-weight:700;letter-spacing:-.02em;margin-bottom:9px}
+.pain-card h3{font-family:var(--f-display);font-size:1.05rem;font-weight:700;letter-spacing:-.012em;margin-bottom:9px}
 .pain-card p{font-size:.9rem;line-height:1.68;color:var(--text-2)}
 .pain-cta{text-align:center;margin-top:44px;font-size:.95rem;font-weight:700;color:var(--brand)}
 @media(prefers-reduced-transparency:reduce){.pain-card{background:var(--surface);-webkit-backdrop-filter:none;backdrop-filter:none}}
@@ -218,7 +218,7 @@ button{font:inherit;color:inherit}
 .bento-icon.tint-accent{background:rgba(242,100,25,.12);color:var(--accent)}
 .bento-icon.tint-purple{background:rgba(91,79,207,.12);color:#5B4FCF}
 .bento-icon.tint-green{background:rgba(30,158,110,.12);color:var(--green)}
-.bento-card h3{font-family:var(--f-display);font-size:1.15rem;font-weight:700;letter-spacing:-.022em;margin-bottom:10px}
+.bento-card h3{font-family:var(--f-display);font-size:1.15rem;font-weight:700;letter-spacing:-.014em;margin-bottom:10px}
 .bento-card.large h3{font-size:1.4rem}
 .bento-card p{font-size:.92rem;line-height:1.7;color:var(--text-2)}
 .bento-tag{display:inline-flex;align-self:flex-start;margin-top:16px;padding:5px 13px;border-radius:999px;font-size:.74rem;font-weight:700;background:var(--glass-bg-2);border:1px solid var(--border);color:var(--text-2)}
@@ -261,7 +261,7 @@ button{font:inherit;color:inherit}
 .how-step:hover .how-num.accent{box-shadow:0 6px 18px rgba(242,100,25,.4)}
 .how-num.accent{background:var(--accent);color:#fff}
 .how-line{flex:1;height:1px;background:rgba(242,100,25,.35)}
-.how-step h3{font-family:var(--f-display);font-size:1.05rem;font-weight:700;letter-spacing:-.02em;margin-bottom:9px}
+.how-step h3{font-family:var(--f-display);font-size:1.05rem;font-weight:700;letter-spacing:-.012em;margin-bottom:9px}
 .how-step p{font-size:.9rem;line-height:1.68;color:var(--text-2)}
 
 /* ── Planos ─────────────────────────────────────── */
@@ -322,7 +322,7 @@ button{font:inherit;color:inherit}
 .footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:38px;margin-bottom:42px}
 .footer-logo{display:flex;align-items:center;gap:11px;margin-bottom:12px}
 .footer-logo-mark{width:30px;height:30px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--f-display);font-size:11px;font-weight:800;color:#fff;letter-spacing:0;flex-shrink:0}
-.footer-brand{font-family:var(--f-display);font-size:1.05rem;font-weight:700;letter-spacing:-.025em;color:#fff}
+.footer-brand{font-family:var(--f-display);font-size:1.05rem;font-weight:700;letter-spacing:-.015em;color:#fff}
 .footer-brand em{font-style:normal;color:var(--accent)}
 .footer-desc{font-size:.84rem;line-height:1.65;color:rgba(255,255,255,.36);max-width:240px}
 .footer-col-title{font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.42);margin-bottom:16px}
