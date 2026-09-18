@@ -757,6 +757,7 @@ function selectFilter(filter) {
                             } else {
                                 card.draggable = true;
                                 card.addEventListener('dragstart', e => dragStart(e, o.id_orcamento));
+                                card.addEventListener('dragend', dragEnd);
                             }
 
                             // kcard-top
@@ -824,11 +825,18 @@ function dragStart(event, idOrcamento) {
     // Guarda o ID do card que está sendo arrastado
     event.dataTransfer.setData('text/plain', idOrcamento);
     event.dataTransfer.effectAllowed = 'move';
-    
+
     // Deixa o card original levemente transparente enquanto você arrasta
     setTimeout(() => {
         event.target.style.opacity = '0.4';
     }, 0);
+}
+
+function dragEnd(event) {
+    // Sem isso, um card solto fora de qualquer coluna (ou um drag cancelado
+    // com Esc) ficava travado em opacity:0.4 até o próximo render do board —
+    // todo gesto precisa voltar ao estado de repouso quando é abandonado.
+    event.target.style.opacity = '';
 }
 
 function allowDrop(event) {
@@ -838,9 +846,10 @@ function allowDrop(event) {
 
 function dragEnter(event) {
     event.preventDefault();
-    // Feedback visual: acende levemente o fundo da coluna quando o card passa por cima
+    // Feedback visual: acende levemente o fundo da coluna quando o card passa por cima.
+    // O border-radius agora vive em .kanban-cards (style.css) — a mudança de
+    // background aqui já materializa suavemente via a transition definida lá.
     event.currentTarget.style.background = 'rgba(99,102,241,0.05)';
-    event.currentTarget.style.borderRadius = '8px';
 }
 
 function dragLeave(event) {
@@ -933,4 +942,4 @@ async function dropCardFechado(event) {
     }
 }
 
-export { PROBABILIDADE_POR_ETAPA, allowDrop, atualizarMetricasCarteira, atualizarTabelaPaginadaServer, changePage, clearSearch, dragEnter, dragLeave, dragStart, dropCard, dropCardFechado, dropCardPerdido, exportarCSV, getNegociacoesGridTemplate, getPaginaNumeros, handleSearch, handleSearchProtocolo, handleSearchUnificado, renderCarteiraPage, renderKanbanBoard, selectFilter, switchCarteiraView, toggleAccordion };
+export { PROBABILIDADE_POR_ETAPA, allowDrop, atualizarMetricasCarteira, atualizarTabelaPaginadaServer, changePage, clearSearch, dragEnd, dragEnter, dragLeave, dragStart, dropCard, dropCardFechado, dropCardPerdido, exportarCSV, getNegociacoesGridTemplate, getPaginaNumeros, handleSearch, handleSearchProtocolo, handleSearchUnificado, renderCarteiraPage, renderKanbanBoard, selectFilter, switchCarteiraView, toggleAccordion };
