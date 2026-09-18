@@ -980,20 +980,23 @@
         }
         .kpi-card {
             background: var(--card-bg); border-radius: var(--radius-md);
-            padding: 26px 26px 24px;
-            box-shadow: var(--shadow-md); border: 1px solid var(--border-light);
+            padding: 20px 22px 18px;
+            box-shadow: var(--shadow-sm); border: 1px solid var(--border-light);
             display: flex; flex-direction: column; justify-content: center;
-            transition: box-shadow var(--transition), transform var(--transition), border-color var(--transition);
-            position: relative; overflow: hidden; min-height: 140px;
+            transition: box-shadow var(--duration-micro, 80ms) var(--ease-smooth-out),
+                        transform var(--duration-micro, 80ms) var(--ease-smooth-out),
+                        border-color var(--duration-micro, 80ms) var(--ease-smooth-out);
+            position: relative; overflow: hidden; min-height: 120px;
         }
-        .kpi-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-3px); border-color: var(--border-medium); }
+        .kpi-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); border-color: var(--border-medium); }
+        .kpi-card:active { transform: scale(0.98); transition-duration: 60ms; }
         .kpi-card.vendido-highlight {
-            border-top: 3px solid var(--accent-orange);
+            border-top: 2px solid var(--accent-green);
         }
         .kpi-card.vendido-highlight::after {
             content: '';
-            position: absolute; top: 0; left: 0; right: 0; height: 3px;
-            background: linear-gradient(90deg, var(--brand-blue), var(--accent-orange));
+            position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, var(--brand-blue), var(--accent-green));
         }
 
         .kpi-label-row { display: flex; align-items: center; gap: 7px; margin-bottom: 12px; }
@@ -1027,8 +1030,7 @@
            Faturamento" em telas menores). */
         .kpi-card:has(.kpi-icon) .kpi-label-row { padding-right: 40px; }
         .kpi-label {
-            font-size: var(--font-xs); font-weight: 600; color: var(--text-muted);
-            text-transform: uppercase; letter-spacing: 0.06em;
+            font-size: var(--font-xs); font-weight: 500; color: var(--text-secondary);
         }
         .kpi-value {
             font-family: 'JetBrains Mono', monospace;
@@ -1049,6 +1051,66 @@
         body.dark .kpi-var-up { color: #34d399; background: rgba(52, 211, 153, 0.14); }
         body.dark .kpi-var-down { color: #f87171; background: rgba(248, 113, 113, 0.14); }
         .kpi-comparacao-label { display: block; margin-top: 4px; font-size: var(--font-2xs); font-weight: 500; color: var(--text-muted); }
+
+        /* ── Animações de entrada do dashboard (apple-design: stagger suave) ── */
+        @keyframes dashSectionEnter {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .dash-enter { animation: dashSectionEnter 280ms var(--ease-smooth-out, cubic-bezier(0.22,1,0.36,1)) both; }
+        .dash-enter-1 { animation-delay: 0ms; }
+        .dash-enter-2 { animation-delay: 55ms; }
+        .dash-enter-3 { animation-delay: 110ms; }
+        .dash-enter-4 { animation-delay: 165ms; }
+        .dash-enter-5 { animation-delay: 220ms; }
+        @media (prefers-reduced-motion: reduce) { .dash-enter { animation: none; } }
+
+        /* ── Atalhos rápidos ── */
+        .dash-shortcuts-section { display: flex; flex-direction: column; gap: 10px; }
+        .dash-shortcuts-label { font-size: var(--font-xs); font-weight: 500; color: var(--text-secondary); }
+        .dash-shortcuts {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+        }
+        @media (max-width: 600px) { .dash-shortcuts { grid-template-columns: repeat(2, 1fr); } }
+        .dash-shortcut-btn {
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px;
+            padding: 16px 10px; border-radius: var(--radius-sm);
+            background: var(--card-bg); border: 1px solid var(--border-light);
+            cursor: pointer; font-family: 'Inter', sans-serif;
+            transition: background var(--duration-micro, 80ms) var(--ease-smooth-out),
+                        transform var(--duration-micro, 80ms) var(--ease-smooth-out),
+                        border-color var(--duration-micro, 80ms) var(--ease-smooth-out),
+                        box-shadow var(--duration-micro, 80ms) var(--ease-smooth-out);
+            text-align: center;
+        }
+        .dash-shortcut-btn:hover { background: var(--surface-2); border-color: var(--border-medium); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+        .dash-shortcut-btn:active { transform: scale(0.97); transition-duration: 60ms; }
+        body.dark .dash-shortcut-btn { background: var(--card-bg); }
+        body.dark .dash-shortcut-btn:hover { background: var(--surface-2); }
+        .dash-shortcut-icon {
+            width: 34px; height: 34px; border-radius: var(--radius-xs);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .dash-shortcut-icon svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+        .dash-shortcut-label { font-size: var(--font-xs); font-weight: 500; color: var(--text-secondary); white-space: nowrap; }
+
+        /* ── Últimos orçamentos ── */
+        .dash-recentes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+        @media (max-width: 760px) { .dash-recentes-grid { grid-template-columns: 1fr; } }
+        .dash-recent-list { display: flex; flex-direction: column; }
+        .dash-recent-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 9px 0; border-bottom: 1px solid var(--border-light);
+            cursor: pointer;
+            transition: background var(--duration-micro, 80ms) var(--ease-smooth-out);
+            border-radius: var(--radius-xs);
+        }
+        .dash-recent-item:last-child { border-bottom: none; }
+        .dash-recent-item:hover { background: var(--table-row-hover); padding-left: 6px; padding-right: 6px; margin: 0 -6px; }
+        .dash-recent-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+        .dash-recent-nome { flex: 1; font-size: var(--font-sm); font-weight: 500; color: var(--text-primary); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .dash-recent-status-tag { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: var(--radius-full); flex-shrink: 0; }
+        .dash-recent-valor { font-family: 'JetBrains Mono', monospace; font-size: var(--font-xs); font-weight: 700; color: var(--text-secondary); flex-shrink: 0; }
 
         /* .kpi-section-header/.kpi-section-title foram substituídos pelo padrão
            genérico .section-header/.section-title (ver MÓDULO MEU RADAR mais
@@ -1228,8 +1290,7 @@
            com valor grande em monospace, régua de contexto (início/hoje/fim). */
         .meta-inicio-section { display: flex; flex-direction: column; gap: 12px; }
         .meta-section-label {
-            font-size: 11px; font-weight: 700; letter-spacing: 0.12em;
-            text-transform: uppercase; color: var(--text-muted);
+            font-size: var(--font-xs); font-weight: 500; color: var(--text-secondary);
         }
         .meta-hero-card {
             background: var(--card-bg); border: 1px solid var(--border-light);
@@ -1281,15 +1342,15 @@
 
         .chart-card {
             background: var(--card-bg); border-radius: var(--radius-md);
-            padding: 26px; box-shadow: var(--shadow-md); border: 1px solid var(--border-light);
-            min-height: 360px; display: flex; flex-direction: column;
-            transition: box-shadow var(--transition);
+            padding: 20px 22px; box-shadow: var(--shadow-sm); border: 1px solid var(--border-light);
+            display: flex; flex-direction: column;
+            transition: box-shadow var(--duration-micro, 80ms) var(--ease-smooth-out), border-color var(--duration-micro, 80ms) var(--ease-smooth-out);
         }
-        .chart-card:hover { box-shadow: var(--shadow-lg); }
+        .chart-card:hover { box-shadow: var(--shadow-md); border-color: var(--border-medium); }
         .chart-card h3 {
-            font-size: var(--font-base); font-weight: 700; margin-bottom: 18px;
+            font-size: var(--font-sm); font-weight: 600; margin-bottom: 16px;
             display: flex; align-items: center; gap: 8px; flex-shrink: 0;
-            letter-spacing: -0.02em; color: var(--text-primary);
+            letter-spacing: -0.01em; color: var(--text-primary);
         }
 
         .donut-wrapper { position: relative; width: 190px; height: 190px; margin: 0 auto; flex-shrink: 0; }

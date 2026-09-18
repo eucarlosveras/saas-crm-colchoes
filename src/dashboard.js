@@ -652,7 +652,7 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
     const fmtMeta = n => n.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 
     const progressHtml = `
-<section class="meta-inicio-section">
+<section class="meta-inicio-section dash-enter dash-enter-1">
     <span class="meta-section-label">Meta de ${nomeMesSelecionado}</span>
     <div class="meta-hero-card">
         <div class="meta-hero-top">
@@ -726,7 +726,7 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
         // Modelo v2: o segmented control Hoje/Semana/Mês sai do .kpi-toolbar (que
         // não existe mais visualmente — display:none) e vai pro .header-actions
         // do próprio .section-header, ficando na mesma linha do rótulo da seção.
-        kpiSectionHtml = `<section class="kpi-inicio-section">
+        kpiSectionHtml = `<section class="kpi-inicio-section dash-enter dash-enter-2">
             <div class="section-header">
                 <h2 class="section-title">
                     <span class="section-icon-badge">
@@ -836,17 +836,81 @@ import { addDiasADataStr, addDiasBrasilia, deslocarDataEmMeses, escapeHtml, getH
             </li>
         `}).join('') || '<li style="justify-content:center; color:var(--text-muted);">Nenhuma venda fechada</li>';
         
+            // ── Atalhos rápidos ──────────────────────────────────────
+            const ICON_ORCAMENTO = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
+            const ICON_CLIENTES  = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>`;
+            const ICON_ESTOQUE   = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>`;
+            const ICON_AGENDA    = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
+
+            const shortcutsHtml = `
+<section class="dash-shortcuts-section dash-enter dash-enter-3">
+    <div class="dash-shortcuts">
+        <button class="dash-shortcut-btn" type="button" onclick="abrirNovoOrcamento()">
+            <span class="dash-shortcut-icon" style="background:var(--brand-blue-subtle);color:var(--brand-blue)">${ICON_ORCAMENTO}</span>
+            <span class="dash-shortcut-label">Novo Orçamento</span>
+        </button>
+        <button class="dash-shortcut-btn" type="button" onclick="navigateTo('clientes')">
+            <span class="dash-shortcut-icon" style="background:rgba(99,102,241,0.1);color:#6366f1">${ICON_CLIENTES}</span>
+            <span class="dash-shortcut-label">Clientes</span>
+        </button>
+        <button class="dash-shortcut-btn" type="button" onclick="navigateTo('estoque')">
+            <span class="dash-shortcut-icon" style="background:rgba(193,127,43,0.1);color:var(--accent-orange)">${ICON_ESTOQUE}</span>
+            <span class="dash-shortcut-label">Estoque</span>
+        </button>
+        <button class="dash-shortcut-btn" type="button" onclick="navigateTo('agenda')">
+            <span class="dash-shortcut-icon" style="background:var(--accent-green-subtle);color:var(--accent-green)">${ICON_AGENDA}</span>
+            <span class="dash-shortcut-label">Agenda</span>
+        </button>
+    </div>
+</section>`;
+
+            // ── Últimos orçamentos (visão vendedor) ──────────────────
+            const statusColor = s => {
+                if (s === STATUS.FECHADO || s === 'Vendido')     return { dot: 'var(--accent-green)',  bg: 'var(--accent-green-subtle)',  text: '#065f46' };
+                if (s === STATUS.PERDIDO || s === 'Declinado')   return { dot: '#ef4444',               bg: 'rgba(239,68,68,0.1)',         text: '#b91c1c' };
+                if (s === STATUS.EM_FECHAMENTO)                  return { dot: 'var(--accent-orange)',  bg: 'rgba(193,127,43,0.1)',        text: '#92400e' };
+                if (s === STATUS.NEGOCIACAO)                     return { dot: '#6366f1',               bg: 'rgba(99,102,241,0.1)',        text: '#4338ca' };
+                return { dot: 'var(--brand-blue)', bg: 'var(--brand-blue-subtle)', text: 'var(--brand-blue)' };
+            };
+
+            const fmtValor = v => `R$ ${parseFloat(v||0).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}`;
+
+            const recentesArr = [...dados]
+                .filter(o => o.data_criacao)
+                .sort((a, b) => new Date(b.data_criacao) - new Date(a.data_criacao))
+                .slice(0, 6);
+
+            const recentesHtml = recentesArr.length
+                ? recentesArr.map(o => {
+                    const c = statusColor(o.status);
+                    return `<div class="dash-recent-item" onclick="">
+                        <span class="dash-recent-dot" style="background:${c.dot}"></span>
+                        <span class="dash-recent-nome">${escapeHtml(o.nome_cliente || '—')}</span>
+                        <span class="dash-recent-status-tag" style="background:${c.bg};color:${c.text}">${escapeHtml(o.status||'')}</span>
+                        <span class="dash-recent-valor">${fmtValor(o.valor_orcado)}</span>
+                    </div>`;
+                }).join('')
+                : `<div style="padding:20px 0;text-align:center;color:var(--text-muted);font-size:var(--font-sm);">Nenhum orçamento neste período</div>`;
+
             let chartsRowHtml = '';
             if (verGerencial) {
-                chartsRowHtml = `<section class="charts-row">${donutHtml}${rankingHtml}<div class="chart-card"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg> Mais Vendidos</h3><ul class="top5-list">${top5Html}</ul></div></section>`;
+                chartsRowHtml = `<section class="charts-row dash-enter dash-enter-4">${donutHtml}${rankingHtml}<div class="chart-card"><h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg> Mais Vendidos</h3><ul class="top5-list">${top5Html}</ul></div></section>`;
             } else {
-                // Visão Vendedor: no lugar da antiga fileira de gráficos (Aproveitamento +
-                // Evolução Mensal + Mais Vendidos), mostra o "Meu Radar" — os sinais e
-                // alertas pessoais do vendedor logado.
-                chartsRowHtml = `<section class="radar-inicio-section">${getMeuRadarBlockHtml()}</section>`;
+                // Visão Vendedor: Meu Radar + Últimos Orçamentos lado a lado
+                chartsRowHtml = `
+<section class="dash-recentes-grid dash-enter dash-enter-4">
+    <div class="radar-inicio-section" style="margin:0">${getMeuRadarBlockHtml()}</div>
+    <div class="chart-card" style="min-height:0">
+        <h3>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+            Últimos Orçamentos
+        </h3>
+        <div class="dash-recent-list">${recentesHtml}</div>
+    </div>
+</section>`;
             }
 
-            main.innerHTML = `${headerHtml}${progressHtml}${kpiSectionHtml}${chartsRowHtml}`;
+            main.innerHTML = `${headerHtml}${progressHtml}${kpiSectionHtml}${shortcutsHtml}${chartsRowHtml}`;
 
             if (verGerencial) {
                 requestAnimationFrame(() => { tentarRenderizarGraficos(total, fechados); });
