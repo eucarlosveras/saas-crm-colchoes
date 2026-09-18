@@ -215,6 +215,23 @@
 
         textarea { resize: none; }
 
+        /* Reduced motion / transparency / contrast — nenhuma destas três
+           media queries existia neste arquivo (só na landing page). Troca
+           slides/springs por cross-fades curtos, engrossa materiais
+           translúcidos e reforça contraste, sem remover o feedback em si. */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.001ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.001ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+        @media (prefers-reduced-transparency: reduce) {
+            .sidebar, .notification-dropdown, .sidebar-overlay, .modal-overlay { backdrop-filter: none !important; }
+            .sidebar { background: var(--sidebar-bg) !important; }
+        }
+
         /* ────────────────────────────────────────────────────────
            LOADER & TOASTS
         ──────────────────────────────────────────────────────── */
@@ -309,6 +326,13 @@
         #kanbanBoard.active { display:block; width:100%; overflow:hidden; }
         #tabelaCarteiraWrapper { display:block; }
         #tabelaCarteiraWrapper.hidden { display:none; }
+        /* A troca Kanban/Tabela era um corte seco (display:none↔block sem
+           transição) — não é um gesto com momentum, então um cross-fade sem
+           overshoot (não uma mola) é o que cabe aqui, igual ao crossfade que
+           .kpi-grid-compact já usa ao trocar Visão Vendedor/Gerencial. Puro
+           CSS: re-dispara sozinho toda vez que o elemento sai de display:none. */
+        #kanbanBoard.active, #tabelaCarteiraWrapper:not(.hidden) { animation: crmViewIn 0.22s var(--ease-smooth-out); }
+        @keyframes crmViewIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
         .kanban-board {
             display: grid;
@@ -325,6 +349,13 @@
         }
 
         .kanban-col { display:flex; flex-direction:column; gap:9px; min-height:200px; min-width:0; overflow:hidden; }
+        /* Zona de drop do kanban (.kanban-cards, ver dragEnter/dragLeave em
+           carteira.js): o destaque de fundo já existia, mas era um corte
+           seco (style.background setado/limpo sem transição). A regra
+           abaixo não muda o comportamento — só dá à mesma mudança de
+           background-color uma transição suave, para o "pouso" do card
+           materializar em vez de piscar. */
+        .kanban-cards { border-radius: 8px; transition: background-color 0.16s var(--ease-smooth-out); }
         /* Cabeçalho de coluna ao estilo Pipedrive: cartão neutro (não mais um
            painel pastel cobrindo a coluna inteira) com um acento de cor fino no
            topo — a identidade do estágio fica só no acento + título + contador,
@@ -608,11 +639,17 @@
             border-radius: var(--radius-sm); padding: 9px; cursor: pointer;
             box-shadow: var(--shadow-sm);
         }
+        /* Scrim materializa junto com a gaveta (não é um corte seco de
+           display:none/block) — dim-to-focus: escurece enquanto o menu
+           desliza, na mesma duração do slide da .sidebar abaixo. */
         .sidebar-overlay {
-            display: none; position: fixed; inset: 0;
+            position: fixed; inset: 0;
             background: rgba(0,0,0,0.4); z-index: 99;
             backdrop-filter: blur(2px);
+            opacity: 0; visibility: hidden; pointer-events: none;
+            transition: opacity 0.28s var(--ease-smooth-out), visibility 0.28s;
         }
+        .sidebar-overlay.open { opacity: 1; visibility: visible; pointer-events: auto; }
 
         /* ────────────────────────────────────────────────────────
            SIDEBAR — GLASSMORPHISM
@@ -893,13 +930,19 @@
         .notification-badge.visible { opacity: 1; transform: scale(1); }
 
         .notification-dropdown {
-            position: absolute; top: 46px; right: 0;
+            position: absolute; top: 46px; right: 0; transform-origin: top right;
             background: var(--card-bg); border-radius: var(--radius-md);
             border: 1px solid var(--border-light); box-shadow: var(--shadow-lg);
             width: 360px; max-height: 420px; overflow-y: auto;
-            z-index: 250; display: none; flex-direction: column;
+            z-index: 250; display: flex; flex-direction: column;
+            opacity: 0; visibility: hidden; pointer-events: none;
+            transform: scale(0.95) translateY(-4px);
+            transition: opacity 0.16s var(--ease-smooth-out), transform 0.16s var(--ease-smooth-out), visibility 0.16s;
         }
-        .notification-dropdown.open { display: flex; }
+        .notification-dropdown.open {
+            opacity: 1; visibility: visible; pointer-events: auto;
+            transform: scale(1) translateY(0);
+        }
         .notification-dropdown .notif-header {
             padding: 14px 18px; border-bottom: 1px solid var(--border-light);
             font-weight: 700; font-size: var(--font-sm);
@@ -2021,18 +2064,24 @@
             position: fixed; inset: 0; background: rgba(0,0,0,0.45);
             backdrop-filter: blur(6px); z-index: 300;
             display: flex; align-items: center; justify-content: center;
-            opacity: 0; visibility: hidden; transition: all 0.22s ease;
+            opacity: 0; visibility: hidden;
+            transition: opacity 0.22s var(--ease-smooth-out), visibility 0.22s;
         }
         .modal-overlay.open { opacity: 1; visibility: visible; }
 
+        /* Sem overshoot de propósito: um modal não nasce de um gesto com
+           momentum (drag/flick) — abrir "quicando" (bounce) lê como errado
+           por aqui (ver apple-design: overshoot só em interações que
+           carregam momentum). Critically damped via --ease-smooth-out,
+           mesma curva usada no resto do app. */
         .modal-card {
             background: var(--card-bg); border-radius: var(--radius-lg);
             padding: 32px; max-width: 500px; width: 90%;
             max-height: 88vh; overflow-y: auto;
             border: 1px solid var(--border-light);
             box-shadow: var(--shadow-modal);
-            transform: translateY(16px) scale(0.99);
-            transition: transform 0.22s cubic-bezier(0.34, 1.3, 0.64, 1);
+            transform: translateY(16px) scale(0.98);
+            transition: transform 0.28s var(--ease-smooth-out);
         }
         .modal-overlay.open .modal-card { transform: translateY(0) scale(1); }
 
@@ -2816,9 +2865,8 @@
 
         @media (max-width: 768px) {
             .hamburger { display: block; }
-            .sidebar { transform: translateX(-100%); transition: transform 0.28s ease; }
+            .sidebar { transform: translateX(-100%); transition: transform 0.28s var(--ease-smooth-out); }
             .sidebar.open { transform: translateX(0); }
-            .sidebar-overlay.open { display: block; }
             .main-content { margin-left: 0 !important; padding: 18px 16px; }
             .kpi-row { grid-template-columns: 1fr 1fr; }
             .charts-row, .charts-row-duplo, .charts-row-triplo, .charts-row-unico,
